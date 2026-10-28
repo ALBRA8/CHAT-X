@@ -1,0 +1,299 @@
+{
+  "generadoEn": "2026-10-28T22:14:53.465Z",
+  "taxonomia": [
+    "OPERATIVO",
+    "DEGRADADO",
+    "NO_CONFIGURADO",
+    "NO_DISPONIBLE",
+    "ERROR"
+  ],
+  "nota": "Ningún estado se deriva solo de HTTP 200: cada capa queda evidenciada.",
+  "resultados": [
+    {
+      "motor": "crm",
+      "url": "http://127.0.0.1:3100",
+      "estado": "DEGRADADO",
+      "causaPrincipal": "Núcleo vivo y sano, pero 1 capacidad(es) exige(n) credencial que no existe aún: op. representativa (m2m).",
+      "capas": [
+        {
+          "capa": "conectividad",
+          "veredicto": "OK",
+          "detalle": "HTTP 200",
+          "latenciaMs": 14
+        },
+        {
+          "capa": "salud semántica",
+          "veredicto": "OK",
+          "detalle": "ok=true, checks.db=true, versión 0.2.1"
+        },
+        {
+          "capa": "doctor (BD real)",
+          "veredicto": "NO_VERIFICABLE",
+          "detalle": "HTTP 401: el doctor exige credencial o no está expuesto; el check db=true del health ya declara BD accesible"
+        },
+        {
+          "capa": "op. representativa (m2m)",
+          "veredicto": "SIN_CREDENCIAL",
+          "detalle": "HTTP 401: el contrato crm-actions exige API key albra_… (la generará el fundador en Settings del CRM)"
+        }
+      ],
+      "latenciasEstabilidadMs": [
+        6,
+        7,
+        9
+      ],
+      "verificadoEn": "2026-10-28T22:14:48.793Z"
+    },
+    {
+      "motor": "whatspower",
+      "url": "http://127.0.0.1:3003",
+      "estado": "OPERATIVO",
+      "causaPrincipal": "Todas las capas aplicables en verde (conectividad + salud semántica + BD/dependencias + operación representativa).",
+      "capas": [
+        {
+          "capa": "conectividad",
+          "veredicto": "OK",
+          "detalle": "HTTP 200",
+          "latenciaMs": 0
+        },
+        {
+          "capa": "salud semántica",
+          "veredicto": "OK",
+          "detalle": "status=ok, service=albra-agentic-2a"
+        },
+        {
+          "capa": "BD real (lectura)",
+          "veredicto": "OK",
+          "detalle": "GET /api/flows → 1 flujo(s) real(es) guardado(s)"
+        },
+        {
+          "capa": "op. representativa",
+          "veredicto": "OK",
+          "detalle": "POST /api/flows/simulate → evaluateStep real (false); sin envío a nadie"
+        }
+      ],
+      "latenciasEstabilidadMs": [
+        0,
+        0,
+        1
+      ],
+      "verificadoEn": "2026-10-28T22:14:49.599Z"
+    },
+    {
+      "motor": "ultra",
+      "url": "http://127.0.0.1:3004",
+      "estado": "OPERATIVO",
+      "causaPrincipal": "Todas las capas aplicables en verde (conectividad + salud semántica + BD/dependencias + operación representativa).",
+      "capas": [
+        {
+          "capa": "conectividad",
+          "veredicto": "OK",
+          "detalle": "HTTP 200",
+          "latenciaMs": 1
+        },
+        {
+          "capa": "salud semántica",
+          "veredicto": "OK",
+          "detalle": "status=ok, service=whatspower-ultra"
+        },
+        {
+          "capa": "BD real (lectura)",
+          "veredicto": "OK",
+          "detalle": "GET /api/campaigns → lista campaña(s)"
+        },
+        {
+          "capa": "op. representativa",
+          "veredicto": "OK",
+          "detalle": "generate-spintax real (motor determinista, sin LLM externo, sin envío a nadie)"
+        }
+      ],
+      "latenciasEstabilidadMs": [
+        1,
+        1,
+        1
+      ],
+      "verificadoEn": "2026-10-28T22:14:50.404Z"
+    },
+    {
+      "motor": "nexscope",
+      "url": "http://127.0.0.1:3300",
+      "estado": "DEGRADADO",
+      "causaPrincipal": "Núcleo vivo y sano, pero 1 capacidad(es) exige(n) credencial que no existe aún: op. representativa.",
+      "capas": [
+        {
+          "capa": "conectividad",
+          "veredicto": "OK",
+          "detalle": "HTTP 200",
+          "latenciaMs": 8
+        },
+        {
+          "capa": "salud semántica",
+          "veredicto": "OK",
+          "detalle": "available=true, status=ok, auth=anonymous"
+        },
+        {
+          "capa": "app viva",
+          "veredicto": "OK",
+          "detalle": "GET / → HTTP 200",
+          "latenciaMs": 46
+        },
+        {
+          "capa": "op. representativa",
+          "veredicto": "SIN_CREDENCIAL",
+          "detalle": "HTTP 401: el trabajo real exige sesión JWT por cookie (el motor no ofrece API key m2m; requiere su repo)"
+        }
+      ],
+      "latenciasEstabilidadMs": [
+        7,
+        15,
+        9
+      ],
+      "verificadoEn": "2026-10-28T22:14:51.300Z"
+    },
+    {
+      "motor": "agentekrea",
+      "url": "http://127.0.0.1:3210",
+      "estado": "OPERATIVO",
+      "causaPrincipal": "Todas las capas aplicables en verde (conectividad + salud semántica + BD/dependencias + operación representativa).",
+      "capas": [
+        {
+          "capa": "conectividad",
+          "veredicto": "OK",
+          "detalle": "HTTP 200",
+          "latenciaMs": 52
+        },
+        {
+          "capa": "BD real (doctor)",
+          "veredicto": "OK",
+          "detalle": "database: SQLite OK, 0 users"
+        },
+        {
+          "capa": "dependencias críticas",
+          "veredicto": "OK",
+          "detalle": "database, generation_api, zai_provider, storage, config todas HEALTHY"
+        },
+        {
+          "capa": "subsistemas no críticos",
+          "veredicto": "NO_APLICA",
+          "detalle": "degradados sin impacto en generación: auth_api=DEGRADED(HTTP 404), metrics_api=DEGRADED()"
+        },
+        {
+          "capa": "op. representativa",
+          "veredicto": "OK",
+          "detalle": "el doctor en sí ES la operación representativa de diagnóstico del estudio (6 rutas de generación listas)"
+        }
+      ],
+      "latenciasEstabilidadMs": [
+        45,
+        43
+      ],
+      "verificadoEn": "2026-10-28T22:14:51.841Z"
+    },
+    {
+      "motor": "cazador",
+      "url": "http://127.0.0.1:8787",
+      "estado": "OPERATIVO",
+      "causaPrincipal": "Todas las capas aplicables en verde (conectividad + salud semántica + BD/dependencias + operación representativa).",
+      "capas": [
+        {
+          "capa": "conectividad",
+          "veredicto": "OK",
+          "detalle": "HTTP 200",
+          "latenciaMs": 1
+        },
+        {
+          "capa": "salud semántica",
+          "veredicto": "OK",
+          "detalle": "ok=true, model=glm"
+        },
+        {
+          "capa": "op. representativa",
+          "veredicto": "OK",
+          "detalle": "PRUEBA REAL de extracción sobre example.com (ciclo GLM completo, rows=); lectura pública, sin envío a nadie"
+        }
+      ],
+      "latenciasEstabilidadMs": [
+        1,
+        1,
+        1
+      ],
+      "verificadoEn": "2026-10-28T22:14:53.463Z"
+    },
+    {
+      "motor": "youtube",
+      "url": "http://127.0.0.1:8000",
+      "estado": "NO_DISPONIBLE",
+      "causaPrincipal": "No responde en red local: sin respuesta (Unable to connect. Is the computer able to access the url?) — corre en la máquina del fundador (FFmpeg + Chrome/CDP :9333). No está corriendo en este host (dato real, no simulado).",
+      "capas": [
+        {
+          "capa": "conectividad",
+          "veredicto": "SIN_RED",
+          "detalle": "sin respuesta (Unable to connect. Is the computer able to access the url?) — corre en la máquina del fundador (FFmpeg + Chrome/CDP :9333)"
+        }
+      ],
+      "latenciasEstabilidadMs": [
+        null,
+        null,
+        null
+      ],
+      "verificadoEn": "2026-10-28T22:14:53.464Z"
+    },
+    {
+      "motor": "agentegeneral",
+      "url": "http://127.0.0.1:9000",
+      "estado": "NO_DISPONIBLE",
+      "causaPrincipal": "No responde en red local: sin respuesta (Unable to connect. Is the computer able to access the url?) — app Python con LLM key externa, corre en la máquina del fundador. No está corriendo en este host (dato real, no simulado).",
+      "capas": [
+        {
+          "capa": "conectividad",
+          "veredicto": "SIN_RED",
+          "detalle": "sin respuesta (Unable to connect. Is the computer able to access the url?) — app Python con LLM key externa, corre en la máquina del fundador"
+        }
+      ],
+      "latenciasEstabilidadMs": [
+        null,
+        null,
+        null
+      ],
+      "verificadoEn": "2026-10-28T22:14:53.464Z"
+    },
+    {
+      "motor": "leads",
+      "url": null,
+      "estado": "NO_CONFIGURADO",
+      "causaPrincipal": "Sin URL: el registro no sondea este motor por diseño (bot sin HTTP o panel con sesión).",
+      "capas": [
+        {
+          "capa": "configuración",
+          "veredicto": "NO_APLICA",
+          "detalle": "bot Telegram (long-polling, sin HTTP) + dashboard NextAuth: no sondeable por diseño"
+        }
+      ],
+      "latenciasEstabilidadMs": [
+        null,
+        null,
+        null
+      ],
+      "verificadoEn": "2026-10-28T22:14:53.464Z"
+    },
+    {
+      "motor": "comuniti",
+      "url": null,
+      "estado": "NO_CONFIGURADO",
+      "causaPrincipal": "Sin URL: el registro no sondea este motor por diseño (bot sin HTTP o panel con sesión).",
+      "capas": [
+        {
+          "capa": "configuración",
+          "veredicto": "NO_APLICA",
+          "detalle": "panel :3000 colisiona con CHAT-X: sin URL por defecto desde la corrección del falso 404"
+        }
+      ],
+      "latenciasEstabilidadMs": [
+        null,
+        null,
+        null
+      ],
+      "verificadoEn": "2026-10-28T22:14:53.464Z"
+    }
+  ]
+}

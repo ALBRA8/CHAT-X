@@ -1,16 +1,88 @@
-# Informe de pruebas (sección 7 de la orden maestra) — actualizado 2026-10-29
+# Informe de pruebas (sección 7 de la orden maestra) — actualizado 2026-10-28
 
 Herramienta: `scripts/pruebas_api.sh` (peticiones HTTP reales contra el servidor local) + `bun test test/unit/` (unitarias del núcleo) + verificación E2E con navegador (agent-browser).
 
-**Resultado 2026-10-29: 33 PASS · 0 FAIL · 0 SKIP (API) + 18 PASS · 0 FAIL (unitarias) + 0 errores de página/consola (E2E navegador).**
+**Resultado 2026-10-28 (validación profunda d131124): API 33 PASS · 0 FAIL · 0 SKIP + unitarias 46 PASS · 0 FAIL · 1 skip opt-in (39 previas + 7 nuevas de youtube_estado) + sonda profunda 5 estados (4 OPERATIVOS · 2 DEGRADADOS · 2 NO_CONFIGURADO · 2 NO_DISPONIBLE · 0 ERROR) + idempotencia E2E 0 duplicados + gate WhatsApp E2E verificado + cerrojo BD verde + md5 de BDs de motores idénticos durante toda la validación.**
 
 Reproducción:
 ```bash
 bun install && bunx prisma db push && bun run dev        # terminal 1
 bash scripts/pruebas_api.sh                              # terminal 2 — 33 checks
-bun test test/unit/                                      # unitarias
-# benchmark GPU (solo con ComfyUI corriendo): bash scripts/benchmark_gpu.sh
+bun test test/unit/                                      # 46 pass
+bash scripts/validacion_consolidacion.sh                 # API + E2E idempotencia + gate WhatsApp en una ventana
+bun scripts/sonda_profunda.ts                            # sonda profunda 5 estados + evidencia JSON
+bun scripts/verificar_bd.ts                              # cerrojo de integridad BD
+bash scripts/escaneo_secretos.sh                         # 0 secretos (sin revelar valores)
 ```
+
+---
+
+# Validación profunda (2026-10-28, post-d131124) — hallazgos, correcciones y evidencia
+
+Orden del fundador: sondas ampliadas por motor, taxonomía estricta de 5 estados (no OPERATIVO por un simple HTTP 200), estabilidad de los motores sin OOM (4 GB), re-pruebas de idempotencia/recuperación/aislamiento/gate, auditoría de los 7 contratos de YouTube Automation, sin envíos reales, clones intactos, sin pedir la API key del CRM.
+
+## 1. Sonda profunda por capas (nueva herramienta: scripts/sonda_profunda.ts)
+
+Cada motor pasa SECUENCIALMENTE por: configuración → conectividad → **salud semántica** (parseo real del body) → dependencias + acceso real a BD → **operación representativa** (lectura o acción segura sin envío: simulate de flujo, spintax determinista, scraping de example.com). Resultados completos por motor: `docs/MOTORES_REGISTRO.md` §Taxonomía y `docs/evidencia/sonda_profunda.json`.
+
+| Estado | Motores |
+|---|---|
+| OPERATIVO (4) | whatspower · ultra · agentekrea · cazador |
+| DEGRADADO (2) | crm (núcleo y BD sanos; m2m → 401 sin API key `albra_…` del fundador) · nexscope (app viva; trabajo real → 401 sin sesión JWT, pendiente del motor) |
+| NO_CONFIGURADO (2) | leads · comuniti (sin URL por diseño) |
+| NO_DISPONIBLE (2) | youtube · agentegeneral (corren en la máquina del fundador) |
+| ERROR (0) | — (los 2 errores reales encontrados fueron corregidos: ver §2) |
+
+Estabilidad: 3 muestras de health por motor vivo (latencias 0-75ms, sin fallos); RAM vigilada (mínimo 519 MB disponible durante la sonda, ejecución secuencial, sin OOM).
+
+## 2. Hallazgos REALES y correcciones (con evidencia)
+
+| # | Hallazgo | Evidencia | Corrección | Verificación |
+|---|---|---|---|---|
+| 1 | **NEX-SCOPE en ERROR tras el reinicio del sandbox**: el clon 43e2e4c traía un bug de sintaxis **upstream** (coma doble en `SettingsView.tsx:77`); la página raíz no compilaba y el dev server quedaba envenenado (health → 500 en cascada). El "OPERATIVO" previo solo miraba health 200 | `/tmp/nexscope_recuperacion2.log`: `Unexpected token ,` en SettingsView.tsx:77:27; `git show HEAD:` del clon confirma la coma doble ANTES del fix | Clon actualizado al upstream `d818f3e` (fix del propio autor, solo `git fetch` + checkout de SU commit; cero cambios nuestros en su código) | `GET /` → 200 · health 200 estable DESPUÉS de compilar la raíz · md5 `nexscope.db` idéntico antes/durante/después (`1d1b67…`) |
+| 2 | **`youtube_estado` sondeaba una ruta inexistente**: `GET /api/jobs/{id}` no existe en el motor (solo `/events` SSE y `/cancel`) — el paso habría hecho polling a 404 para siempre | grep en el clon YT 2589e4e: solo `@app.get("/api/jobs/{job_id}/events")` y `@app.post("/api/jobs/{job_id}/cancel")` | Paso re-cableado al contrato real `GET /api/projects/{pid}` (`status: pending\|paso\|ready\|failed` + `job.status`) con resolutor puro nuevo | 7 unit tests nuevas (`test/unit/youtube-estado.test.ts`) · suite completa 46 pass · tsc limpio |
+| 3 | **Upstream avanzó en 2 motores** (nunca por push nuestro): YT `fef6682→2589e4e` ("NotebookLM series pilot production gate"), NEX `43e2e4c→d818f3e` | `git ls-remote origin HEAD` (solo lectura) | Clon YT re-fetch shallow; registro de procedencia actualizado | `docs/MOTORES_REGISTRO.md` §Re-verificación |
+| 4 | **Recuperación de proceso**: el primer re-arranque de NEX-SCOPE murió silenciosamente al cerrarse el shell del sandbox (sin OOM: dmesg limpio) | log sin errores tras el 200 inicial | Procedimiento de doble fork `( … & )` documentado y validado | servidor estable en llamadas separadas + procedimiento en `docs/MOTORES_REGISTRO.md` |
+| 5 | **Escáner de secretos con bug de salida** (`grep -c` + `|| echo 0` producía "0\n0") | stderr del escaneo | Corregido (`\|\| true`) | escaneo limpio: 0 secretos en árbol e historial |
+
+## 3. Re-pruebas de estabilidad (todas re-ejecutadas hoy, sin envíos reales)
+
+| Prueba | Resultado | Evidencia |
+|---|---|---|
+| Suite API completa | **33 PASS · 0 FAIL · 0 SKIP** | `bash scripts/validacion_consolidacion.sh` §1 |
+| Unitarias (incluye 7 nuevas) | **46 pass · 0 fail · 1 skip opt-in** (111 asserts) | `bun test test/unit/` |
+| **Idempotencia E2E** (re-encolar el MISMO job de lote, simulando crash+reintento) | **0 piezas nuevas · 0 pares (characterId,seed) duplicados** | validación §2 (job cmvso4f2u001mohug0blxkflk: 36→36 piezas) |
+| **Gate humano WhatsApp E2E** (ultra_step sin aprobación previa) | Detenido: `esperando_aprobacion` + `gatePendiente`; tras autorizar → `completada`; **0 envíos** (sin campaña configurada) | validación §3 |
+| **Aislamiento BD durante toda la validación** | md5 de `nexscope.db`, `krea.db`, `crm.db` **idénticos antes/después**; solo la BD propia de CHAT-X creció (su propio trabajo) | huellas `/tmp/md5_antes.txt` vs post-validación |
+| **Cerrojo de integridad BD** | `✓ 12 tablas, 0 intrusas` | `bun scripts/verificar_bd.ts` |
+| **Zombis tras el reinicio REAL del sandbox de hoy** (4 servidores Next rearrancados a las 21:02-21:31) | **0 ejecuciones `en_curso` huérfanas** de 10 totales | consulta SQL readonly a FlujoEjecucion |
+| **Cerrojos WhatsApp en vivo** | firma inválida → **401** · timestamp expirado (replay) → **401** · webhook AGENTE-LEADS sin credencial → **503 fail-closed** | curl reales contra :3003 y :3000 |
+| Escaneo de secretos | 0 secretos en árbol versionado e historial completo; sin remotos git; `.env` de engines solo con `DATABASE_URL` | `bash scripts/escaneo_secretos.sh` |
+
+## 4. Auditoría de los 7 contratos de YOUTUBE-AUTOMATION (clon 2589e4e, código real)
+
+| # | Contrato en el registro de CHAT-X | En el código del motor | Invocable de verdad HOY | Bloqueo |
+|---|---|---|---|---|
+| 1 | `GET /api/harness/v1/manifest` | **Implementado** (`youtube_harness/api.py:41`, 19 operaciones `youtube.*` con riesgo LOW/MEDIUM/HIGH/CRITICAL) | Solo con el motor corriendo en :8000 | Corre en la máquina del fundador (FFmpeg + Chrome/CDP :9333) |
+| 2 | `POST /api/harness/v1/execute` | **Implementado** (`api.py:72`) | Ídem | Ídem |
+| 3 | `POST /api/production_json/validate` | **Implementado** (`main.py`) | Ídem | Ídem |
+| 4 | `POST /api/projects` (mode production_json) | **Implementado** (`main.py:830`; devuelve `{"id": pid, …}`) | Ídem | Ídem |
+| 5 | `GET /api/production_json/contrato` | **Implementado** (`main.py`) | Ídem | Ídem |
+| 6 | `POST /mcp` (JSON-RPC 2.0) | **Implementado** (`main.py:1962` monta `mcp_server.app`; exactamente **25 tools**, contadas en `TOOLS`) | Ídem + flags FLOW_MCP para las tools de Flow | Ídem + flags apagados por defecto |
+| 7 | `GET /api/jobs/{id}/events` (SSE) | **Implementado** (`main.py:1165`) | Ídem | Ídem |
+
+**Veredicto honesto**: los 7 contratos están IMPLEMENTADOS en el código del motor (verificado estáticamente contra el clon `2589e4e`), CHAT-X tiene pasos de orquestador que los llaman por HTTP (`youtube_validar`/`youtube_submit`/`youtube_estado` — este último corregido hoy), pero **NINGUNO es invocable desde este sandbox**: el motor corre en la máquina del fundador. Además de los 7, el arnés ofrece `GET /api/harness/v1/executions/{id}` y el catálogo exacto es de **19 operaciones** (`_OPERATION_SPECS` en `capabilities.py`), como decía el registro.
+
+**Gemini y Google Flow**: re-verificado hoy con grep sobre `src/` y `scripts/` de CHAT-X: **cero llamadas directas**. Son capacidades INTERNAS del motor YT (guion Gemini 4 modos, TTS dual, GoogleFlowMCP stdio+CDP con Gates A/C.0/C.1/C.2). Declararlos "integrados con CHAT-X" sería falso: lo integrado es el CONTRATO del motor YT; Gemini/Flow activan solo cuando ese motor corre en la máquina del fundador con sus credenciales y flags (`GEMINI_API_KEY`, `FLOW_MCP_ENABLED=1`, `FLOW_MCP_VIDEO_ENABLED=1`).
+
+## 5. Bloqueos que requieren al fundador (sin cambios estructurales)
+
+1. **Revocar el PAT de GitHub** — procedimiento completo en `docs/SEGURIDAD.md` (5 min en su navegador; único secreto comprometido, vive solo en el canal de chat; nunca se mostró ni copió en esta fase).
+2. **QR de WhatsApp** + destinatario consentido (`docs/WHATSAPP_QR_ACTIVACION.md`).
+3. **API key `albra_…` del CRM** — con ella, CRM pasa de DEGRADADO a OPERATIVO pleno (m2m de escritura).
+4. **Motor YT en su máquina** (FFmpeg + Chrome/CDP + flags) — con él, los 7 contratos pasan de "implementados" a invocables.
+5. **Sesión JWT de NEX-SCOPE o contrato API key en su repo** — pendiente del motor (no de CHAT-X).
+6. **NVIDIA_API_KEY / TELEGRAM_BOT_TOKEN** para LEADS y AGENTE-GENERAL.
 
 ---
 

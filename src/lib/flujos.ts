@@ -43,6 +43,26 @@ export function batchIdFlujo(ejecucionId: string, pasoId: string): string {
   return `flujo_${hexSha256(`${ejecucionId}:${pasoId}`).slice(0, 16)}`
 }
 
+/**
+ * ESTADO DE PROYECTO YT — contrato REAL del motor (GET /api/projects/{pid}):
+ *   { …, status: 'pending'|<paso>|'ready'|'failed', job: {status:'running'|'done'|'failed'|'cancelled'} | null }
+ * NOTA (hallazgo d131124): la ruta GET /api/jobs/{id} NO existe en el motor
+ * (solo /events SSE y /cancel) — el sondeo de estado va contra /api/projects/{pid}.
+ */
+export function resuelveEstadoProyectoYT(
+  payload: unknown,
+): { termino: boolean; exito: boolean; detalle: string } {
+  const p = (payload ?? {}) as { status?: string; job?: { status?: string } | null }
+  const estadoProyecto = String(p.status ?? '')
+  const estadoJob = String(p.job?.status ?? '')
+  if (estadoProyecto === 'ready') return { termino: true, exito: true, detalle: `proyecto ready (job: ${estadoJob || 'ninguno'})` }
+  if (estadoProyecto === 'failed') return { termino: true, exito: false, detalle: 'proyecto failed' }
+  if (estadoJob === 'done') return { termino: true, exito: true, detalle: 'job activo done' }
+  if (estadoJob === 'failed' || estadoJob === 'cancelled') return { termino: true, exito: false, detalle: `job activo ${estadoJob}` }
+  return { termino: false, exito: false, detalle: `en curso (proyecto: ${estadoProyecto || '?'}${estadoJob ? `, job: ${estadoJob}` : ''})` }
+}
+
+
 /** Variante base determinista derivada del batchId (sin Math.random: re-ejecutar no cambia las semillas). */
 export function varianteDeBatch(batchId: string): number {
   return parseInt(hexSha256(`variante:${batchId}`).slice(0, 8), 16) % 1000
@@ -185,19 +205,24 @@ async function accionPaso(paso: PasoDef, vars: Variables, ctx?: { ejecucionId: s
       if (!jobId) return { ok: false, mensaje: 'Sin jobId: ejecuta youtube_submit antes o pasa params.jobId.' }
       const maxMs = Math.min(Number(params.maxEsperaSeg) || 120, 600) * 1000
       const inicio = Date.now()
+      // Contrato REAL del motor: el estado de un proyecto se lee en GET /api/projects/{pid}
+      // (GET /api/jobs/{id} no existe: solo /events SSE y /cancel — verificado en el clon d131124).
       while (Date.now() - inicio < maxMs) {
-        const res = await fetchJson(`${url.replace(/\/+$/, '')}/api/jobs/${encodeURIComponent(jobId)}`, {
+        const res = await fetchJson(`${url.replace(/\/+$/, '')}/api/projects/${encodeURIComponent(jobId)}`, {
           headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
         })
         if (res.ok) {
-          const st = (res.json as { status?: string; state?: string }) ?? {}
-          const estado = String(st.status ?? st.state ?? '')
-          if (/done|complete|success|published/i.test(estado)) return { ok: true, mensaje: `Job ${jobId} terminó: ${estado}`, resultado: res.json }
-          if (/fail|error|cancel/i.test(estado)) return { ok: false, mensaje: `Job ${jobId} falló en el motor: ${estado}`, resultado: res.json }
+          const r = resuelveEstadoProyectoYT(res.json)
+          if (r.termino) {
+            if (r.exito) return { ok: true, mensaje: `Proyecto ${jobId} terminó: ${r.detalle}`, resultado: res.json }
+            return { ok: false, mensaje: `Proyecto ${jobId} falló en el motor: ${r.detalle}`, resultado: res.json }
+          }
+        } else if (res.status === 404) {
+          return { ok: false, mensaje: `Proyecto ${jobId} no existe en el motor (404 de /api/projects).` }
         }
         await new Promise((r) => setTimeout(r, 4000))
       }
-      return { ok: false, mensaje: `Job ${jobId} sigue en curso tras ${maxMs / 1000}s (no es necesariamente un fallo: reintenta el paso).` }
+      return { ok: false, mensaje: `Proyecto ${jobId} sigue en curso tras ${maxMs / 1000}s (no es necesariamente un fallo: reintenta el paso).` }
     }
 
     // ── Estudio local (funciona con simulador y con ComfyUI real) ──

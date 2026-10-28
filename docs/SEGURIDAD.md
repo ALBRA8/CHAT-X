@@ -37,6 +37,8 @@ Fecha: 2026-10-28 · Alcance: CHAT-X como plataforma central.
 
 ## Revocación y rotación del token de GitHub expuesto (pendiente del fundador)
 
+> **Estado 2026-10-28 (validación d131124)**: el fundador confirmó que **la revocación la hará él mismo** — nunca más se mostró ni copió el token en esta fase, y no hace falta: la revocación es 100% en su navegador (github.com/settings/tokens). Re-escaneo ejecutado hoy: 0 secretos en el árbol versionado y en el historial completo (`bash scripts/escaneo_secretos.sh`), sin remotos git (push imposible desde este entorno), y el único `.env` de engine modificado (AGENTE-KREA) contiene solo `DATABASE_URL` (ruta de fichero, sin secreto). El procedimiento completo queda documentado abajo para cuando ejecute la revocación.
+
 Un token clásico (`ghp_…`) quedó expuesto en el chat en una sesión anterior y **no se ha confirmado su revocación**. Protocolo (sin copiar el token nunca):
 1. GitHub → Settings → Developer settings → Personal access tokens → localizar el token creado el 2026-10-28 → **Revoke** (o Delete). Si aparece en "Recently used" con push a ALBRA8/CHAT-X, es ese.
 2. Comprobar actividad: Settings → Security log, filtrar por token — cualquier push que no reconozcas = investigar.

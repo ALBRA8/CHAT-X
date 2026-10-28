@@ -71,6 +71,7 @@ export const MOTORES: MotorDef[] = [
       'Flags FLOW_MCP_ENABLED=0 y FLOW_MCP_VIDEO_ENABLED=0 por defecto (activación controlada)',
       'CHAT-X consume el arnés como host externo: NUNCA reimplantar el pipeline (regla de frontera del propio repo)',
       'HARD E2E (INT-012): parte Flow 4/4 PASS; fix burn_subtitles publicado, re-run pendiente',
+      'Estado de producción se lee en GET /api/projects/{pid} (status: ready|failed|paso) — GET /api/jobs/{id} NO existe (verificado en clon 2589e4e)',
     ],
     estadoNota: 'E2E Google Flow validado por gates; flags apagados por defecto.',
   },

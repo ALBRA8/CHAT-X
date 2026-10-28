@@ -38,7 +38,7 @@ echo ""
 echo "== 2) HISTORIAL completo de git (todos los commits, diffs completos) =="
 HTOT=0
 for p in "${PATRONES[@]}"; do
-  n=$(git log -p --all 2>/dev/null | grep -E -c "$p" 2>/dev/null || echo 0)
+  n=$(git log -p --all 2>/dev/null | grep -E -c "$p" || true)
   if [ "${n:-0}" -gt 0 ]; then
     echo "  PATRÓN ${p%%_*}… → $n aparición(es) en el historial — REVISAR"
     HTOT=$((HTOT+n))
