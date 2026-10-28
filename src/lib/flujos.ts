@@ -8,6 +8,29 @@ import { db } from '@/lib/db'
 import { estadoMotor, configMotor, type MotorId } from '@/lib/motores'
 import { registroEvento } from '@/lib/integracion-eventos'
 import { COSTOS, JOB_STATUS, LANE } from '@/lib/constants'
+import type { Brief } from '@/lib/provider/types'
+
+/**
+ * Brief por defecto derivado SOLO del genoma real del personaje (sin inventar
+ * datos externos). Sirve cuando un flujo encola un lote sin brief explícito:
+ * el job produce previews de verdad en lugar de completarse vacío.
+ */
+export function construirBriefPorDefecto(genome: string): Brief {
+  let g: { atributos?: Record<string, string>; aficiones?: string; lore?: string; tono?: string } = {}
+  try {
+    g = JSON.parse(genome) as typeof g
+  } catch {
+    // genoma ausente o corrupto → valores neutros, nunca un fallo del flujo
+  }
+  const tema = String(g.aficiones || g.lore || 'sesión casual en interior').slice(0, 120)
+  return {
+    escena: `sesión fotográfica inspirada en: ${tema}`,
+    outfit: 'vestuario casual elegante acorde al personaje',
+    pose: 'natural, relajada, mirando a cámara',
+    encuadre: 'plano_medio',
+    luz: 'natural suave',
+  }
+}
 
 export interface PasoDef {
   id: string
@@ -161,6 +184,11 @@ async function accionPaso(paso: PasoDef, vars: Variables): Promise<{ ok: boolean
       if (!character) return { ok: false, mensaje: `Personaje ${characterId} no existe.` }
       const count = Math.max(1, Math.min(12, Number(params.count) || 4))
       const lane = params.lane === LANE.PRIVADO ? LANE.PRIVADO : LANE.PUBLICO
+      // Brief explícito del flujo; si no viene, uno real derivado del genoma del personaje.
+      const brief =
+        params.brief && typeof params.brief === 'object'
+          ? (params.brief as Brief)
+          : construirBriefPorDefecto(character.genome)
       const coste = (COSTOS.PREVIEW + 0) * count
       const saldo = await db.settings.findUnique({ where: { id: 'main' } })
       if (!saldo || saldo.credits < coste) return { ok: false, mensaje: `Créditos insuficientes para lote de ${count} previews (necesita ${coste}).` }
@@ -170,7 +198,7 @@ async function accionPaso(paso: PasoDef, vars: Variables): Promise<{ ok: boolean
           characterId,
           priority: 2,
           costEstimate: coste,
-          payload: JSON.stringify({ brief: params.brief, count, lane, batchId: `flujo_${Date.now()}`, varianteBase: Math.floor(Math.random() * 1000) }),
+          payload: JSON.stringify({ brief, count, lane, batchId: `flujo_${Date.now()}`, varianteBase: Math.floor(Math.random() * 1000) }),
         },
       })
       vars.estudioJobId = job.id
@@ -230,7 +258,7 @@ async function accionPaso(paso: PasoDef, vars: Variables): Promise<{ ok: boolean
           cid = activa.id
         }
         const ultimo = await db.set.findFirst({ where: { characterId: cid }, orderBy: { updatedAt: 'desc' } })
-        if (!ultimo) return { ok: false, mensaje: 'El personaje no tiene sets todavía: genera contenido primero.' }
+        if (!ultimo) return { ok: false, mensaje: 'El personaje no tiene sets todavía: genera contenido, apruébalo por QA y arma un Set en el Estudio (Biblioteca) antes de programar la publicación.' }
         setId = ultimo.id
       }
       const existe = await db.set.findUnique({ where: { id: setId } })

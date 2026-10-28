@@ -408,6 +408,12 @@ async function trabajoLoteFotos(jobId: string, character: { id: string; name: st
           ? Array.from({ length: Number(payload.count) || 8 }, () => ({ brief: payload.brief as Brief }))
           : []
 
+  // Nunca un éxito vacío: sin brief (ni escenas) el job FALLA y se reembolsa,
+  // para que ningún flujo crea que se generó contenido que no existe.
+  if (items.length === 0) {
+    throw new Error('Lote sin contenido: el payload no incluye un brief válido (ni escenas de examen). Job cancelado sin generar piezas.')
+  }
+
   const creadas: ResultadoPieza[] = []
   for (let i = 0; i < items.length; i++) {
     const seed =

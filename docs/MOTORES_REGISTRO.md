@@ -29,3 +29,19 @@ archivo es el registro verificable de su procedencia. Fecha de clonación: **202
 CHAT-X :3000 · CRM-ALBRA :3000 (fijar PORT distinto si conviven) · YOUTUBE-AUTOMATION :8000 · WHATSPOWER :3003 · ULTRA :3004 · NEX-SCOPE :81 (Caddy) · AGENTE-GENERAL :9000 (API) + :3000 dashboard + :3002 wa-daemon · CAZADOR :8787 · KREA :3000 · COMUNITI :3000 + worker FB :8765.
 
 > Re-verificación de commits origen: 2026-10-29 (re-clon shallow; LEADS movió a f54226b, el resto idéntico).
+
+## Aislamiento de BD (incidente 2026-10-28 y regla permanente)
+
+**Incidente real**: los tres engines Next (CRM-ALBRA, NEX-SCOPE, AGENTE-KREA) traen `DATABASE_URL=file:./db/custom.db` (nombre relativo idéntico). En este monorepo, Prisma (CLI y cliente) resuelve el `.env` RAÍZ con prioridad sobre el del engine, así que los tres engines y CHAT-X convergían sobre `/home/z/my-project/db/custom.db`. Cualquier `prisma db push` desde cualquiera de los proyectos **reemplazaba las tablas de los demás** (causa de los P2021 históricos del dev.log y de la pérdida de la BD de demo el 2026-10-28).
+
+**Regla permanente (obligatoria)**:
+1. Lanzar cada engine SIEMPRE con su DATABASE_URL absoluta propia (la env de proceso gana a cualquier .env):
+   - CRM: `DATABASE_URL=file:/home/z/my-project/engines/CRM-ALBRA/db/crm.db bunx next dev -p 3100 -H 127.0.0.1`
+   - NEX-SCOPE: `DATABASE_URL=file:/home/z/my-project/engines/NEX-SCOPE/db/nexscope.db bunx next dev -p 3300 -H 127.0.0.1`
+   - KREA: `DATABASE_URL=file:/home/z/my-project/engines/AGENTE-KREA/db/krea.db bunx next dev -p 3210 -H 127.0.0.1`
+2. Push de esquema de un engine, igual: `DATABASE_URL=file:.../db/<motor>.db bunx prisma db push --skip-generate --accept-data-loss` (dentro del directorio del engine).
+3. WHATSPOWER (:3003) y ULTRA (:3004) ya usan ficheros propios (`db/operational.db`, `db/broadcast.db`): no requieren env.
+4. Verificar antes de confiar: `bun scripts/verificar_bd.ts` → exit 0 = BD de CHAT-X íntegra (tablas presentes, 0 tablas intrusas de engines).
+5. Puertos de sandbox en config de BD (Módulo Operaciones): crm :3100 · nexscope :3300 · agentekrea :3210 — el sondeo (`bun scripts/sondeo_motores.ts`) lee esa config igual que la plataforma.
+
+**Verificación del aislamiento (2026-10-28 21:05 UTC)**: fds de los procesos confirmados — CRM→`engines/CRM-ALBRA/db/crm.db`, KREA→`engines/AGENTE-KREA/db/krea.db` (doctor: database HEALTHY), NEX-SCOPE :3300 200. Sondeo: **6/10 OPERATIVOS**. Cerrojo: `✓ BD de CHAT-X íntegra — 12 tablas, 0 intrusas`.

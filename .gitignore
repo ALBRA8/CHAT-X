@@ -46,7 +46,8 @@ local-*
 *.log
 dev.log
 dev.out.log
-test
+test/*
+!test/unit
 prompt
 
 server.log

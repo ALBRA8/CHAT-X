@@ -137,3 +137,33 @@ bun test test/unit/                                      # unitarias — 18 chec
 3. **Credenciales de motores** → NVIDIA_API_KEY / TELEGRAM_BOT_TOKEN (AGENTE-LEADS, AGENTE-GENERAL) en tu `.env`; no se pegan en chat.
 4. **Video real** → GPU 24 GB+ (RunPod por horas o RTX local); el flujo ya está preparado para cambiar de provider con una variable.
 5. **Rotación del PAT de GitHub** → procedimiento en docs/SEGURIDAD.md (revocar en github.com/settings/tokens desde tu navegador; el token nunca viaja por el chat).
+
+---
+
+# Sesión 2026-10-28 (tarde) — "terminar el trabajo en curso": incidentes reales encontrados y corregidos
+
+La continuación reveló 3 defectos reales que ninguna prueba anterior cubría (todos de integración/estado, no de lógica pura):
+
+## 1. Éxito vacío del lote del Estudio (worker.ts) — CORREGIDO
+- **Síntoma**: plantilla "Plan → Estudio → Calendario" con DB recién creada: el job `lote_fotos` terminaba `listo` con `mediaIds: []` y coste 0 — un éxito que no había generado nada.
+- **Causa**: el orquestador encolaba el lote sin `brief` (payload `brief: undefined`) y el worker interpretaba `items = []` como trabajo nulo completado.
+- **Corrección**: (a) el worker ahora FALLA el job con mensaje claro y reembolsa ("Lote sin contenido…"); (b) `estudio_lote` construye un brief real derivado del genoma cuando el flujo no trae uno (`construirBriefPorDefecto`, función pura con 4 unit tests nuevas); (c) mensaje de `programar_publicacion` ahora dice exactamente qué falta (Set con piezas aprobadas por QA).
+- **Evidencia**: unitarias 31 pass (4 nuevas) · plantilla E2E completa de nuevo: lote → 4 mediaIds reales → Set programado (+2 días) → evento trazado → **completada**.
+
+## 2. Colisión de BD entre CHAT-X y los engines — CORREGIDA Y CERRADA CON CERROJO
+- **Síntoma**: tras reinicio del sandbox, la BD de demo desapareció y el sondeo reportaba 404 falsos (motores vivos "inalcanzables").
+- **Causa raíz verificada con /proc/*/fd**: CRM, NEX-SCOPE y KREA traen `DATABASE_URL=file:./db/custom.db` (relativo e idéntico) y **Prisma resuelve el .env raíz del monorepo con prioridad** → los 3 engines y CHAT-X compartían UN archivo; cualquier `db push` desde cualquiera reemplazaba las tablas de los otros. (Explica también los P2021 históricos.)
+- **Corrección**: cada engine lanzado con `DATABASE_URL` absoluta propia (crm.db / nexscope.db / krea.db dentro de su directorio) + push de esquema con env explícita + `.env` propios actualizados + regla documentada en MOTORES_REGISTRO.md.
+- **Cerrojo nuevo**: `scripts/verificar_bd.ts` — verifica que la BD de CHAT-X tenga sus tablas y NO tenga tablas intrusas de engines (exit 1 si está corrompida). Probado: `✓ BD de CHAT-X íntegra — 12 tablas, 0 intrusas`.
+- **Verificación del aislamiento**: fds de procesos confirmados (CRM→crm.db, KREA→krea.db) · KREA doctor database HEALTHY · sondeo **6/10 OPERATIVOS**.
+
+## 3. Sondeo con URLs equivocadas (sondeo_motores.ts) — CORREGIDO
+- El script usaba los `urlPorDefecto` del registro (puertos de producción) en vez de la config de BD que usa la plataforma → 404 falsos contra CHAT-X mismo. Ahora resuelve **env override → config de BD → default**, igual que la plataforma.
+
+## Disposición de disco (operativo)
+- El sandbox llegó con disco 100% lleno (0 bytes libres) durante la reparación — liberados ~2.3 GB de cachés bun/npm (`bun pm cache rm` + `npm cache clean --force`). Sin tocar fuentes ni clones.
+
+## Estado tras la sesión (verificación completa en vivo)
+- Suite API: **33 PASS · 0 FAIL** · unitarias **31 pass** (4 nuevas) · tsc limpio · sondeo **6/10 operativos** (crm :3100, whatspower :3003, ultra :3004, nexscope :3300, cazador :8787, agentekrea :3210 con doctor 5/7 HEALTHY).
+- E2E plantilla "Plan → Estudio → Calendario": **completada** con contenido REAL en el Set (4 previews QA-aprobadas) y fila en calendario.
+- Bloqueos sin cambio: QR WhatsApp (fundador), GPU/ComfyUI real (fundador), video (GPU), LLM keys (fundador), push (PAT).
