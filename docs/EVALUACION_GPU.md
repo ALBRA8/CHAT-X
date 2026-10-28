@@ -40,17 +40,19 @@ LoRA: el entrenamiento de genomas (E1) usa el mismo SDXL con kohya-ss/ComfyUI �
 
 ## 4. CPU vs GPU local vs GPU nube
 
-| Vía | SDXL 1024px | Wan 14B clip 5s | Veredicto para CHAT-X |
-|---|---|---|---|
-| **CPU** (16 núcleos) | ~5-15 min/imagen | inviable | Solo pruebas de pipeline; NO producción. El simulador ya cubre eso sin gastar horas de CPU. |
-| **GPU local RTX 3060 12GB** (~$250 usada) | ~25-35 s/imagen (medir con benchmark) | No (necesita 24GB+; LTX draft sí) | Viable para el carril FOTO completo. $0/mes marginal (~1.4 kWh por 100 imágenes ≈ $0.35). |
-| **GPU nube RunPod Community** (verificado 2026) | A5000 $0.16/h · 3090 $0.22/h · 4090 $0.34/h · 5090 $0.69/h · A6000 48GB $0.33-0.49/h | 4090: clip 5s ≈ 3-6 min → $0.02-0.04 | Facturación por segundo (sin mínimo) → ideal para ráfagas; pod apagado = $0 de cómputo (volumen sigue facturando $0.10/GB/mes — borrar modelos al terminar). |
-| **API cerrada (Replicate/fal/…)** | ~$0.003-0.05/imagen según modelo | varía | **NO viable para el carril 18+**: sus ToS prohíben NSFW. Riesgo de baneo + fuga de prompts. Solo para carril público si algún día se quisiera. |
+| Vía | SD1.5 384px/12p (MEDIDO) | SDXL 1024px | Wan 14B clip 5s | Veredicto para CHAT-X |
+|---|---|---|---|---|
+| **CPU sandbox 2 vCPU** | **50.8 s/imagen estable (medido 2026-10-28, benchmark_cpu.sh), 71 img/h, $0.0007/img a $0.02/h — RAM pico 1.9 GB** | est. ~8-20 min/imagen (escala SDXL/CPU) | inviable | **REAL y activo como provider `local-cpu`**: sirve para previews, QA de pipeline y volúmenes bajos. NO para producción en serie. |
+| **CPU 16 núcleos (est.)** | ~12-18 s/imagen (extrapolación lineal por núcleos) | ~5-15 min/imagen | inviable | Solo pruebas de pipeline; NO producción. |
+| **GPU local RTX 3060 12GB** (~$250 usada) | ~3-6 s/imagen | ~25-35 s/imagen (medir con benchmark) | No (necesita 24GB+; LTX draft sí) | Viable para el carril FOTO completo. $0/mes marginal (~1.4 kWh por 100 imágenes ≈ $0.35). |
+| **GPU nube RunPod Community** (verificado 2026) | <1 s/imagen | A5000 $0.16/h · 3090 $0.22/h · 4090 $0.34/h · 5090 $0.69/h · A6000 48GB $0.33-0.49/h | 4090: clip 5s ≈ 3-6 min → $0.02-0.04 | Facturación por segundo (sin mínimo) → ideal para ráfagas; pod apagado = $0 de cómputo (volumen sigue facturando $0.10/GB/mes — borrar modelos al terminar). |
+| **API cerrada (Replicate/fal/…)** | — | ~$0.003-0.05/imagen según modelo | varía | **NO viable para el carril 18+**: sus ToS prohíben NSFW. Riesgo de baneo + fuga de prompts. Solo para carril público si algún día se quisiera. |
 
 Coste por imagen medible en nube (cálculo con tarifa verificada, PENDIENTE de validar con el benchmark real):
 - A5000 $0.16/h: SDXL ~130 img/h → **≈ $0.0012/imagen**. Lote 8 previews + 4 renders ≈ **$0.014**.
 - 4090 $0.34/h: ~300 img/h → ≈ $0.0011/imagen (la tarifa alta la compensa la velocidad).
 - Vídeo: 1 min publicado (≈12 clips de 5s) ≈ **$0.25-0.50** en 4090.
+- **CPU 2 vCPU (medido)**: SD1.5 preview ≈ $0.0007/imagen — el fallback CPU ya es rentable para previews ilimitadas; el cuello es la VELOCIDAD (71 img/h), no el coste.
 
 ## 5. Costos por volumen (escenarios reales del negocio)
 

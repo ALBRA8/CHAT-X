@@ -219,6 +219,9 @@ async function producirPieza(op: OpcionesPieza): Promise<ResultadoPieza> {
   if (provider.name === 'comfyui') {
     const { prepararImagenComfy } = await import('@/lib/provider/comfyui')
     await prepararImagenComfy(req)
+  } else if (provider.name === 'local-cpu') {
+    const { prepararImagenLocalCpu } = await import('@/lib/provider/localcpu')
+    await prepararImagenLocalCpu(req)
   }
   const img = provider.generateImage(req)
   const thumb = miniaturaDe(img.svg)

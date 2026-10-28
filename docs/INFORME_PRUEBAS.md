@@ -61,3 +61,79 @@ bun test test/unit/                                      # unitarias — 18 chec
 1. Dev server con Prisma client viejo tras db:push → reinicio del servidor (cache global).
 2. Receptor de webhooks validaba el evento ANTES de la credencial → reordenado fail-closed (auth primero, 503 sin secreto).
 3. Script de pruebas: funciones no exportadas a subshells → `export -f` y grep sin cerrar corregidos.
+
+---
+
+# Sesión 2026-10-28 (orden: "cerrar bloqueos y activar producción real")
+
+## Protección del trabajo (punto 1)
+
+- `fcb5010` verificado como HEAD, árbol limpio; remoto NO configurado (push imposible accidentalmente).
+- `git ls-files` auditado: **cero** `.env`/tokens/cookies/credenciales/binarios grandes en el commit; `.env*` en .gitignore (línea 34); `engines/` (repos de terceros) fuera del versionado; `git remote -v` vacío.
+- Escaneo de secretos hardcodeados (`ghp_`, `sk-`, `AIza`, `xoxb-`) en src/ scripts/ docs/: **0 resultados**.
+- El `.env` del sandbox solo contiene `DATABASE_URL`.
+
+## Producción audiovisual REAL (punto 2) — imagen, voz y video por separado
+
+| Capacidad | Estado | Prueba | Resultado |
+|---|---|---|---|
+| Adaptador ComfyUI (código) | **REAL Y PROBADA** | 5 tests E2E contra contrato API ComfyUI con stub local (`test/unit/comfyui-adaptador.test.ts`): inyección prompt+seed en workflow, polling, descarga /view, envoltura SVG+dimensiones, determinismo de seed, HTTP 500 propagado, timeout sin outputs | 5/5 pass (suite completa 27 pass / 0 fail) |
+| Generación REAL por CPU | **REAL Y PROBADA** | `scripts/generacion_cpu_real.py` + provider `local-cpu` con test real opt-in (`PRUEBAS_GENERACION_REAL=1 bun test`) | SD 1.5 fp16: **86.4 s/imagen 384×384, RAM pico 1,892 MB**; PNG fotorrealista verificado en `download/cpu_generacion_real.png` (firma `89504e47…`) |
+| Provider `local-cpu` integrado | **REAL Y PROBADA** | factory (`ESTUDIO_PROVIDER=local-cpu`) + worker.ts + test orquestación (script falso: éxito, ok:false, timeout) | 3/3 pass + E2E real 1/1 (98 s) |
+| Benchmark CPU reproducible | **REAL Y PROBADA** | `bash scripts/benchmark_cpu.sh` (2 corridas) | **50.8 s/imagen estado estable → 71 img/h → $0.0007/imagen a $0.02/h**; corrida fría 186.7 s (incluye carga de modelo) |
+| Voz REAL (TTS) por separado | **REAL Y PROBADA** | `scripts/voz_cpu_real.py` (Piper 1.8, es_ES-carlfm-x_low, onnxruntime CPU) | **5.3 s de audio en 0.21 s de CPU (20× tiempo real)**; WAV real en `download/voz_real_es.wav` (16 kHz, 1 canal) |
+| Adaptador ComfyUI contra ComfyUI REAL | PARCIAL | salud + generación requieren ComfyUI corriendo | BLOQUEADO en sandbox (no hay ComfyUI ni GPU); desbloqueo documentado en docs/MOTOR_GPU.md |
+| Video REAL (SVD/Wan/AnimateDiff) | **BLOQUEADA** | — | Requiere GPU (24 GB+ para Wan 2.1 14B); en CPU ≈ horas por clip. **No se declara activo.** Ver docs/EVALUACION_GPU.md §4 |
+| QA visual automático de identidad | PARCIAL (declarado) | — | Requiere modelo de visión; hoy: identidad determinista por seed + revisión humana en Biblioteca (mismo criterio que ComfyUI, sin fingir QA) |
+
+## WhatsApp seguro (punto 3)
+
+| Capacidad | Estado | Prueba | Resultado |
+|---|---|---|---|
+| WHATSPOWER 2A (conversación) | **REAL Y PROBADA** | suite sala limpia propia `tests/flow-engine.test.ts + suite.test.ts` → **19/19 pass**; arranque real :3003 | `{"status":"ok","service":"albra-agentic-2a"}` |
+| Flujo conversacional EN VIVO | **REAL Y PROBADA** | POST /api/inbound con payload válido (dev, sin firma) | `handled:true, actionTaken:new_lead_welcome`, respuesta generada, `correlationId:e-prueba-1` |
+| Cerrojo HMAC + anti-replay | **REAL Y PROBADA** | firma inválida → **HTTP 401**; timestamp expirado → **HTTP 401** "replay protection" (en vivo) | fail-closed verificado |
+| WHATSPOWER-ULTRA 2B (difusión) | **REAL Y PROBADA (arranque + cerrojos)** | suite propia 1/1 pass; arranque :3004; módulos anti-abuso auditados (suppression.ts, lock-checker.ts, throttler.ts, broadcast-worker.ts) | `{"status":"ok","service":"whatspower-ultra"}`; despacho real no ejecutado (regla: nada a personas sin autorización) |
+| Daemon Baileys (:3002) | PARCIAL (código auditado) | Lectura completa daemon.mjs (846 líneas): fail-closed sin `INTERNAL_API_SECRET` (≥24 chars), QR base64+terminal, sesión en `.wa-auth/`, `/send` autenticado, logout | Arranque real requiere instalar CRM-ALBRA completo + escanear QR con dispositivo → **BLOQUEADO (intervención del fundador)** |
+| Vinculación QR documentada | **REAL Y PROBADA (doc)** | `docs/WHATSAPP_QR_ACTIVACION.md` — procedimiento paso a paso desde el código real, prueba con destinatario consentido, logout/rotación de secretos | Documento reproducible |
+| Envío real a destinatario consentido | **BLOQUEADA** | — | Requiere teléfono del fundador (escanear QR) |
+
+## Integraciones (punto 4) — sondeo EN VIVO con `sondearMotor` de CHAT-X
+
+`bun scripts/sondeo_motores.ts` (peticiones HTTP reales, 2026-10-28 20:29 UTC):
+
+| Motor | Estado en vivo | Evidencia |
+|---|---|---|
+| crm (CRM-ALBRA :3100) | **OPERATIVO** (89 ms) | `{"ok":true,"version":"0.2.1","checks":{"db":true}}` — instalado (`--legacy-peer-deps` por conflicto next-auth/nodemailer), esquema `db push` |
+| whatspower (:3003) | **OPERATIVO** (2 ms) | arranque + flujo conversacional vivo |
+| ultra (:3004) | **OPERATIVO** (2 ms) | arranque + suite 1/1 |
+| nexscope (:3300) | **OPERATIVO** (60 ms) | `{"available":true,"status":"ok"}` — instalado + db push |
+| cazador (:8787) | **OPERATIVO** (2 ms) | `{"ok":true,"model":"glm"}` |
+| agentekrea (:3210) | OPERATIVO→DEGRADADO bajo presión | doctor real: BD/generación/zai/storage/config HEALTHY (5/7); auth_api UNHEALTHY (ruta interna del motor), metrics DEGRADED; bajo presión extrema de RAM (benchmark concurrente) pasó a UNHEALTHY — límite real del sandbox de 3.9 GB |
+| youtube (:8000) | INALCANZABLE | lanzadores .vbs de Windows + servicios externos → máquina del fundador |
+| leads (AGENTE-LEADS) | INALCANZABLE | backend Telegram (grammy): requiere `tsc` build + `NVIDIA_API_KEY` + `TELEGRAM_BOT_TOKEN` → servicios externos |
+| agentegeneral | INALCANZABLE | app Python (pyproject): requiere NVIDIA_API_KEY + TELEGRAM_BOT_TOKEN |
+| comuniti | INALCANZABLE | código real (app Next) pero sin manifest raíz (`package.json` ausente) → no instalable aquí |
+
+**6/10 motores con arranque real verificado en sandbox** (5/10 OPERATIVOS simultáneos; KREA degradado por presión de RAM al correr el benchmark en paralelo — hallazgo medido).
+
+## Programar ≠ publicar (distinción estructural)
+
+- `programar_publicacion` (flujos.ts:222): programa `Set.publishedAt` + `publishStatus` y lo hace visible en el calendario ICS/CSV — **NO publica en plataforma alguna**.
+- `publishStatus`: `borrador | cifrado | empaquetado | publicado` (schema.prisma:122); el calendario exporta fechas reales y propuestas.
+- **No existe paso de publicación real a plataformas** (Fanvue/IG): eso requeriría credenciales de plataforma y está ausente por diseño honesto. El único "submit" real es `youtube_submit` hacia el motor YT cuando corre en la máquina del operador.
+
+## Benchmark y decisión GPU (punto 5)
+
+- `scripts/benchmark_cpu.sh` → **medido**: 50.8 s/imagen estable (384×384, 12 pasos, SD 1.5 fp16), 71 img/h, RAM pico 1.9 GB, **$0.0007/imagen** a $0.02/h.
+- `scripts/benchmark_gpu.sh` → SKIP honesto (exit 2) sin ComfyUI: "el benchmark solo tiene sentido con generación REAL". Dependencia exacta que falta: ComfyUI instalado + GPU (o el modelo en su host).
+- Comparación completa con datos: docs/EVALUACION_GPU.md §4 (CPU medido vs GPU local vs RunPod vs API — API cerrada descartada para 18+ por ToS).
+- **Criterio de decisión**: para FOTO a escala, GPU local RTX 3060 12GB (~$250 usada) se paga con ~2 meses de nube a 5 creadoras; para VIDEO, 4090/A6000 por hora solo cuando hay encargo (facturación por segundo). Ninguna compra sin autorización del fundador.
+
+## Bloqueos concretos restantes (todos de intervención del fundador)
+
+1. **ComfyUI/GPU real** → instalar en tu máquina (docs/MOTOR_GPU.md §Desbloqueo exacto); mientras tanto `ESTUDIO_PROVIDER=local-cpu` ya genera de verdad (lento).
+2. **QR de WhatsApp** → escanear con el dispositivo autorizado (docs/WHATSAPP_QR_ACTIVACION.md §3) y probar con destinatario consentido (§4).
+3. **Credenciales de motores** → NVIDIA_API_KEY / TELEGRAM_BOT_TOKEN (AGENTE-LEADS, AGENTE-GENERAL) en tu `.env`; no se pegan en chat.
+4. **Video real** → GPU 24 GB+ (RunPod por horas o RTX local); el flujo ya está preparado para cambiar de provider con una variable.
+5. **Rotación del PAT de GitHub** → procedimiento en docs/SEGURIDAD.md (revocar en github.com/settings/tokens desde tu navegador; el token nunca viaja por el chat).

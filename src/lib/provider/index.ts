@@ -4,6 +4,7 @@
 import type { Provider } from './types'
 import { simulador } from './simulator'
 import { comfyuiProvider } from './comfyui'
+import { localCpuProvider } from './localcpu'
 
 let cache: Provider | null = null
 
@@ -14,6 +15,11 @@ export function getProvider(): Provider {
     case 'comfyui':
       // GPU local/remota real ($0/mes): ComfyUI vía HTTP. Misma interfaz.
       cache = comfyuiProvider
+      return cache
+    case 'local-cpu':
+      // CPU local real ($0/mes): diffusers + SD 1.5 fp16. Lenta pero REAL — probada:
+      // 86.4s/imagen 384×384, 1.89 GB RAM pico en 2 vCPU.
+      cache = localCpuProvider
       return cache
     case 'simulador':
     default:

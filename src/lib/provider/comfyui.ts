@@ -10,28 +10,13 @@
 //   - COMFYUI_URL, COMFYUI_WORKFLOW_JSON (ruta a workflow en formato API con
 //     marcadores {{PROMPT}}, {{SEED}}, {{WIDTH}}, {{HEIGHT}}), opcional COMFYUI_API_KEY
 import type { GenerationRequest, GeneratedImage, Provider, VeredictoIdentidad } from './types'
+import { componerPrompt, envolverPngEnSvg, seedNumerica } from './prompt'
 
-const DEFAULT_URL = process.env.COMFYUI_URL || 'http://127.0.0.1:8188'
-const TIMEOUT_MS = Number(process.env.COMFYUI_TIMEOUT_MS || 180000)
-
-function envolverPngEnSvg(base64: string, width: number, height: number): string {
-  // Contenedor SVG con la imagen raster embebida: el pipeline existente (guardar,
-  // cifrar, miniaturizar, servir) sigue funcionando sin cambios.
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><image href="data:image/png;base64,${base64}" width="${width}" height="${height}"/></svg>`
+function comfyUrl(): string {
+  return (process.env.COMFYUI_URL || 'http://127.0.0.1:8188').replace(/\/+$/, '')
 }
-
-function componerPrompt(req: GenerationRequest): string {
-  const b = req.brief
-  const partes = [
-    req.characterName,
-    b.escena,
-    b.outfit ? `wearing ${b.outfit}` : '',
-    b.pose ? `${b.pose}` : '',
-    b.encuadre ? `framing: ${b.encuadre}` : '',
-    b.luz ? `lighting: ${b.luz}` : '',
-    req.kind === 'dataset' ? 'training photo, neutral background' : '',
-  ].filter(Boolean)
-  return partes.join(', ')
+function timeoutMs(): number {
+  return Number(process.env.COMFYUI_TIMEOUT_MS || 180000)
 }
 
 async function fetchConTimeout(url: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
@@ -72,11 +57,11 @@ async function cargarWorkflow(): Promise<WorkflowCargado> {
 }
 
 async function generarEnComfy(req: GenerationRequest): Promise<{ base64: string; width: number; height: number }> {
-  const base = DEFAULT_URL.replace(/\/+$/, '')
+  const base = comfyUrl()
   const wf = await cargarWorkflow()
   const width = req.kind === 'final' ? 832 : 512
   const height = req.kind === 'final' ? 1216 : 768
-  const seedNum = Math.abs(Number(BigInt('0x' + Buffer.from(req.seed).toString('hex').slice(0, 12))) % 2147483647) || 1
+  const seedNum = seedNumerica(req.seed)
 
   const prompt = componerPrompt(req)
   const nodoPrompt = wf.json[wf.nodoPrompt!] as { inputs: Record<string, unknown> }
@@ -101,7 +86,7 @@ async function generarEnComfy(req: GenerationRequest): Promise<{ base64: string;
   // Poll del historial hasta que termine (con timeout global)
   const inicio = Date.now()
   let outputs: Record<string, { images?: { filename: string; subfolder: string; type: string }[] }> = {}
-  while (Date.now() - inicio < TIMEOUT_MS) {
+  while (Date.now() - inicio < timeoutMs()) {
     await new Promise((r) => setTimeout(r, 1500))
     const h = await fetchConTimeout(`${base}/history/${promptId}`, { timeoutMs: 10000 })
     if (!h.ok) continue
@@ -112,7 +97,7 @@ async function generarEnComfy(req: GenerationRequest): Promise<{ base64: string;
       break
     }
   }
-  if (!Object.keys(outputs).length) throw new Error(`ComfyUI no devolvió outputs en ${TIMEOUT_MS / 1000}s (prompt_id ${promptId}).`)
+  if (!Object.keys(outputs).length) throw new Error(`ComfyUI no devolvió outputs en ${timeoutMs() / 1000}s (prompt_id ${promptId}).`)
 
   const imgInfo = Object.values(outputs).flatMap((o) => o.images ?? [])[0]
   if (!imgInfo) throw new Error('ComfyUI terminó sin imágenes.')
@@ -164,7 +149,7 @@ export async function prepararImagenComfy(req: GenerationRequest): Promise<void>
 
 /** Salud del proveedor ComfyUI: alcanzable + VRAM reportada por /system_stats. */
 export async function saludComfy(): Promise<{ ok: boolean; detalle: string; vramMb?: number; url: string }> {
-  const base = DEFAULT_URL.replace(/\/+$/, '')
+  const base = comfyUrl()
   try {
     const res = await fetchConTimeout(`${base}/system_stats`, { timeoutMs: 4000 })
     if (!res.ok) return { ok: false, detalle: `ComfyUI respondió HTTP ${res.status} en ${base}/system_stats`, url: base }
