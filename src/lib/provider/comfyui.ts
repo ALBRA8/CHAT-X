@@ -1,0 +1,182 @@
+// Proveedor REAL ComfyUI — producción audiovisual con GPU local o remota ($0/mes).
+// Implementa la MISMA interfaz Provider que el simulador: cero cambios en UI,
+// cola, cifrado o compliance. Las imágenes raster (PNG) generadas por ComfyUI se
+// entregan envueltas en un contenedor SVG (data: URL) para reutilizar todo el
+// pipeline de almacenamiento/cifrado existente sin tocar media.ts.
+//
+// Requisitos (documentados en docs/MOTOR_GPU.md):
+//   - ComfyUI corriendo con --listen y API disponible (por defecto http://127.0.0.1:8188)
+//   - ESTUDIO_PROVIDER=comfyui
+//   - COMFYUI_URL, COMFYUI_WORKFLOW_JSON (ruta a workflow en formato API con
+//     marcadores {{PROMPT}}, {{SEED}}, {{WIDTH}}, {{HEIGHT}}), opcional COMFYUI_API_KEY
+import type { GenerationRequest, GeneratedImage, Provider, VeredictoIdentidad } from './types'
+
+const DEFAULT_URL = process.env.COMFYUI_URL || 'http://127.0.0.1:8188'
+const TIMEOUT_MS = Number(process.env.COMFYUI_TIMEOUT_MS || 180000)
+
+function envolverPngEnSvg(base64: string, width: number, height: number): string {
+  // Contenedor SVG con la imagen raster embebida: el pipeline existente (guardar,
+  // cifrar, miniaturizar, servir) sigue funcionando sin cambios.
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><image href="data:image/png;base64,${base64}" width="${width}" height="${height}"/></svg>`
+}
+
+function componerPrompt(req: GenerationRequest): string {
+  const b = req.brief
+  const partes = [
+    req.characterName,
+    b.escena,
+    b.outfit ? `wearing ${b.outfit}` : '',
+    b.pose ? `${b.pose}` : '',
+    b.encuadre ? `framing: ${b.encuadre}` : '',
+    b.luz ? `lighting: ${b.luz}` : '',
+    req.kind === 'dataset' ? 'training photo, neutral background' : '',
+  ].filter(Boolean)
+  return partes.join(', ')
+}
+
+async function fetchConTimeout(url: string, init: RequestInit & { timeoutMs?: number } = {}): Promise<Response> {
+  const { timeoutMs = 15000, ...rest } = init
+  const ctrl = new AbortController()
+  const t = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...rest, signal: ctrl.signal, cache: 'no-store' })
+  } finally {
+    clearTimeout(t)
+  }
+}
+
+interface WorkflowCargado {
+  json: Record<string, unknown>
+  // nodos detectados donde inyectar (por orden de prioridad de class_type)
+  nodoPrompt?: string
+  nodoSeed?: string
+}
+
+const cacheWorkflow = globalThis as unknown as { __comfyWorkflow?: WorkflowCargado }
+
+async function cargarWorkflow(): Promise<WorkflowCargado> {
+  if (cacheWorkflow.__comfyWorkflow) return cacheWorkflow.__comfyWorkflow
+  const ruta = process.env.COMFYUI_WORKFLOW_JSON
+  if (!ruta) throw new Error('COMFYUI_WORKFLOW_JSON no definida: exporta tu workflow de ComfyUI en formato API (Save (API Format)) y apunta la variable a ese archivo.')
+  const fs = await import('fs')
+  const json = JSON.parse(fs.readFileSync(ruta, 'utf8')) as Record<string, unknown>
+  const wf: WorkflowCargado = { json }
+  for (const [id, nodo] of Object.entries(json)) {
+    const clase = String((nodo as { class_type?: string }).class_type || '')
+    if (!wf.nodoPrompt && (clase === 'CLIPTextEncode' || clase === 'Textbox')) wf.nodoPrompt = id
+    if (!wf.nodoSeed && (clase === 'KSampler' || clase === 'KSamplerAdvanced')) wf.nodoSeed = id
+  }
+  if (!wf.nodoPrompt) throw new Error('El workflow no tiene un nodo CLIPTextEncode: revisa COMFYUI_WORKFLOW_JSON.')
+  cacheWorkflow.__comfyWorkflow = wf
+  return wf
+}
+
+async function generarEnComfy(req: GenerationRequest): Promise<{ base64: string; width: number; height: number }> {
+  const base = DEFAULT_URL.replace(/\/+$/, '')
+  const wf = await cargarWorkflow()
+  const width = req.kind === 'final' ? 832 : 512
+  const height = req.kind === 'final' ? 1216 : 768
+  const seedNum = Math.abs(Number(BigInt('0x' + Buffer.from(req.seed).toString('hex').slice(0, 12))) % 2147483647) || 1
+
+  const prompt = componerPrompt(req)
+  const nodoPrompt = wf.json[wf.nodoPrompt!] as { inputs: Record<string, unknown> }
+  nodoPrompt.inputs.text = prompt
+  if (wf.nodoSeed) {
+    const nodoSeed = wf.json[wf.nodoSeed] as { inputs: Record<string, unknown> }
+    nodoSeed.inputs.seed = seedNum
+  }
+
+  const resPut = await fetchConTimeout(`${base}/prompt`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(process.env.COMFYUI_API_KEY ? { Authorization: `Bearer ${process.env.COMFYUI_API_KEY}` } : {}),
+    },
+    body: JSON.stringify({ prompt: wf.json, client_id: `chatx_${req.seed.slice(0, 24)}` }),
+    timeoutMs: 30000,
+  })
+  if (!resPut.ok) throw new Error(`ComfyUI /prompt respondió HTTP ${resPut.status}: ${(await resPut.text()).slice(0, 300)}`)
+  const { prompt_id: promptId } = (await resPut.json()) as { prompt_id: string }
+
+  // Poll del historial hasta que termine (con timeout global)
+  const inicio = Date.now()
+  let outputs: Record<string, { images?: { filename: string; subfolder: string; type: string }[] }> = {}
+  while (Date.now() - inicio < TIMEOUT_MS) {
+    await new Promise((r) => setTimeout(r, 1500))
+    const h = await fetchConTimeout(`${base}/history/${promptId}`, { timeoutMs: 10000 })
+    if (!h.ok) continue
+    const hist = (await h.json()) as Record<string, { outputs?: typeof outputs; status?: { completed?: boolean } }>
+    const entrada = hist[promptId]
+    if (entrada?.outputs && Object.keys(entrada.outputs).length > 0 && entrada.status?.completed) {
+      outputs = entrada.outputs
+      break
+    }
+  }
+  if (!Object.keys(outputs).length) throw new Error(`ComfyUI no devolvió outputs en ${TIMEOUT_MS / 1000}s (prompt_id ${promptId}).`)
+
+  const imgInfo = Object.values(outputs).flatMap((o) => o.images ?? [])[0]
+  if (!imgInfo) throw new Error('ComfyUI terminó sin imágenes.')
+  const qs = new URLSearchParams({ filename: imgInfo.filename, subfolder: imgInfo.subfolder ?? '', type: imgInfo.type ?? 'output' })
+  const resImg = await fetchConTimeout(`${base}/view?${qs}`, { timeoutMs: 30000 })
+  if (!resImg.ok) throw new Error(`ComfyUI /view respondió HTTP ${resImg.status}.`)
+  const buf = Buffer.from(await resImg.arrayBuffer())
+  return { base64: buf.toString('base64'), width, height }
+}
+
+export const comfyuiProvider: Provider = {
+  name: 'comfyui',
+  esSimulado: false,
+
+  generateImage(req: GenerationRequest): GeneratedImage {
+    // La interfaz es síncrona por diseño del MVP (el worker llama generateImage
+    // en línea); para el proveedor real lanzamos la tarea y la sincronizamos vía
+    // cache por semilla: generateImageReal se invoca desde el worker de forma
+    // asíncrona antes de generateImage (ver doc MOTOR_GPU.md sección flujo).
+    const cache = (globalThis as unknown as { __comfyCache?: Map<string, GeneratedImage> }).__comfyCache
+    const hit = cache?.get(req.seed)
+    if (hit) {
+      cache!.delete(req.seed)
+      return hit
+    }
+    throw new Error('COMFYUI_SYNC: ejecuta primero prepararImagenComfy(seed, req) — el flujo asíncrono de ComfyUI no puede resolverse en una llamada síncrona.')
+  },
+
+  checkIdentidad(seed: string): VeredictoIdentidad {
+    // HONESTO: la verificación de identidad visual automática requiere un modelo
+    // de visión aún no integrado. Con seed + LoRA fijas, ComfyUI reproduce la
+    // misma identidad de forma determinista; el QA humano sigue siendo la puerta
+    // final (aprobar/rechazar en Biblioteca), igual que con el simulador.
+    return { aprueba: true, motivo: 'QA visual automático pendiente de modelo de visión; identidad determinista por seed/LoRA + revisión humana.' }
+  },
+
+  checkAnatomia(seed: string): VeredictoIdentidad {
+    return { aprueba: true, motivo: 'QA visual automático pendiente de modelo de visión; revisión humana en biblioteca.' }
+  },
+}
+
+/** Prepara una imagen real en ComfyUI (async) y la deja en cache para generateImage. */
+export async function prepararImagenComfy(req: GenerationRequest): Promise<void> {
+  const g = globalThis as unknown as { __comfyCache?: Map<string, GeneratedImage> }
+  if (!g.__comfyCache) g.__comfyCache = new Map()
+  const { base64, width, height } = await generarEnComfy(req)
+  g.__comfyCache.set(req.seed, { svg: envolverPngEnSvg(base64, width, height), width, height })
+}
+
+/** Salud del proveedor ComfyUI: alcanzable + VRAM reportada por /system_stats. */
+export async function saludComfy(): Promise<{ ok: boolean; detalle: string; vramMb?: number; url: string }> {
+  const base = DEFAULT_URL.replace(/\/+$/, '')
+  try {
+    const res = await fetchConTimeout(`${base}/system_stats`, { timeoutMs: 4000 })
+    if (!res.ok) return { ok: false, detalle: `ComfyUI respondió HTTP ${res.status} en ${base}/system_stats`, url: base }
+    const stats = (await res.json()) as { devices?: { name?: string; vram_total?: number }[] }
+    const dev = stats.devices?.[0]
+    return {
+      ok: true,
+      detalle: `ComfyUI operativo en ${base}${dev?.name ? ` — GPU: ${dev.name}` : ''}`,
+      vramMb: dev?.vram_total ? Math.round(dev.vram_total / 1048576) : undefined,
+      url: base,
+    }
+  } catch (e) {
+    return { ok: false, detalle: `ComfyUI inalcanzable en ${base}: ${e instanceof Error ? e.message : 'error'}`, url: base }
+  }
+}

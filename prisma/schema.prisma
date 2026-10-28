@@ -1,0 +1,242 @@
+// EL ESTUDIO — esquema de datos (ficha sección 6)
+// SQLite en F1. Los enums se modelan como String con constantes en código.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Personajes ─────────────────────────────
+
+model Character {
+  id                String    @id @default(cuid())
+  name              String
+  status            String    @default("BORRADOR") // BORRADOR | ENTRENANDO | ACTIVO | PAUSADA
+  audience          String    @default("") // público objetivo
+  style             String    @default("") // estilo estético
+  anchorTrait       String    @default("") // rasgo ancla visual
+  seed              String    @default("") // semilla del genoma
+  genome            String    @default("{}") // JSON: atributos {pelo,ojos,piel,complexion,estilo}, aficiones, lore, tono
+  signKit           String    @default("[]") // JSON: [{tipo, descripcion, ubicacion}]
+  canonicalVariant  Int? // variante elegida de la cara canónica
+  canonicalPath     String? // archivo SVG de la cara canónica
+  loraHash          String? // hash de la LoRA activa
+  datasetCount      Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  loraVersions LoraVersion[]
+  jobs         Job[]
+  media        Media[]
+  sets         Set[]
+  kpis         KpiEntry[]
+}
+
+model LoraVersion {
+  id          String   @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  hash        String
+  note        String // por qué se re-entrenó
+  costReal    Float    @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([characterId])
+}
+
+// ───────────────────────────── Cola de trabajos ─────────────────────────────
+
+model Job {
+  id           String    @id @default(cuid())
+  type         String // dataset | entrenamiento | lote_fotos | render_final | cifrado
+  characterId  String?
+  character    Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  priority     Int       @default(5) // 1 = más alta
+  status       String    @default("en_cola") // en_cola | procesando | listo | fallido
+  progress     Int       @default(0) // 0..100
+  costEstimate Float     @default(0)
+  costReal     Float     @default(0)
+  payload      String    @default("{}") // JSON: parámetros del trabajo
+  result       String    @default("{}") // JSON: mediaIds, rutas, notas
+  error        String?
+  createdAt    DateTime  @default(now())
+  startedAt    DateTime?
+  finishedAt   DateTime?
+
+  @@index([status])
+  @@index([characterId])
+}
+
+// ───────────────────────────── Medios ─────────────────────────────
+
+model Media {
+  id             String   @id @default(cuid())
+  characterId    String
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  kind           String   @default("preview") // preview | render | cara_canonica | examen | dataset
+  lane           String   @default("PUBLICO") // PUBLICO | PRIVADO
+  prompt         String   @default("") // prompt final completo
+  seed           String
+  checkpoint     String   @default("estudio-sdxl-sim-v1")
+  loraHash       String?
+  batchId        String? // identificador del lote
+  sceneName      String? // nombre de escena (examen de identidad)
+  qualityVerdict String   @default("PENDIENTE") // PENDIENTE | APROBADO | RECHAZADO
+  qualityReason  String? // motivo visible si falló
+  filtersTriggered String @default("[]") // JSON string[]: ["edad_aparente", ...]
+  aiLabels       String   @default("[]") // JSON string[]: ["Contenido generado con IA"]
+  pipelineStatus String   @default("borrador") // borrador | qa | aprobado | cifrado | publicado
+  filePath       String? // ruta del archivo (cifrado si PRIVADO)
+  thumbPath      String? // miniatura (cifrada si PRIVADO)
+  encIv          String? // IV hex del archivo completo (AES-256-GCM)
+  encTag         String? // authTag hex del archivo completo
+  encThumbIv     String? // IV hex de la miniatura cifrada
+  encThumbTag    String? // authTag hex de la miniatura cifrada
+  provenance     String   @default("{}") // JSON de procedencia completa
+  setId          String?
+  set            Set?     @relation(fields: [setId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([characterId])
+  @@index([lane])
+  @@index([pipelineStatus])
+}
+
+// ───────────────────────────── Sets ─────────────────────────────
+
+model Set {
+  id             String   @id @default(cuid())
+  characterId    String
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  name           String
+  lane           String   @default("PRIVADO") // PUBLICO | PRIVADO
+  caption        String   @default("")
+  aiLabel        String   @default("Contenido generado con IA")
+  suggestedPrice Float    @default(0) // precio PPV sugerido
+  realPrice      Float? // precio real puesto en la plataforma
+  publishStatus  String   @default("borrador") // borrador | cifrado | empaquetado | publicado
+  revenue        Float    @default(0) // ingresos reportados
+  publishedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  media Media[]
+
+  @@index([characterId])
+}
+
+// ───────────────────────────── KPIs ─────────────────────────────
+
+model KpiEntry {
+  id              String   @id @default(cuid())
+  characterId     String
+  character       Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  month           String // "2026-10"
+  revenue         Float    @default(0)
+  subs            Float    @default(0) // suscripciones
+  paidMessages    Float    @default(0) // mensajes pagados
+  ppv             Float    @default(0) // PPV
+  gpuCost         Float    @default(0)
+  publishedPieces Int      @default(0)
+  qaRejectionRate Float    @default(0)
+  source          String   @default("manual") // manual | csv
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([characterId, month])
+  @@index([month])
+}
+
+// ───────────────────────────── Compliance (append-only) ─────────────────────────────
+
+model ComplianceEvent {
+  id          String   @id @default(cuid())
+  type        String // filtro_edad | rechazo_qa | etiqueta_ia | cifrado | exportacion | publicacion | acceso_privado | creacion
+  mediaId     String?
+  characterId String?
+  detail      String   @default("{}") // JSON con el detalle del evento
+  createdAt   DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ───────────────────────────── Plataforma central: motores del ecosistema ─────────────────────────────
+
+// Configuración de conexión a cada motor externo (URL + credencial). CHAT-X no
+// reconstruye los motores: los opera como host externo vía sus contratos reales.
+model MotorConfig {
+  id        String   @id @default(cuid())
+  motor     String   @unique // youtube | crm | whatspower | ultra | nexscope | leads
+  url       String   @default("") // base URL del motor (ej. http://127.0.0.1:8000)
+  apiKey    String   @default("") // credencial que exige el contrato de ese motor
+  updatedAt DateTime @updatedAt
+}
+
+// Eventos recibidos de motores (ej. webhooks de AGENTE-LEADS: lead.created,
+// lead.scored…). Registro inmutable para trazabilidad del ecosistema.
+model IntegracionEvent {
+  id        String   @id @default(cuid())
+  source    String // leads | crm | whatspower | ultra | nexscope | youtube | sistema
+  event     String
+  detail    String   @default("{}") // JSON del payload recibido
+  createdAt DateTime @default(now())
+
+  @@index([source])
+  @@index([createdAt])
+}
+
+// ───────────────────────────── Orquestador de flujos (sección 8-9 del prompt maestro) ─────────────────────────────
+
+// Definición de un flujo de extremo a extremo: pasos encadenados con acciones
+// reales sobre los motores (sondas, validación/submit de Production JSON,
+// acciones CRM, lotes del Estudio…) y aprobaciones humanas opcionales.
+model Flujo {
+  id          String   @id @default(cuid())
+  nombre      String
+  descripcion String   @default("")
+  definicion  String   @default("[]") // JSON: [{id, tipo, nombre, params, requiereAprobacion}]
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  ejecuciones FlujoEjecucion[]
+}
+
+// Ejecución de un flujo con estado por paso, variables acumuladas, registro de
+// eventos (trazabilidad) y pausa para aprobación humana cuando corresponda.
+model FlujoEjecucion {
+  id          String    @id @default(cuid())
+  flujoId     String
+  flujo       Flujo     @relation(fields: [flujoId], references: [id], onDelete: Cascade)
+  estado      String    @default("en_curso") // en_curso | esperando_aprobacion | completada | fallida | cancelada
+  pasosEstado String    @default("{}") // JSON: {pasoId: {estado, resultado, error, iniciadoEn, terminadoEn, intentos}}
+  variables   String    @default("{}") // JSON acumulado entre pasos
+  registro    String    @default("[]") // JSON: [{ts, paso, nivel, mensaje}]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  finishedAt  DateTime?
+
+  @@index([flujoId])
+  @@index([estado])
+}
+
+// ───────────────────────────── Ajustes ─────────────────────────────
+
+model Settings {
+  id           String   @id @default("main")
+  credits      Float    @default(5000) // saldo de créditos
+  limiteDiario Float    @default(2000) // techo de consumo comprometido por día (0 = sin límite)
+  privateHash  String? // hash scrypt de la contraseña del modo privado
+  privateSalt  String? // salt hex
+  privateWrap  String? // clave maestra cifrada con la contraseña (iv:tag:datos, hex)
+  serverWrap   String? // la misma clave maestra, envuelta con el secreto del servidor (para trabajos en segundo plano)
+  presets      String   @default("[]") // JSON: presets del estudio (briefs guardados)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
