@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clonar apps, legal · ClonaKit</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #f6f5f1;
+      --ink: #15161d;
+      --muted: #6a6b78;
+      --card: #ffffff;
+      --line: #e3e1da;
+      --accent: #5b4cf0;
+      --accent-soft: #eceafe;
+      --ok: #16955f;
+      --ok-soft: #e3f4ec;
+      --warn: #c98200;
+      --warn-soft: #fbf0d9;
+      --no: #d6404a;
+      --no-soft: #fbe5e6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #e9e7e1;
+    }
+
+    /* Cada diapositiva mide 1280×720 y se escala entera para caber en la ventana. */
+    .stage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1280px;
+      height: 720px;
+      transform-origin: center;
+      background: var(--bg);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgb(0 0 0 / 0.12);
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 72px 96px;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      transform: translateX(24px);
+    }
+
+    .slide.active { opacity: 1; visibility: visible; transform: none; }
+    .slide.before { transform: translateX(-24px); }
+
+    .kicker {
+      margin: 0 0 18px;
+      color: var(--accent);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    h1, h2 { margin: 0; letter-spacing: -0.03em; line-height: 1.05; }
+    h1 { font-size: 112px; font-weight: 850; }
+    h2 { font-size: 64px; font-weight: 800; margin-bottom: 44px; }
+
+    .lead { margin: 28px 0 0; font-size: 34px; color: var(--muted); line-height: 1.3; }
+    .small { margin: 0; font-size: 22px; color: var(--muted); }
+
+    .hl { color: var(--accent); }
+    .ok { color: var(--ok); }
+    .no { color: var(--no); }
+
+    .icon {
+      width: 1em;
+      height: 1em;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: none;
+    }
+
+    /* Tarjetas grandes de comparación */
+    .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 40px;
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: 24px;
+    }
+
+    .card.good { border-color: var(--ok); background: var(--ok-soft); }
+    .card.bad { border-color: var(--no); background: var(--no-soft); }
+
+    .card .badge { font-size: 64px; }
+    .card.good .badge { color: var(--ok); }
+    .card.bad .badge { color: var(--no); }
+    .card h3 { margin: 0; font-size: 44px; letter-spacing: -0.02em; }
+    .card p { margin: 0; font-size: 28px; color: #3c3d48; line-height: 1.3; }
+
+    .items { display: flex; flex-direction: column; gap: 18px; margin: 6px 0 0; padding: 0; list-style: none; }
+    .items li { display: flex; align-items: center; gap: 16px; font-size: 32px; font-weight: 600; }
+    .items .icon { font-size: 38px; }
+
+    /* Diagrama de flujo en fila */
+    .flow { display: flex; align-items: stretch; gap: 14px; }
+
+    .step {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 34px 18px;
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: 22px;
+      text-align: center;
+    }
+
+    .step .icon { font-size: 54px; color: var(--accent); }
+    .step strong { font-size: 30px; }
+    .step span { font-size: 22px; color: var(--muted); line-height: 1.3; }
+
+    .arrow { align-self: center; font-size: 34px; color: #b9b7c4; }
+
+    .wall {
+      align-self: stretch;
+      width: 12px;
+      border-radius: 6px;
+      background: repeating-linear-gradient(180deg, var(--ink) 0 14px, transparent 14px 24px);
+    }
+
+    .step.builder { border-style: dashed; border-color: var(--accent); background: var(--accent-soft); }
+
+    .caption { margin: 36px 0 0; font-size: 30px; font-weight: 600; text-align: center; }
+    .caption.left { display: flex; align-items: center; gap: 12px; text-align: left; }
+
+    /* Fases en rejilla para que cada comando quede bajo las fases que cubre. */
+    .phases {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr) 34px minmax(0, 1fr);
+      column-gap: 14px;
+      row-gap: 22px;
+    }
+    .phases .arrow { text-align: center; }
+    .span {
+      display: flex;
+      justify-content: center;
+      padding-top: 18px;
+      border-top: 4px solid var(--accent);
+      border-radius: 2px;
+    }
+    .chip {
+      padding: 10px 22px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-radius: 999px;
+    }
+
+    /* Semáforo */
+    .lights { display: flex; flex-direction: column; gap: 20px; }
+
+    .light {
+      display: grid;
+      grid-template-columns: 64px 220px 1fr;
+      align-items: center;
+      gap: 24px;
+      padding: 26px 34px;
+      border-radius: 22px;
+      background: var(--card);
+      border: 2px solid var(--line);
+    }
+
+    .dot { width: 56px; height: 56px; border-radius: 50%; }
+    .light strong { font-size: 34px; }
+    .light span { font-size: 28px; line-height: 1.3; }
+    .light.green { background: var(--ok-soft); border-color: var(--ok); }
+    .light.green .dot { background: var(--ok); }
+    .light.amber { background: var(--warn-soft); border-color: var(--warn); }
+    .light.amber .dot { background: var(--warn); }
+    .light.red { background: var(--no-soft); border-color: var(--no); }
+    .light.red .dot { background: var(--no); }
+
+    /* Recetas */
+    .recipes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+    .recipe {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 20px 26px;
+      background: var(--card);
+      border: 2px solid var(--line);
+      border-radius: 18px;
+    }
+
+    .recipe strong { font-size: 30px; }
+    .recipe span { font-size: 21px; color: var(--muted); }
+
+    .footnote { margin: 22px 0 0; font-size: 18px; color: var(--muted); }
+
+    /* Pasos numerados */
+    .numbered { display: flex; flex-direction: column; gap: 26px; margin: 0; padding: 0; list-style: none; }
+    .numbered li { display: flex; align-items: center; gap: 28px; font-size: 40px; font-weight: 650; }
+    .numbered b {
+      display: grid;
+      place-items: center;
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--accent);
+      font-size: 34px;
+      flex: none;
+    }
+    .numbered code {
+      padding: 4px 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-radius: 12px;
+    }
+
+    /* Portada y cierre */
+    .cover { background: var(--ink); color: #fff; }
+    .cover .lead { color: #b9bacb; }
+    .cover .kicker { color: #a99fff; }
+    .cover .hl { color: #a99fff; }
+
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 48px;
+      padding: 22px 36px;
+      font-size: 32px;
+      font-weight: 750;
+      color: var(--ink);
+      background: #fff;
+      border-radius: 999px;
+      text-decoration: none;
+      align-self: flex-start;
+    }
+
+    .cta:hover { background: #e7e4ff; }
+
+    .meta { display: flex; gap: 28px; margin-top: 56px; font-size: 22px; color: #8d8ea3; }
+    .meta span { display: flex; align-items: center; gap: 10px; }
+
+    /* Controles */
+    .controls {
+      position: fixed;
+      right: 20px;
+      bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font: 14px -apple-system, system-ui, sans-serif;
+      color: #6a6b78;
+      user-select: none;
+    }
+
+    .controls button {
+      width: 38px;
+      height: 38px;
+      border: 1px solid #d4d2ca;
+      border-radius: 50%;
+      background: #fff;
+      color: var(--ink);
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .controls button:hover { background: var(--accent-soft); }
+
+    .progress {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 4px;
+      background: var(--accent);
+      transition: width 0.35s ease;
+    }
+
+    .hint { position: fixed; left: 20px; bottom: 22px; font: 13px -apple-system, system-ui, sans-serif; color: #8a8b98; }
+
+    @media print {
+      .controls, .progress, .hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol>
+    <symbol id="i-flow" viewBox="0 0 24 24"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1.5"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="6" rx="2"/><path d="M2 10h20"/><path d="M16 15h2"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></symbol>
+    <symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M3 15l2-8 2 8a2 2 0 0 1-4 0z"/><path d="M17 15l2-8 2 8a2 2 0 0 1-4 0z"/><path d="M8 21h8"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  </svg>
+
+  <div class="progress" id="progress"></div>
+
+  <main class="stage" id="stage">
+    <!-- 1 · Portada -->
+    <section class="slide cover">
+      <p class="kicker">ClonaKit · Formación exprés</p>
+      <h1>Clona apps.<br><span class="hl">Legal.</span></h1>
+      <p class="lead">Crea tu propia versión de las herramientas que usas.</p>
+      <div class="meta">
+        <span><svg class="icon"><use href="#i-clock"/></svg> 5 minutos</span>
+        <span><svg class="icon"><use href="#i-arrow"/></svg> Pulsa → para avanzar</span>
+      </div>
+    </section>
+
+    <!-- 2 · Clonar no es copiar -->
+    <section class="slide">
+      <h2>Clonar ≠ copiar</h2>
+      <div class="duo">
+        <div class="card bad">
+          <svg class="icon badge"><use href="#i-x"/></svg>
+          <h3>Copiar</h3>
+          <p>Coger su código, sus textos o su diseño.</p>
+        </div>
+        <div class="card good">
+          <svg class="icon badge"><use href="#i-check"/></svg>
+          <h3>Clonar</h3>
+          <p>Recrear lo que hace, desde cero y con tu marca.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 · Libre vs con dueño -->
+    <section class="slide">
+      <h2>Qué es de todos y qué tiene dueño</h2>
+      <div class="duo">
+        <div class="card good">
+          <h3 class="ok">Libre</h3>
+          <ul class="items">
+            <li><svg class="icon"><use href="#i-bulb"/></svg> Ideas</li>
+            <li><svg class="icon"><use href="#i-zap"/></svg> Funciones</li>
+            <li><svg class="icon"><use href="#i-flow"/></svg> Flujos</li>
+          </ul>
+        </div>
+        <div class="card bad">
+          <h3 class="no">Con dueño</h3>
+          <ul class="items">
+            <li><svg class="icon"><use href="#i-code"/></svg> Código</li>
+            <li><svg class="icon"><use href="#i-image"/></svg> Textos, imágenes, diseño</li>
+            <li><svg class="icon"><use href="#i-tag"/></svg> Nombre y logo</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 · Sala limpia -->
+    <section class="slide">
+      <h2>El método <span class="hl">sala limpia</span></h2>
+      <div class="flow">
+        <div class="step">
+          <svg class="icon"><use href="#i-search"/></svg>
+          <strong>Investigas</strong>
+          <span>cómo funciona la app</span>
+        </div>
+        <div class="arrow">→</div>
+        <div class="step">
+          <svg class="icon"><use href="#i-file"/></svg>
+          <strong>Ficha</strong>
+          <span>qué hace, con tus palabras</span>
+        </div>
+        <div class="wall" aria-hidden="true"></div>
+        <div class="step builder">
+          <svg class="icon"><use href="#i-code"/></svg>
+          <strong>Otro construye</strong>
+          <span>solo con la ficha</span>
+        </div>
+      </div>
+      <p class="caption">Quien construye <span class="hl">nunca ve</span> el original.</p>
+    </section>
+
+    <!-- 5 · Las 5 fases -->
+    <section class="slide">
+      <h2>5 fases, 2 comandos</h2>
+      <div class="phases">
+        <div class="step"><svg class="icon"><use href="#i-heart"/></svg><strong>Elegir</strong></div>
+        <div class="arrow">→</div>
+        <div class="step"><svg class="icon"><use href="#i-search"/></svg><strong>Investigar</strong></div>
+        <div class="arrow">→</div>
+        <div class="step"><svg class="icon"><use href="#i-file"/></svg><strong>Ficha</strong></div>
+        <div class="arrow">→</div>
+        <div class="step"><svg class="icon"><use href="#i-code"/></svg><strong>Construir</strong></div>
+        <div class="arrow">→</div>
+        <div class="step"><svg class="icon"><use href="#i-globe"/></svg><strong>Publicar</strong></div>
+        <div class="span" style="grid-column: 1 / 8"><span class="chip">/clonar</span></div>
+        <div class="span" style="grid-column: 9 / 10"><span class="chip">/desplegar</span></div>
+      </div>
+    </section>
+
+    <!-- 6 · Uso personal -->
+    <section class="slide">
+      <p class="kicker ok">Uso personal</p>
+      <h2>Para ti y tu equipo: <span class="ok">adelante</span></h2>
+      <ul class="items">
+        <li><svg class="icon ok"><use href="#i-users"/></svg> Herramientas a tu medida</li>
+        <li><svg class="icon ok"><use href="#i-wallet"/></svg> Menos suscripciones</li>
+        <li><svg class="icon ok"><use href="#i-book"/></svg> Aprendes cómo funcionan las apps</li>
+      </ul>
+      <p class="caption left">Solo revisa los términos de uso de la app original.</p>
+    </section>
+
+    <!-- 7 · Uso comercial -->
+    <section class="slide">
+      <p class="kicker" style="color:var(--warn)">Uso comercial</p>
+      <h2>¿Venderla? Sí, si…</h2>
+      <ul class="items">
+        <li><svg class="icon ok"><use href="#i-tag"/></svg> Nombre y marca propios</li>
+        <li><svg class="icon ok"><use href="#i-code"/></svg> Código y diseño 100 % tuyos</li>
+        <li><svg class="icon ok"><use href="#i-check"/></svg> No se confunde con la original</li>
+      </ul>
+      <p class="caption left"><svg class="icon" style="color:var(--warn)"><use href="#i-scale"/></svg> ¿Vas a facturar? Consulta antes con un abogado.</p>
+    </section>
+
+    <!-- 8 · Semáforo -->
+    <section class="slide">
+      <h2>El semáforo</h2>
+      <div class="lights">
+        <div class="light green"><div class="dot"></div><strong>Sí</strong><span>Tu pizarra de flujos para tu equipo</span></div>
+        <div class="light amber"><div class="dot"></div><strong>Con cuidado</strong><span>Venderla como tu propio SaaS</span></div>
+        <div class="light red"><div class="dot"></div><strong>Nunca</strong><span>Desbloquear funciones de pago · Hacerte pasar por otra app · Usar datos de otros</span></div>
+      </div>
+    </section>
+
+    <!-- 9 · Recetas -->
+    <section class="slide">
+      <h2>Recetas listas para clonar</h2>
+      <div class="recipes">
+        <div class="recipe"><strong>Trazo</strong><span>como Excalidraw</span></div>
+        <div class="recipe"><strong>Corrillo</strong><span>como Slack</span></div>
+        <div class="recipe"><strong>Embudo</strong><span>como ActiveCampaign</span></div>
+        <div class="recipe"><strong>Celda</strong><span>como Airtable</span></div>
+        <div class="recipe"><strong>MiniEstudio</strong><span>como OBS</span></div>
+        <div class="recipe"><strong>Taller</strong><span>como Antigravity</span></div>
+        <div class="recipe"><strong>Columnas</strong><span>como Trello</span></div>
+        <div class="recipe"><strong>MiEnlace</strong><span>como Linktree</span></div>
+        <div class="recipe"><strong>Pregunta</strong><span>como Typeform</span></div>
+      </div>
+      <p class="footnote">…o cualquier otra app. Los nombres originales son marcas de sus titulares y solo indican la inspiración.</p>
+    </section>
+
+    <!-- 10 · Empieza -->
+    <section class="slide">
+      <h2>Empieza ahora</h2>
+      <ol class="numbered">
+        <li><b>1</b> Vuelve a Claude Code</li>
+        <li><b>2</b> Escribe <code>/clonar</code></li>
+        <li><b>3</b> Elige una receta… o tu app</li>
+      </ol>
+    </section>
+
+    <!-- 11 · Mentorías -->
+    <section class="slide cover">
+      <p class="kicker">Sigue aprendiendo</p>
+      <h1 style="font-size:84px">Mentorías gratuitas<br><span class="hl">cada domingo</span></h1>
+      <p class="lead">Trae tu clon, resuelve tus dudas y sigue aprendiendo.</p>
+      <a class="cta" href="https://www.divisualproject.academy" target="_blank" rel="noopener">
+        <svg class="icon"><use href="#i-calendar"/></svg> divisualproject.academy
+      </a>
+    </section>
+  </main>
+
+  <div class="hint">← → para navegar · F pantalla completa</div>
+  <nav class="controls" aria-label="Navegación">
+    <button id="prev" aria-label="Anterior">‹</button>
+    <span id="counter"></span>
+    <button id="next" aria-label="Siguiente">›</button>
+  </nav>
+
+  <script>
+    const stage = document.getElementById("stage");
+    const slides = [...document.querySelectorAll(".slide")];
+    let current = 0;
+
+    function fit() {
+      const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720) * 0.94;
+      stage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function show(index) {
+      current = Math.max(0, Math.min(slides.length - 1, index));
+      slides.forEach((slide, i) => {
+        slide.classList.toggle("active", i === current);
+        slide.classList.toggle("before", i < current);
+      });
+      document.getElementById("counter").textContent = `${current + 1} / ${slides.length}`;
+      document.getElementById("progress").style.width = `${((current + 1) / slides.length) * 100}%`;
+      history.replaceState(null, "", `#${current + 1}`);
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (["ArrowRight", "PageDown", " ", "Enter"].includes(event.key)) show(current + 1);
+      else if (["ArrowLeft", "PageUp", "Backspace"].includes(event.key)) show(current - 1);
+      else if (event.key === "Home") show(0);
+      else if (event.key === "End") show(slides.length - 1);
+      else if (event.key.toLowerCase() === "f") {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen?.();
+      } else return;
+      event.preventDefault();
+    });
+
+    document.getElementById("next").addEventListener("click", () => show(current + 1));
+    document.getElementById("prev").addEventListener("click", () => show(current - 1));
+
+    // Clic en la diapositiva: tercio izquierdo retrocede, el resto avanza (salvo en enlaces).
+    stage.addEventListener("click", (event) => {
+      if (event.target.closest("a")) return;
+      const rect = stage.getBoundingClientRect();
+      show(event.clientX - rect.left < rect.width / 3 ? current - 1 : current + 1);
+    });
+
+    let touchX = null;
+    stage.addEventListener("touchstart", (event) => { touchX = event.touches[0].clientX; }, { passive: true });
+    stage.addEventListener("touchend", (event) => {
+      if (touchX === null) return;
+      const dx = event.changedTouches[0].clientX - touchX;
+      if (Math.abs(dx) > 40) show(current + (dx < 0 ? 1 : -1));
+      touchX = null;
+    });
+
+    window.addEventListener("resize", fit);
+    fit();
+    show(Number(location.hash.slice(1)) - 1 || 0);
+  </script>
+</body>
+</html>
