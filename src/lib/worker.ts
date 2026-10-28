@@ -25,6 +25,7 @@ import {
 } from '@/lib/media'
 import { claveMaestraServidor } from '@/lib/clave-privada'
 import { registrarEvento } from '@/lib/compliance'
+import { ejecucionesVivas } from '@/lib/flujos'
 import type { Brief, GenerationRequest } from '@/lib/provider/types'
 
 interface PesoJob {
@@ -55,6 +56,44 @@ export function iniciarWorker(): void {
   void db.job
     .updateMany({ where: { status: JOB_STATUS.PROCESANDO }, data: { status: JOB_STATUS.EN_COLA, progress: 0 } })
     .catch(() => undefined)
+  // Recupera ejecuciones de flujo que quedaron "en_curso" tras un reinicio: el corredor
+  // vive en memoria, si el proceso murió a mitad de paso la ejecución no puede seguir
+  // sola. Se marca fallida con causa trazable (re-lanzable desde la UI; con los pasos
+  // idempotentes, re-lanzar no duplica lotes ni eventos). Nunca toca ejecuciones vivas
+  // EN ESTE proceso, ni nada actualizado en los últimos 120s (margen de arranque).
+  const corte = new Date(Date.now() - 120_000)
+  const vivas = new Set(ejecucionesVivas())
+  void (async () => {
+    try {
+    const zombis = await db.flujoEjecucion.findMany({ where: { estado: 'en_curso', updatedAt: { lt: corte } } })
+    for (const z of zombis) {
+      if (vivas.has(z.id)) continue
+      const pasosEstado = JSON.parse(z.pasosEstado || '{}') as Record<string, { estado?: string; error?: string }>
+      for (const st of Object.values(pasosEstado)) {
+        if (st.estado === 'en_curso') st.error = 'Interrumpido por reinicio del servidor (el paso estaba en curso)'
+      }
+      await db.flujoEjecucion
+        .update({
+          where: { id: z.id },
+          data: {
+            estado: 'fallida',
+            finishedAt: new Date(),
+            pasosEstado: JSON.stringify(pasosEstado),
+            registro: JSON.stringify(
+              [
+                ...((JSON.parse(z.registro || '[]') as { ts: string; paso: string; nivel: string; mensaje: string }[]).slice(-490)),
+                { ts: new Date().toISOString(), paso: 'sistema', nivel: 'error', mensaje: 'Ejecución interrumpida por un reinicio del servidor: el corredor vive en memoria y no sobrevive al proceso. Re-lanza el flujo (los pasos idempotentes reutilizan lotes/eventos ya creados).' },
+              ].slice(-500),
+            ),
+          },
+        })
+        .catch(() => undefined)
+    }
+    if (zombis.length > 0) console.log(`[worker] ${zombis.length} ejecución(es) de flujo interrumpida(s) por reinicio → fallida (trazable)`)
+    } catch {
+      // si la BD aún no está lista, la siguiente invocación de iniciarWorker lo reintentará
+    }
+  })()
 }
 
 async function tick(state: { ocupado: boolean }): Promise<void> {
@@ -162,6 +201,14 @@ interface ResultadoPieza {
 
 // Genera UNA pieza completa: imagen + QA + archivos + fila Media + eventos de compliance.
 async function producirPieza(op: OpcionesPieza): Promise<ResultadoPieza> {
+  // IDEMPOTENCIA POR SEMILLA: mismo personaje + misma semilla = misma pieza. Si el job
+  // se interrumpió a mitad de lote y volvió a la cola tras un reinicio, las piezas ya
+  // generadas se REUTILIZAN en vez de duplicar filas/archivos (la re-entrada del job
+  // completa el resto del lote desde donde quedó por semilla).
+  const previa = await db.media.findFirst({ where: { characterId: op.characterId, seed: op.seed } })
+  if (previa) {
+    return { id: previa.id, veredicto: previa.qualityVerdict, motivo: previa.qualityReason ?? undefined }
+  }
   const provider = getProvider()
   const brief = op.brief
   const promptFinal = componerPrompt(op.characterName, op.anchorTrait, op.attrs, brief, op.lane)

@@ -78,3 +78,4 @@ server.log
 # entorno y pruebas
 dev.pid
 tool-results/
+backups/

@@ -98,7 +98,7 @@ export const MOTORES: MotorDef[] = [
     ],
     contratos: [
       { metodo: 'GET', ruta: '/api/crm/actions', que: 'Catálogo crm-actions/v1 auto-descriptivo' },
-      { metodo: 'POST', ruta: '/api/crm/actions', que: 'Ejecutar acción de negocio (Authorization: Bearer albra_…, idempotencia X-Idempotency-Key)' },
+      { metodo: 'POST', ruta: '/api/crm/actions', que: 'Ejecutar acción de negocio (Authorization: Bearer albra_…). SIN idempotencia servidor-side en v0.2.1 (sin X-Idempotency-Key): CHAT-X no reintenta escrituras ambiguas por esto' },
       { metodo: 'POST', ruta: '/api/mcp', que: 'MCP JSON-RPC 2.0 streamable stateless (16 tools)' },
       { metodo: 'GET', ruta: '/api/health', que: 'Liveness con check de BD' },
       { metodo: 'GET', ruta: '/api/doctor', que: 'Diagnóstico profundo' },
@@ -224,7 +224,7 @@ export const MOTORES: MotorDef[] = [
     rol: 'Prospección B2B: bot de Telegram con pipeline determinístico de 10 etapas + dashboard con CRM de prospectos, propuestas IA y closed-loop learning.',
     stack: 'Bot: TypeScript + grammy (long-polling, SIN HTTP) + better-sqlite3 · Dashboard: Next.js 16 + NextAuth',
     puertoPorDefecto: 'bot sin puerto · dashboard 3000',
-    urlPorDefecto: 'http://127.0.0.1:3000',
+    urlPorDefecto: '', // sin URL por defecto: el bot NO expone HTTP y su dashboard (:3000, NextAuth) colisiona con CHAT-X — sondearla aquí producía un falso "404" contra CHAT-X mismo
     healthPath: '/api/dashboard',
     capacidades: [
       'Pipeline: discovery → research → validation → evidence → dedup → scoring → intelligence → storage → report → CRM hook',
@@ -239,7 +239,7 @@ export const MOTORES: MotorDef[] = [
     ],
     envRequeridas: ['NVIDIA_API_KEY', 'TELEGRAM_BOT_TOKEN', 'ALLOWED_IDS', 'CRM_ALBRA_WEBHOOK_URL (apuntando a CHAT-X)', 'CRM_ALBRA_SECRET'],
     notasIntegracion: [
-      'El bot NO expone HTTP (long-polling): hoy solo es invocable su dashboard (NextAuth con cookies)',
+      'El bot NO expone HTTP (long-polling): hoy solo es invocable su dashboard (NextAuth con cookies) — no hay URL sondeable por defecto; configura la URL del dashboard solo si lo levantas en otro puerto',
       'El contrato de webhooks hacia CRM está definido pero CRM-ALBRA aún no tiene receptor — CHAT-X lo recibe aquí',
       'Outreach WhatsApp sale directo a Graph API de Meta, no por el daemon ALBRA',
     ],
@@ -355,8 +355,8 @@ export const MOTORES: MotorDef[] = [
     modulo: 5,
     rol: 'Arnés de community management: calendario editorial multi-marca, redacción con memoria de marca, adaptación multirred y gestión de comentarios públicos. Orquesta a los demás motores en vez de duplicarlos.',
     stack: 'Next.js 16 + Prisma (app/) · construido con método ClonaKit sala limpia (FICHA.md)',
-    puertoPorDefecto: '3000',
-    urlPorDefecto: 'http://127.0.0.1:3000',
+    puertoPorDefecto: '3000 (conflicto con CHAT-X: usar PORT distinto)',
+    urlPorDefecto: '', // sin URL por defecto: su :3000 colisiona con CHAT-X y sondearla aquí producía un falso "404" contra CHAT-X mismo — configura la URL real cuando lo levantes
     healthPath: '/api/audit',
     capacidades: [
       'Calendario editorial multi-marca con dependencias y recurrentes (/api/scheduler)',

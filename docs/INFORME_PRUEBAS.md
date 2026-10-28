@@ -8,9 +8,63 @@ Reproducción:
 ```bash
 bun install && bunx prisma db push && bun run dev        # terminal 1
 bash scripts/pruebas_api.sh                              # terminal 2 — 33 checks
-bun test test/unit/                                      # unitarias — 18 checks
+bun test test/unit/                                      # unitarias
 # benchmark GPU (solo con ComfyUI corriendo): bash scripts/benchmark_gpu.sh
 ```
+
+---
+
+# Fase de consolidación y validación (2026-10-29, post-c8836f2) — sin rehacer lo que funciona
+
+Orden del fundador: consolidar y validar; nada de envíos reales ni publicaciones externas; no declarar integrada una función por el hecho de tener contrato. Resultado: **suite API 33 PASS · 0 FAIL · unitarias 39 PASS (8 nuevas) · E2E de idempotencia 0 duplicados · gate WhatsApp verificado E2E · cerrojo BD verde tras migración con backup**.
+
+## 1. Idempotencia y recuperación (hallazgos REALES corregidos con evidencia)
+
+Auditoría de errores/reinicios/reintentos encontró 4 huecos reales de duplicación, todos corregidos y probados:
+
+| Hueco encontrado | Corrección | Prueba (evidencia) |
+|---|---|---|
+| **Lote del Estudio duplicado al re-lanzar/reanudar**: `estudio_lote` encolaba un job NUEVO con `batchId=flujo_${Date.now()}` y `varianteBase=Math.random()` en cada intento/re-ejecución | `batchIdFlujo(ejecucionId, pasoId)` determinista + reuso del job existente si ya fue encolado por ese mismo paso + `varianteDeBatch` determinista (sin Math.random) | E2E en `scripts/validacion_consolidacion.sh`: job re-encolado y re-procesado → **0 piezas nuevas, 0 pares (characterId,seed) duplicados** |
+| **Piezas duplicadas si el worker moría a mitad de lote**: al reiniciar, el job volvía a la cola y las piezas ya creadas se generaban OTRA vez (Media sin restricción única por semilla) | (a) `producirPieza` reutiliza la pieza existente por (characterId, seed); (b) índice único `@@unique([characterId, seed])` en Media aplicado con **backup previo** (`backups/db-20261028-212409.db`) + `verificar_bd` verde después; (c) cara canónica ahora es upsert (misma variante = misma cara, no duplica fila) | Unitarias nuevas (8 asserts en `test/unit/idempotencia.test.ts`) + suite completa 39 PASS + cerrojo: `✓ 12 tablas, 0 intrusas` |
+| **Ejecuciones de flujo zombis tras reinicio**: el corredor vive en memoria; al morir el proceso quedaban `en_curso` para siempre | `iniciarWorker` ahora las marca `fallida` con causa trazable en el registro (margen 120s + exclusión de ejecuciones vivas vía `ejecucionesVivas()`), re-lanzables desde la UI | Código + revisión; BD actual: 0 zombis; el margen evita matar ejecuciones recién arrancadas |
+| **crm_accion podía duplicar registros en el CRM**: el contrato crm-actions v0.2.1 **NO** deduplica servidor-side (la nota de "X-Idempotency-Key" del registro era aspiracional — verificado en el clon) | Nota del registro corregida a la realidad + `crm_accion` NO reintenta escrituras (`create_/add_/schedule_`) en fallo ambiguo (sin HTTP): el servidor pudo haberla aplicado | Verificación en el clon CRM (solo lectura) + lógica en flujos.ts |
+
+Además: **gate humano estructural de WhatsApp** — un paso `ultra_step` ya NO puede ejecutarse sin una `aprobacion_humana` COMPLETADA antes en su ejecución, aunque el operador construya un flujo sin gate explícito (defensa en profundidad; `resolverAprobacion` distingue el gate con `gatePendiente/gateAutorizado` para que el paso SÍ ejecute tras el sí).
+
+E2E del gate (`validacion_consolidacion.sh` §3): flujo con `ultra_step` y sin aprobación previa → quedó `esperando_aprobacion` con `gatePendiente` → al autorizar, continuó y completó (sin campaña configurada → nada se envió a nadie).
+
+## 2. Sondeo honesto (falso 404 corregido)
+
+`leads` y `comuniti` tenían `urlPorDefecto=127.0.0.1:3000` — **el propio CHAT-X** — así que el sondeo reportaba "El motor respondió HTTP 404" contra CHAT-X mismo. Ahora: sin URL por defecto → estado `NO_CONFIGURADO` con mensaje explícito. Sondeo tras el arreglo: 6/10 operativos (crm, whatspower, ultra, nexscope, cazador, agentekrea) + 2 NO_CONFIGURADO honestos + youtube/agentegeneral INALCANZABLE (corren en la máquina del fundador).
+
+## 3. Auditoría YouTube Automation / Gemini / Google Flow (verdad de la integración)
+
+- **CHAT-X no tiene ninguna llamada directa a Gemini ni a Google Flow** (grep en src/ + scripts/: solo metadatos del registro y notas de UI). Ambas son **capacidades internas del motor YOUTUBE-AUTOMATION** (guion Gemini 4 modos, TTS dual edge-tts/Gemini, GoogleFlowMCP stdio+CDP).
+- Lo que CHAT-X tiene de verdad: registro del motor con sus 7 contratos reales (manifest, execute, production_json/validate, projects, MCP, SSE), pasos de orquestador `youtube_validar/youtube_submit/youtube_estado` que llaman a esos contratos por HTTP, y vista dedicada.
+- Clasificación honesta: **contrato + pasos orquestables** = preparado; **invocable de verdad** = solo cuando el motor corre en :8000 (hoy INALCANZABLE en sandbox: exige FFmpeg + Chrome con sesión Google + CDP :9333 en la máquina del fundador); **Flow real** = además exige `FLOW_MCP_ENABLED=1` + `FLOW_MCP_VIDEO_ENABLED=1` (flags apagados por defecto). Gemini como LLM del guion: exige `GEMINI_API_KEY` en el motor (opcional, degrada). Nada de esto está integrado-activo hoy: es contrato listo + motor remoto.
+
+## 4. Evidencia de las pruebas de esta fase (reproducible)
+
+```bash
+bash scripts/validacion_consolidacion.sh   # suite API + E2E idempotencia + E2E gate WhatsApp
+bun test test/unit/                        # 39 PASS (incluye 8 asserts nuevos de idempotencia)
+bash scripts/escaneo_secretos.sh           # 0 secretos en árbol e historial (sin revelar valores)
+bun scripts/verificar_bd.ts                # cerrojo de integridad de BD
+bun scripts/sondeo_motores.ts              # sondeo honesto 6/10
+bun scripts/sondeo_datos_reales.ts         # qué significa OPERATIVO por motor (lecturas reales)
+```
+
+Resultados ejecutados (2026-10-29): suite **33 PASS · 0 FAIL · 0 SKIP** (incluye plantilla E2E "Plan → Estudio → Calendario" completada de nuevo tras la migración) · unitarias **39 pass / 0 fail / 1 skip opt-in** · E2E re-encolado del mismo job → **0 duplicados** · E2E gate → **detenido sin sí, liberado con sí, 0 envíos** · md5 de nexscope.db/krea.db **idénticos** tras reinicio de motores · cerrojo BD **12 tablas, 0 intrusas** · PRUEBA REAL de scraping en cazador (HTTP 200) · lecturas reales whatspower (1 flujo) y ultra (0 campañas) · crm/actions **401** sin API key (honesto).
+
+## 5. Bloqueos con intervención del fundador (sin cambios respecto a lo documentado)
+
+1. Revocar el PAT de GitHub (docs/SEGURIDAD.md — 5 min en su navegador; único secreto comprometido, vive solo en el chat).
+2. QR de WhatsApp + destinatario consentido (docs/WHATSAPP_QR_ACTIVACION.md).
+3. API key `albra_…` del CRM para que crm_accion pase de 401 a ejecutable.
+4. Motor YT en su máquina (FFmpeg + Chrome/CDP) para YouTube/Gemini/Flow reales.
+5. NVIDIA_API_KEY / TELEGRAM_BOT_TOKEN para LEADS y AGENTE-GENERAL.
+
+Incidente operativo de la sesión (sin pérdida de datos): el sandbox tiene 4 GB de RAM y el kernel mató por OOM al dev server con los 6 motores levantados; se reordenó la validación (suite con 4 motores, luego el resto) y se añadió `scripts/validacion_consolidacion.sh` que arranca y valida en una sola ventana.
 
 ## Añadido en esta sesión (2026-10-29) — verificado con evidencia
 

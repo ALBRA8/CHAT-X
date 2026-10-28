@@ -31,30 +31,41 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   guardarClaro(base, img.svg)
   const pathAbs = base + '.svg'
 
-  await db.media.create({
-    data: {
-      characterId: c.id,
-      kind: 'cara_canonica',
-      lane: LANE.PUBLICO,
-      prompt: `cara canónica · personaje: ${c.name} · variante ${variant}`,
-      seed,
-      checkpoint: CHECKPOINT_SIMULADOR,
-      aiLabels: JSON.stringify([ETIQUETA_IA]),
-      pipelineStatus: 'aprobado',
-      qualityVerdict: 'APROBADO',
-      filePath: pathAbs,
-      thumbPath: pathAbs,
-      provenance: JSON.stringify({
-        tipo: 'cara_canonica',
-        personaje: c.name,
-        seed,
-        variante: variant,
-        checkpoint: CHECKPOINT_SIMULADOR,
-        proveedor: getProvider().name,
-        generadoEn: new Date().toISOString(),
-      }),
-    },
+  // IDEMPOTENCIA: la misma variante (misma semilla) regenera la MISMA cara — se
+  // actualiza la fila existente en vez de duplicarla (índice único characterId+seed).
+  const provenance = JSON.stringify({
+    tipo: 'cara_canonica',
+    personaje: c.name,
+    seed,
+    variante: variant,
+    checkpoint: CHECKPOINT_SIMULADOR,
+    proveedor: getProvider().name,
+    generadoEn: new Date().toISOString(),
   })
+  const existente = await db.media.findFirst({ where: { characterId: c.id, seed } })
+  if (existente) {
+    await db.media.update({
+      where: { id: existente.id },
+      data: { filePath: pathAbs, thumbPath: pathAbs, provenance },
+    })
+  } else {
+    await db.media.create({
+      data: {
+        characterId: c.id,
+        kind: 'cara_canonica',
+        lane: LANE.PUBLICO,
+        prompt: `cara canónica · personaje: ${c.name} · variante ${variant}`,
+        seed,
+        checkpoint: CHECKPOINT_SIMULADOR,
+        aiLabels: JSON.stringify([ETIQUETA_IA]),
+        pipelineStatus: 'aprobado',
+        qualityVerdict: 'APROBADO',
+        filePath: pathAbs,
+        thumbPath: pathAbs,
+        provenance,
+      },
+    })
+  }
 
   const updated = await db.character.update({
     where: { id },

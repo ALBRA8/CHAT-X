@@ -43,3 +43,26 @@ Un token clásico (`ghp_…`) quedó expuesto en el chat en una sesión anterior
 3. Crear un **fine-grained PAT** nuevo: solo repository access = ALBRA8/CHAT-X, permissions: Contents: Read and write. Caducidad corta (30-90 días).
 4. Usarlo solo en el comando puntual (`git push https://<TOKEN>@github.com/ALBRA8/CHAT-X.git main`) sin guardarlo en .git/config ni en el chat; o mejor, `git credential` del sistema operativo.
 5. GitHub escanea secretos filtrados automáticamente (push protection): si el token viejo se usara, llegaría alerta por email.
+
+### Evaluación del riesgo (2026-10-29)
+
+- **Por qué es grave**: el token apareció íntegro en el historial del chat. Cualquiera que lea esa sesión podría usarlo. No depende de que el repo lo contenga: el secreto viajó por el canal de conversación, no por git.
+- **Por qué el daño es contenido (si se revoca ya)**: el repo de CHAT-X **no tiene remoto configurado** (`git remote -v` vacío — verificado), así que el token no pudo ser usado para push desde este entorno; los 10 clones de engines/ son de solo lectura y nunca se pushean.
+- **Ventana de exposición**: desde que se pegó en el chat (2026-10-28) hasta que el fundador lo revoque. Cada hora sin revocar amplía el riesgo de que alguien enumere repos de la cuenta o haga push con contenido malicioso.
+- **Acción del fundador (5 min, solo en su navegador)**: revocar el token (paso 1) y revisar el security log (paso 2). Nada de esto requiere el propio token ni el chat.
+- **Rotación posterior**: al generar el nuevo fine-grained PAT (pasos 3-4), que caduque en 30-90 días y solo cubra ALBRA8/CHAT-X.
+
+### Comprobación de otras credenciales expuestas (2026-10-29, sin revelar valores)
+
+Herramienta: `bash scripts/escaneo_secretos.sh` (solo imprime archivos/líneas/conteos, nunca el valor).
+
+| Superficie | Resultado |
+|---|---|
+| Árbol versionado (git grep en HEAD, 15 patrones de alto señal: ghp_/github_pat_/gho_/sk-/AIza/xox/AKIA/PRIVATE KEY/gsk_/npm_/glpat-/hf_…) | **0 coincidencias** |
+| Historial completo de git (todos los commits, diffs completos) | **0 secretos reales**; única coincidencia = el propio texto del escaneo documentado en INFORME_PRUEBAS.md (falso positivo documental) |
+| Ficheros .env en disco (raíz + engines) | Solo `DATABASE_URL` (rutas de fichero, no secretos). **Ninguna API key guardada en disco** |
+| BD (MotorConfig.apiKey) | 0 claves guardadas (crm/nexscope/krea configurados sin apiKey; leads/ultra sin secreto → webhook fail-closed activo) |
+| Remotos git | **Ninguno** (push imposible desde este entorno) |
+| Clones engines/ | Sin cambios de código fuente: solo lockfiles por `npm install`, directorios runtime sin trackear (.next/, db/) y el `.env` del aislamiento de BD (documentado en MOTORES_REGISTRO.md) |
+
+Conclusión: la única credencial comprometida sigue siendo el PAT del chat, que vive SOLO en el canal de conversación — su revocación es manual y pertenece al fundador.

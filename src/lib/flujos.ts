@@ -8,6 +8,7 @@ import { db } from '@/lib/db'
 import { estadoMotor, configMotor, type MotorId } from '@/lib/motores'
 import { registroEvento } from '@/lib/integracion-eventos'
 import { COSTOS, JOB_STATUS, LANE } from '@/lib/constants'
+import { hexSha256 } from '@/lib/rng'
 import type { Brief } from '@/lib/provider/types'
 
 /**
@@ -30,6 +31,33 @@ export function construirBriefPorDefecto(genome: string): Brief {
     encuadre: 'plano_medio',
     luz: 'natural suave',
   }
+}
+
+/**
+ * IDEMPOTENCIA — batchId determinista por (ejecución, paso): si el proceso muere
+ * entre encolar el job y persistir las variables, o el operador re-lanza la
+ * ejecución, el MISMO par (ejecución, paso) resuelve al MISMO batchId y el paso
+ * reutiliza el job ya encolado en vez de duplicar el lote.
+ */
+export function batchIdFlujo(ejecucionId: string, pasoId: string): string {
+  return `flujo_${hexSha256(`${ejecucionId}:${pasoId}`).slice(0, 16)}`
+}
+
+/** Variante base determinista derivada del batchId (sin Math.random: re-ejecutar no cambia las semillas). */
+export function varianteDeBatch(batchId: string): number {
+  return parseInt(hexSha256(`variante:${batchId}`).slice(0, 8), 16) % 1000
+}
+
+/**
+ * GATE HUMANO ESTRUCTURAL para WhatsApp: un paso ultra_step NO puede ejecutarse si
+ * no hay una aprobación humana COMPLETADA antes de él en la misma ejecución (y no
+ * ha sido ya autorizado su propio gate). Defensa en profundidad: aunque el operador
+ * construya un flujo sin gate explícito, ningún contacto WhatsApp sale sin su sí.
+ */
+export function bloqueadoGateUltra(paso: PasoDef, st: EstadoPaso, idx: number, pasos: PasoDef[], pasosEstado: Record<string, EstadoPaso>): boolean {
+  if (paso.tipo !== 'ultra_step') return false
+  if (Boolean((st.resultado as { gateAutorizado?: boolean } | undefined)?.gateAutorizado)) return false
+  return !pasos.slice(0, idx).some((p) => p.tipo === 'aprobacion_humana' && pasosEstado[p.id]?.estado === 'completado')
 }
 
 export interface PasoDef {
@@ -101,7 +129,7 @@ async function fetchJson(url: string, init: RequestInit & { timeoutMs?: number }
 }
 
 /** Ejecuta UN paso y devuelve {ok, resultado, mensaje}. Sin excepciones: todo es resultado. */
-async function accionPaso(paso: PasoDef, vars: Variables): Promise<{ ok: boolean; mensaje: string; resultado?: unknown }> {
+async function accionPaso(paso: PasoDef, vars: Variables, ctx?: { ejecucionId: string }): Promise<{ ok: boolean; mensaje: string; resultado?: unknown }> {
   const params = interpolar(paso.params, vars) as Record<string, unknown>
   switch (paso.tipo) {
     // ── Salud y trazabilidad ──
@@ -192,13 +220,26 @@ async function accionPaso(paso: PasoDef, vars: Variables): Promise<{ ok: boolean
       const coste = (COSTOS.PREVIEW + 0) * count
       const saldo = await db.settings.findUnique({ where: { id: 'main' } })
       if (!saldo || saldo.credits < coste) return { ok: false, mensaje: `Créditos insuficientes para lote de ${count} previews (necesita ${coste}).` }
+      // IDEMPOTENCIA: batchId determinista por (ejecución, paso). Si este paso ya encoló
+      // el lote (crash entre encolar y persistir, reintento, re-lanzamiento), se REUTILIZA
+      // el job existente: nunca dos lotes por el mismo paso de la misma ejecución.
+      const batchId = ctx ? batchIdFlujo(ctx.ejecucionId, paso.id) : `flujo_${Date.now()}`
+      const previo = await db.job.findFirst({
+        where: { type: 'lote_fotos', payload: { contains: batchId }, status: { not: JOB_STATUS.FALLIDO } },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (previo) {
+        vars.estudioJobId = previo.id
+        vars.estudioCharacterId = characterId
+        return { ok: true, mensaje: `Lote de ${count} previews ya encolado antes para ${character.name} (job ${previo.id}, estado ${previo.status}): se reutiliza, no se duplica.`, resultado: previo.result }
+      }
       const job = await db.job.create({
         data: {
           type: 'lote_fotos',
           characterId,
           priority: 2,
           costEstimate: coste,
-          payload: JSON.stringify({ brief, count, lane, batchId: `flujo_${Date.now()}`, varianteBase: Math.floor(Math.random() * 1000) }),
+          payload: JSON.stringify({ brief, count, lane, batchId, varianteBase: varianteDeBatch(batchId) }),
         },
       })
       vars.estudioJobId = job.id
@@ -223,13 +264,21 @@ async function accionPaso(paso: PasoDef, vars: Variables): Promise<{ ok: boolean
     case 'crm_accion': {
       const { url, apiKey } = await configMotor('crm')
       if (!url || !apiKey) return { ok: false, mensaje: 'CRM sin URL o API key configurada (guárdala en Módulo Comercial).' }
+      const accion = String(params.accion || '')
+      // El contrato crm-actions v0.2.1 NO deduplica servidor-side (sin X-Idempotency-Key).
+      // Para acciones de ESCRITURA, un fallo ambiguo (sin respuesta HTTP) NO se reintenta:
+      // el servidor pudo aplicarla y un reintento crearía un cliente/nota duplicada.
+      const esEscritura = /^(create_|add_|schedule_)/i.test(accion)
       const res = await fetchJson(`${url.replace(/\/+$/, '')}/api/crm/actions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ action: params.accion, payload: params.payload ?? {} }),
+        body: JSON.stringify({ action: accion, payload: params.payload ?? {} }),
       })
-      if (res.ok) return { ok: true, mensaje: `Acción CRM ${String(params.accion)} ejecutada.`, resultado: res.json }
-      return { ok: false, mensaje: `crm/actions ${String(params.accion)} → HTTP ${res.status} ${res.error ?? res.texto ?? ''}` }
+      if (res.ok) return { ok: true, mensaje: `Acción CRM ${accion} ejecutada.`, resultado: res.json }
+      if (esEscritura && res.status === 0) {
+        return { ok: false, mensaje: `${accion} falló de forma AMBIGUA (sin respuesta HTTP): no se reintenta automáticamente para no duplicar registros en el CRM. Verifica en el CRM si la acción se aplicó y re-lanza el flujo.` }
+      }
+      return { ok: false, mensaje: `crm/actions ${accion} → HTTP ${res.status} ${res.error ?? res.texto ?? ''}` }
     }
 
     // ── WhatsApp autorizado (contrato real de ULTRA; el guard anti-ban vive en el motor) ──
@@ -281,6 +330,11 @@ async function accionPaso(paso: PasoDef, vars: Variables): Promise<{ ok: boolean
   }
 }
 
+/** Ids de ejecuciones vivas EN ESTE PROCESO (para que la recuperación de zombis no toque las reales). */
+export function ejecucionesVivas(): string[] {
+  return Array.from(EJECUCIONES_EN_CURSO)
+}
+
 /** Arranca (o reanuda tras aprobación) la ejecución de un flujo. Fire-and-forget. */
 export async function correrEjecucion(ejecucionId: string): Promise<void> {
   if (EJECUCIONES_EN_CURSO.has(ejecucionId)) return
@@ -297,7 +351,7 @@ export async function correrEjecucion(ejecucionId: string): Promise<void> {
 
     let fallo = false
     let esperando = false
-    for (const paso of pasos) {
+    for (const [idx, paso] of pasos.entries()) {
       const st = pasosEstado[paso.id] ?? (pasosEstado[paso.id] = { estado: 'pendiente', intentos: 0 })
       if (st.estado === 'completado' || st.estado === 'omitido') continue
       if (st.estado === 'esperando_aprobacion') {
@@ -314,6 +368,17 @@ export async function correrEjecucion(ejecucionId: string): Promise<void> {
         break
       }
 
+      // GATE HUMANO ESTRUCTURAL (WhatsApp): ningún ultra_step ejecuta sin aprobación
+      // humana previa en esta ejecución, aunque el flujo del operador no lo traiga.
+      if (bloqueadoGateUltra(paso, st, idx, pasos, pasosEstado)) {
+        st.estado = 'esperando_aprobacion'
+        st.resultado = { gatePendiente: true, motivo: 'ultra_step exige autorización humana previa' }
+        await log(ejecucionId, registro, paso.nombre, 'warn', 'Gate humano automático: el paso WhatsApp (ultra_step) exige una aprobación humana previa y este flujo no tiene ninguna antes de este punto. No se contactará a nadie sin tu sí.')
+        await persistir(ejecucionId, 'esperando_aprobacion', pasosEstado, vars, registro)
+        esperando = true
+        break
+      }
+
       st.estado = 'en_curso'
       st.iniciadoEn = new Date().toISOString()
       await persistir(ejecucionId, 'en_curso', pasosEstado, vars, registro)
@@ -323,7 +388,7 @@ export async function correrEjecucion(ejecucionId: string): Promise<void> {
       let ultimo = ''
       for (let intento = 1; intento <= maxIntentos; intento++) {
         st.intentos = intento
-        const r = await accionPaso(paso, vars)
+        const r = await accionPaso(paso, vars, { ejecucionId })
         ultimo = r.mensaje
         if (r.ok) {
           ok = true
@@ -396,8 +461,29 @@ export async function resolverAprobacion(ejecucionId: string, aprobado: boolean,
   const pasos = JSON.parse(ejecucion.flujo.definicion) as PasoDef[]
   const pasosEstado = JSON.parse(ejecucion.pasosEstado) as Record<string, EstadoPaso>
   const registro: Registro[] = JSON.parse(ejecucion.registro) as Registro[]
+  const vars = JSON.parse(ejecucion.variables || '{}') as Variables
   const pendiente = pasos.find((p) => pasosEstado[p.id]?.estado === 'esperando_aprobacion')
   if (!pendiente) return { ok: false, mensaje: 'No hay paso pendiente de aprobación.' }
+
+  // Gate estructural de WhatsApp (ultra_step): al aprobar, el paso NO se marca completado —
+  // vuelve a pendiente con la autorización registrada y entonces SÍ ejecuta su acción real.
+  const stPend = pasosEstado[pendiente.id]
+  if (Boolean((stPend?.resultado as { gatePendiente?: boolean } | undefined)?.gatePendiente)) {
+    if (!aprobado) {
+      pasosEstado[pendiente.id] = { ...stPend, estado: 'fallido', error: `Gate WhatsApp rechazado por el operador${nota ? `: ${nota}` : ''}`, terminadoEn: new Date().toISOString() }
+      await log(ejecucionId, registro, pendiente.nombre, 'error', `Gate WhatsApp rechazado: no se contactará a nadie${nota ? ` (${nota})` : ''}`)
+      await persistir(ejecucionId, 'cancelada', pasosEstado, vars, registro, new Date())
+      return { ok: true, mensaje: 'Gate WhatsApp rechazado: ejecución cancelada sin contactar a nadie.' }
+    }
+    pasosEstado[pendiente.id] = { ...stPend, estado: 'pendiente', resultado: { gateAutorizado: true, aprobadoPor: 'operador', nota }, error: undefined }
+    await log(ejecucionId, registro, pendiente.nombre, 'ok', `Autorización registrada por el operador${nota ? `: ${nota}` : ''} — el paso WhatsApp continúa ahora sí.`)
+    await db.flujoEjecucion.update({
+      where: { id: ejecucionId },
+      data: { pasosEstado: JSON.stringify(pasosEstado), registro: JSON.stringify(registro.slice(-500)) },
+    })
+    void correrEjecucion(ejecucionId) // continúa con el paso ya autorizado
+    return { ok: true, mensaje: 'Autorización registrada: el paso WhatsApp continúa.' }
+  }
 
   if (!aprobado) {
     pasosEstado[pendiente.id] = { ...pasosEstado[pendiente.id], estado: 'fallido', error: `Rechazado por el operador${nota ? `: ${nota}` : ''}`, terminadoEn: new Date().toISOString() }

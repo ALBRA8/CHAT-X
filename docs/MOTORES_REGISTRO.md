@@ -45,3 +45,27 @@ CHAT-X :3000 · CRM-ALBRA :3000 (fijar PORT distinto si conviven) · YOUTUBE-AUT
 5. Puertos de sandbox en config de BD (Módulo Operaciones): crm :3100 · nexscope :3300 · agentekrea :3210 — el sondeo (`bun scripts/sondeo_motores.ts`) lee esa config igual que la plataforma.
 
 **Verificación del aislamiento (2026-10-28 21:05 UTC)**: fds de los procesos confirmados — CRM→`engines/CRM-ALBRA/db/crm.db`, KREA→`engines/AGENTE-KREA/db/krea.db` (doctor: database HEALTHY), NEX-SCOPE :3300 200. Sondeo: **6/10 OPERATIVOS**. Cerrojo: `✓ BD de CHAT-X íntegra — 12 tablas, 0 intrusas`.
+
+**Re-verificación tras reinicio de motores (2026-10-29, fase de consolidación)**: NEX-SCOPE y KREA rearrancados con `DATABASE_URL` absoluta → md5 de `nexscope.db` y `krea.db` **idéntico antes/después del reinicio**; NEX health 200; KREA doctor database HEALTHY; cerrojo de CHAT-X 12 tablas / 0 intrusas. El aislamiento sobrevive al reinicio y a un `db push` del host (índice único añadido a Media con backup previo: `backups/db-20261028-212409.db`).
+
+## Qué significa exactamente "OPERATIVO" para cada motor (sondas de datos reales, 2026-10-29)
+
+El estado OPERATIVO del registro viene de `sondearMotor()` (HTTP 200 en el healthPath). Esta tabla define además **qué se puede invocar de verdad ahora mismo** y qué falta para cada capacidad (sondeo: `bun scripts/sondeo_datos_reales.ts`):
+
+| Motor | Health 200 significa | Invocable de verdad HOY | Requiere intervención/credencial |
+|---|---|---|---|
+| **crm** :3100 | Liveness + `checks.db=true` (BD accesible) | `GET /api/health`, `GET /api/doctor` | `POST /api/crm/actions` devolvió **401**: hace falta la API key `albra_…` (se genera en Settings → API keys del CRM y se guarda en la config del motor en CHAT-X). Sin esa clave, crear clientes vía orquestador queda en NO_AUTORIZADO honesto |
+| **whatspower** :3003 | Servicio 2A vivo | Health + **lectura real**: `GET /api/flows` devolvió 1 flujo real ("Flujo Completo de Calificación ManyChat", activo) | Probar flujo con remitente real exige daemon Baileys + QR del fundador |
+| **ultra** :3004 | Servicio 2B vivo con sus cerrojos | Health + **lectura real**: `GET /api/campaigns` devolvió 0 campañas (nada configurado, nada despachado) | Despacho real: campaña creada + piloto confirmado + QR del daemon; `ALLOW_REAL_DISPATCH` apagado |
+| **nexscope** :3300 | App viva (`available:true, status:ok, auth:anonymous`) | Health + páginas públicas | Endpoints de trabajo (`/api/keywords`, `/api/content-plan`, `/api/mcp`) exigen **sesión JWT por cookie** — el acceso m2m necesita login programático o un contrato de API key en el repo del motor (pendiente del motor, no de CHAT-X) |
+| **cazador** :8787 | Backend vivo con proveedor GLM (`model:glm`) | Health + **PRUEBA REAL de scraping ejecutada**: `POST /api/scrape` sobre example.com → HTTP 200, ciclo completo del SDK (rows=0: la página de prueba no tiene campos de producto; la llamada sí procesó de verdad) | Extracciones de producción apuntando a Hotmart/JVZoo/Muncheye — sin costo extra (usa el SDK del sandbox) |
+| **agentekrea** :3210 | Doctor profundo: **5/7 HEALTHY** (database, generation_api, zai_provider, storage, config); auth_api y metrics_api DEGRADED (rutas internas del panel del motor, no afectan a la generación) | Health + doctor + generación interna del motor | Generación m2m desde CHAT-X exige token de servicio del motor (hoy solo sesión de usuario) — pendiente del motor |
+
+Y los 4 NO operativos, con su causa exacta: **youtube** :8000 INALCANZABLE (corre en la máquina del fundador: FFmpeg + Chrome/CDP), **agentegeneral** :9000 INALCANZABLE (app Python con LLM key externa), **leads** y **comuniti** **NO_CONFIGURADO desde 2026-10-29** (antes sondeaban `:3000` por defecto — el propio CHAT-X — y reportaban un falso 404; ahora sin URL por defecto, el sondeo lo dice explícito).
+
+## Modificaciones benignas en los clones (auditoría 2026-10-29)
+
+Ningún clon tiene cambios de **código fuente**. Lo que `git status` muestra en algunos:
+- `package-lock.json` modificado (CRM, NEX-SCOPE, LEADS, CAZADOR-server): efecto de `npm install`/`--legacy-peer-deps` durante la instalación del 2026-10-28.
+- Directorios runtime sin trackear: `.next/` (LEADS), `db/` (ULTRA: su propia BD de difusión).
+- `.env` propio (KREA): la corrección del aislamiento de BD (`DATABASE_URL` absoluta), regla documentada arriba.
