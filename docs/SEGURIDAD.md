@@ -68,3 +68,11 @@ Herramienta: `bash scripts/escaneo_secretos.sh` (solo imprime archivos/líneas/c
 | Clones engines/ | Sin cambios de código fuente: solo lockfiles por `npm install`, directorios runtime sin trackear (.next/, db/) y el `.env` del aislamiento de BD (documentado en MOTORES_REGISTRO.md) |
 
 Conclusión: la única credencial comprometida sigue siendo el PAT del chat, que vive SOLO en el canal de conversación — su revocación es manual y pertenece al fundador.
+
+### Sincronización del remoto autorizada por el fundador (2026-10-29)
+
+- **Autorización**: el fundador respondió «si a todo» a las tres acciones propuestas (actualizar remoto, rotar token, reconstruir research/). El push estaba prohibido por defecto en la constitución; queda registrado que aquí se ejecutó por instrucción explícita del fundador.
+- **Ejecución**: `git push --force-with-lease=refs/heads/main:fa2fffc...` — sobrescribió el snapshot antiguo del remoto (2 commits del 2026-10-28, historia no relacionada, sin ningún archivo exclusivo salvo `.env.example`, ya recuperado en f2939ce) con la línea autoritativa local completa. Verificado post-push: remoto `main = f2939ce` idéntico al local.
+- **Higiene del token**: usado solo transitoriamente en la URL del comando (patrón ya documentado arriba); NO configurado como remote persistente (`git remote -v` sigue vacío), NO guardado en `.git/config`, ni en archivos, ni en la BD.
+- **Pendiente del fundador**: rotar el PAT en GitHub (apareció íntegro en el chat el 2026-10-28 y se re-usó hoy); el reemplazo recomendado es fine-grained, caducidad 30–90 días, scope solo ALBRA8/CHAT-X.
+- **Política vigente**: ningún push futuro sin instrucción explícita del fundador en el chat.
