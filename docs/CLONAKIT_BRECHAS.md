@@ -5,7 +5,7 @@ OmniMint, TokPrimeAI, Cinemation, Clientforce, BuzzAgentsAI, GPTVideos,
 Synthesys Studio), INFORME_JVZOO_BATCH_A.md (11 generalistas),
 INFORME_ADULTOS_BATCH_B.md (KINKU, LOVELAB, APATERO, MAGE) y
 research/ia-influencer/ANALISIS.md (intel por dentro de "IA Influencer").
-Fecha: 2026-10-28 — INTEL COMPLETA: 23/23 referentes documentados. CONFIDENCIAL (no sube a GitHub).
+Fecha: 2026-10-28 — INTEL COMPLETA: 23/23 referentes documentados (+ referente #24 IA HUB «Imperio», 2026-10-29, ficha al final). CONFIDENCIAL (no sube a GitHub).
 
 ## Lo que YA supera CHAT-X a los referentes (no tocar, mantener)
 
@@ -93,3 +93,24 @@ Verificación previa: los remotos están EN SINCRONÍA con nuestros clones (`WHA
 | ULTRA PRO-02: `INTERNAL_API_SECRET` fail-closed | Protege el split pilot↔core de ULTRA (dos servicios). CHAT-X es UNA app con sesiones de cookie httpOnly (`privado.ts`): no hay API interna entre servicios que proteger. | Si CHAT-X se parte en varios servicios (decisión arquitectónica del fundador). |
 
 **Conclusión honesta**: no es que WHATSPOWER/ULTRA no tengan valor — es que su valor está detrás de una puerta que CHAT-X aún no ha abierto (canal entrante real de DMs, bloqueo externo). Al abrirse esa puerta, estas tres piezas (opt-out, locks, grafo de flujos) pasan de «código muerto» a «requisito día 1», en ese orden.
+
+## Referente #24 — IA HUB «Imperio» (ia-hub.cl, 2026-10-29)
+
+**Qué ES**: NO es plataforma — es un club/curso (31 temporadas, +100 capítulos: serie IA HOT para Fanvue/Telegram 18+, serie IA ECOM para UGC/dropshipping) + app con 24 herramientas alojadas de terceros (rostros, face swap, inpainting, poses, body morph, motion transfer, «limpiar metadatos», JSON prompter…) + automatizaciones (Automatizador IG, **Chatting Hub 24/7 en Instagram y Fanvue**, bot de Telegram, workflows ComfyUI) + 3 GPTs. Precio de mercado: **$349 vitalicio / $89 mes** (en plan mensual, IG/Chatting Hub se desbloquean a los 6 meses — retención por escasez). Venden el MÉTODO y acceso a herramientas rentadas; la producción real ocurre en ComfyUI/Wan 2.2/Z-Image/Krea/LTX/MiniMax/Higgsfield/RunningHub.
+
+**Veredicto por módulo (filtro ClonaKit):**
+
+| Lo suyo | CHAT-X hoy | Veredicto |
+|---|---|---|
+| Método de modelo IA con rostro consistente (curso) | Genoma + cara canónica + examen de identidad + LoRA versionada — SOFTWARE verificable | **Los superamos por lejos**: ellos enseñan a hacerlo a mano con herramientas de terceros; nosotros lo productizamos con auditoría y procedencia |
+| 24 herramientas alojadas (face swap, body morph, motion transfer, poses…) | Provider ComfyUI real (img2img/outfit-swap P2.6), InstaDump, escalera; GPU BLOQUEADA EXTERNA | PARIDAD DE MAPA con ventaja nuestra de pipeline (QA forense, compliance, reembolsos). Face swap de personas reales = NCII: NO se copia (ya en «No copiar») |
+| Raster de motores que enseñan (Wan 2.2, Z-Image Turbo, Krea 2, LTX, MiniMax H3, RunningHub) | Nuestro raster era ComfyUI + piper/espeak | **VALOR REAL capturado**: registrado como raster de candidatos en `MOTOR_GPU.md` — RunningHub (ComfyUI alojado) puede desbloquear el render de vídeo SIN GPU local casi sin tocar código (cuenta de pago = BLOQUEADO EXTERNO, decisión del fundador) |
+| **Chatting Hub 24/7 en Instagram/Fanvue** | Chat GFE Modo Novia OPERATIVO (intención foto/voz/texto → pipeline real, LLM real con estados honestos, filtro de edad in/out) pero SIN conector de canal (Fanvue DMs = BLOQUEADO EXTERNO) | La ÚNICA pieza donde ellos operan y nosotros no — confirma que el chat 24/7 sobre canal real es LA feature de ingresos del nicho (nuestra puerta bloqueada #1). Al abrirse: opt-out + locks + grafo de flujos de WHATSPOWER (veredicto anterior) se activan como requisito día 1 |
+| Automatizador IG (publica/comenta solo) | NO existe y NO se copiará por diseño | ToS de Meta = riesgo de cuenta (misma lógica que Facebook en «No copiar») |
+| Bot de Telegram / venta por Telegram | Sin canal | BLOQUEADO EXTERNO (cuenta del fundador) |
+| Clonación de voz (temporada) | Contratos de voz P1.3 + piper local (29× tiempo real) + QA forense de bytes (audio silencioso o HTML disfrazado NO se entrega) | **Los superamos** en ingeniería honesta; su amplitud es nivel proveedor, se cubre con el raster |
+| Monetización ECOM (UGC para marcas, dropshipping, Shopify) | P3 monetización MODO_INTERNO, split 90/10, white-label | Línea de negocio DISTINTA (agencia de UGC), no núcleo Fanvue — no aplica hoy |
+| Programa de afiliados (temporada) | No existe en el ledger | Brecha MENOR registrada: entradas de referidos en `LedgerMonetizacion` cuando haya canal de lanzamiento (JVZoo/Whop = BLOQUEADO EXTERNO) |
+| «Limpiar metadatos» (herramienta suya) | Procedencia INTENCIONAL: etiqueta IA + auditoría (Fanvue EXIGE declarar contenido IA) | NO APLICAR: borrar metadatos de IA contradice nuestro disclosure; su herramienta existe para publicar en otros lados |
+
+**Conclusión honesta**: NO compiten con nosotros en software — venden el mapa (curso) + herramientas rentadas; no tienen plataforma que comparar. En todo lo plataforma (consistencia verificable, compliance, CRM, estados honestos, escalera de costes, QA forense) **los superamos por lejos**. Donde SÍ nos ganan HOY: acceso operativo a canales reales (IG/Fanvue/Telegram) que a nosotros nos bloquea lo externo — no por ingeniería sino por credenciales. Valor capturado: (1) raster de motores para el día GPU, (2) confirmación de mercado del chat 24/7 como feature de ingresos #1, (3) pricing del nicho ($349 vitalicio / $89 mes por método+herramientas) como insumo de `EMBAUDO.md` — CHAT-X se posiciona como «el software que automatiza lo que ellos enseñan a mano».

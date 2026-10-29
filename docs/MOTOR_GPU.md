@@ -65,6 +65,26 @@ requiere proveedor de vídeo (Google Flow vía YOUTUBE-AUTOMATION o nodo de víd
 en ComfyUI) y está registrada como bloqueada por hardware/credenciales, no como
 implementada.
 
+## Raster de motores candidatos (intel referente #24 IA HUB, 2026-10-29)
+
+Mapa de motores que el nicho está usando HOY (curso IA HUB «Imperio») — candidatos
+para el día del desbloqueo, NO integrados todavía. Ninguno cambia el estado honesto
+actual: sin GPU local o cuenta externa, el vídeo sigue BLOQUEADO EXTERNO.
+
+| Motor | Modalidad | Vía de entrada en CHAT-X |
+|---|---|---|
+| **Wan 2.2** (img→vídeo / texto→vídeo) | open weights, nodos ComfyUI de comunidad | Encaja en la escalera P2.4 (draft→max) como motor de render con GPU local — mismo contrato de workflow API del adaptador existente |
+| **LTX Video** | open weights, nodos ComfyUI | Igual que Wan: segundo candidato de render, útil para comparar calidad/coste por escalón |
+| **Z-Image Turbo** | open weights, pocos pasos | Candidato al escalón `preview` (composición barata rápida) del raster de imagen |
+| **Krea 2** | open/SaaS según versión | Candidato al escalón `final` (calidad publicable) |
+| **MiniMax H3** | SaaS cerrado (API de pago) | Solo vía cuenta externa del fundador — BLOQUEADO EXTERNO |
+| **Higgsfield / Genjutsu** | SaaS cerrado (vídeo viral, personajes) | Solo observación: vendor-lock + suscripción; sin integración planeada |
+| **RunningHub** | **ComfyUI ALOJADO en la nube** (workflows API) | La vía para desbloquear el render de vídeo SIN GPU local: el adaptador ComfyUI existente (contrato workflow API + sonda de nodos) aplicaría casi sin tocar código. Requiere cuenta de pago → BLOQUEADO EXTERNO (decisión del fundador) |
+
+Prioridad sugerida si se desbloquea hardware/dinero: (1) GPU local + Wan 2.2/LTX
+(ruta $0 recurrente ya documentada arriba), (2) RunningHub como alternativa sin GPU
+(costo mensual), (3) SaaS cerrados solo para comparar calidad, nunca como núcleo.
+
 ## Desbloqueo exacto (para el fundador)
 1. Tener GPU NVIDIA (RTX 3060 12GB o superior recomendado) con driver + CUDA.
 2. Instalar ComfyUI y exportar el workflow API.
