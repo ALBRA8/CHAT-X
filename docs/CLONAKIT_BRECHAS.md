@@ -80,3 +80,16 @@ Criterio del fundador: «los cambios, siempre y cuando sean de utilidad» y «no
 | **QA forense de bytes reales** | `qaForense()` en `src/lib/qa-forense.ts`: firma real por magic bytes — HTML/texto disfrazado de PNG/WAV RECHAZADO (la lección exacta del referente), PNG/JPEG truncados detectados, WAV con duración y silencio medidos (PCM 16-bit, umbral ≈ -58 dBFS). Gate activo en `voz.ts` (piper Y espeak): un audio silencioso o inválido NO se entrega — ERROR honesto. Listo para raster de proveedores reales (ComfyUI) cuando llegue la GPU. |
 
 - **Baseline tras la tanda**: lint ✓ · tsc 0 ✓ · unit 179 (178 pass + 1 skip hermético) ✓ · API 77/77 ✓ (con el worker endurecido procesando jobs reales E2E). Stub de piper en tests actualizado a audio audible realista (el gate forense rechaza silencio puro — y debe).
+
+## Veredicto WHATSPOWER / WHATSPOWER-ULTRA (2026-10-29, noche) — nada que integrar HOY, con disparadores anotados
+
+Verificación previa: los remotos están EN SINCRONÍA con nuestros clones (`WHATSPOWER` `f4f7fc9` · `ULTRA` `e6ef56d` · `YT` `2589e4e`) — todos los cambios del fundador ya estaban subidos y revisados; no falta nada por llegar. Lo que sigue es el filtro «¿de utilidad para CHAT-X?» módulo a módulo, sin copiar por copiar:
+
+| Módulo suyo (no-visual) | Por qué HOY no tiene consumidor en CHAT-X | Disparador para integrarlo |
+|---|---|---|
+| `flow-engine.ts` (757 líneas) + Studio visual | Paradigma ManyChat: grafo de nodos para campañas por keywords sobre WhatsApp. Nuestro chat GFE es OTRO paradigma (intención foto/voz/texto → genoma/LLM real → pipeline real con QA y compliance) y no tenemos canal entrante masivo: sería código muerto + UI pesada. La interfaz visual es su vehículo de entrega, no el valor. | Día en que conectemos un canal real de DMs (Fanvue/WhatsApp gateway — BLOQUEADO EXTERNO) y queramos campañas por keywords. |
+| `state/lock-manager.ts` (locks de conversación TTL + `HANDOFF_HUMAN` estricto 24h) | Protege carreras entre procesos de flujo simultáneos sobre el mismo teléfono. Nuestro chat es req/resp síncrono y el worker ya tiene claim atómico (esta misma tanda): no hay carrera que bloquear. | Mismo disparador: canal entrante con handoff humano real. El patrón TTL + estado estricto es bueno y lo reutilizaremos tal cual. |
+| `suppression/suppression-store.ts` (opt-out por keyword → lista permanente) | La MEJOR pieza no-visual suya (compliance real: «baja/salir/stop/cancelar» → supresión permanente con normalización de acentos). Pero sin canal saliente masivo no hay a quién suprimir: nuestro chat es 1:1 del estudio. | **Día 1 del primer canal real de DMs — se integra ANTES de enviar el primer mensaje masivo.** No se pierde: está anotado aquí. |
+| ULTRA PRO-02: `INTERNAL_API_SECRET` fail-closed | Protege el split pilot↔core de ULTRA (dos servicios). CHAT-X es UNA app con sesiones de cookie httpOnly (`privado.ts`): no hay API interna entre servicios que proteger. | Si CHAT-X se parte en varios servicios (decisión arquitectónica del fundador). |
+
+**Conclusión honesta**: no es que WHATSPOWER/ULTRA no tengan valor — es que su valor está detrás de una puerta que CHAT-X aún no ha abierto (canal entrante real de DMs, bloqueo externo). Al abrirse esa puerta, estas tres piezas (opt-out, locks, grafo de flujos) pasan de «código muerto» a «requisito día 1», en ese orden.
