@@ -108,3 +108,21 @@ Conclusión: la única credencial comprometida sigue siendo el PAT del chat, que
 - **Higiene del token**: solo en la URL de los comandos de verificación puntual (`ls-remote`); `git remote -v` sigue vacío, nada en `.git/config`, archivos ni BD.
 - **Baseline re-verificado hoy**: lint ✓ · tsc 0 ✓ · unit 144 pass + 1 skip hermético ✓ · API 77/77 (de la tanda del commit, árbol intacto).
 - **Pendiente vigente del fundador**: revocar el PAT del 2026-10-28 y rotar la actual.
+
+### Merge + push fast-forward de la línea local sobre la remota (2026-10-30) — registro diferido
+
+- **Instrucción del fundador**: «y cuando termines subelo al repo» + PAT aportada en el chat.
+- **Divergencia detectada y resuelta sin destrucción**: el remoto había avanzado a `b63eb0a`
+  (línea P1.1–P1.3 + P2.4–P2.8 + P3 + lápida IA HUB, 12 commits) mientras la línea local
+  avanzaba con voz clon-local `94e520b`, recon Batch C `a4963a3` y adopciones A2/A3 `20ae1b1`.
+  Integración por merge `6f0e54c` con resolución honesta de conflictos (ruta voz en tres
+  capas, dedupe de helpers binarios, unión de schema, numeración de referentes unificada).
+- **Validación pre-push del árbol fusionado**: lint ✓ · tsc 0 ✓ · unitarias 190 pass + 1 skip ✓ ·
+  regresión API 77/77 con server reiniciado sobre el código fusionado ✓.
+- **Push**: fast-forward `b63eb0a..6f0e54c` vía `scripts/subir_repo.sh` (sin remote persistente,
+  sin --force); verificación `ls-remote`: tip remoto `6f0e54c` idéntico al HEAD local.
+- **Higiene del token**: viajó SOLO por variable de entorno del comando puntual; nada escrito
+  en disco, `.git/config`, remotos ni BD.
+- **Pendiente URGENTE del fundador**: la PAT aportada hoy en el chat queda EXPUSTA en el
+  historial del canal — ROTAR inmediatamente tras este push y revocar la anterior (2026-10-28,
+  sigue pendiente). Regla reafirmada: los tokens al chat mueren; cada aparición = rotación.
