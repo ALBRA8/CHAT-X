@@ -22,6 +22,10 @@ export interface GenerationRequest {
   sceneName?: string // para examen de identidad
   index?: number // índice dentro del lote o dataset
   total?: number
+  // Contrato img2img (Outfit Swap P2.6 con proveedor real): pieza de referencia
+  // aprobada del personaje + denoise bajo. El simulador la ignora (identidad por
+  // baseSeed); ComfyUI sube la referencia y ajusta KSampler.denoise.
+  img2img?: { mediaRefId: string; denoise: number; rutaReferencia: string }
 }
 
 export interface GeneratedImage {

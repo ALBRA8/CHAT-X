@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { Lock, LockOpen, Save, Wand2 } from 'lucide-react'
+import { Layers, Lock, LockOpen, Save, Shirt, Wand2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import {
   api,
@@ -135,6 +135,79 @@ export default function EstudioView({ inicial }: { inicial: CharacterT | null })
       const err = e as Error & { status?: number }
       toast({
         title: err.status === 422 ? 'Bloqueo de compliance' : 'No se pudo lanzar el lote',
+        description: err.message,
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // InstaDump nativo (P2.5): 1 clic → lote multi-escena/outfit automático.
+  // Los campos del brief actúan como ANCLA opcional (lo que queda vacío lo
+  // planifica el InstaDump con pools curados + aficiones del genoma).
+  const generarInstaDump = async () => {
+    if (!c) return
+    try {
+      const r = await api<{ jobId: string; batchId: string; coste: number; piezas: number; paquete: string }>('/api/studio/instadump', {
+        method: 'POST',
+        body: JSON.stringify({
+          characterId: c.id,
+          lane,
+          count,
+          paquete: 'mixto',
+          escena: escena.trim() || undefined,
+          outfit: outfit.trim() || undefined,
+          luz: luz.trim() || undefined,
+        }),
+      })
+      setLoteId(r.batchId)
+      setRenderId(null)
+      setSeleccion(new Set())
+      toast({
+        title: `InstaDump ${r.paquete}: ${r.piezas} escenas distintas en camino…`,
+        description: `coste ${fmtDinero(r.coste)} cr. · batch ${r.batchId.slice(-6)}`,
+      })
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      toast({
+        title: err.status === 422 ? 'Bloqueo de compliance' : 'No se pudo lanzar el InstaDump',
+        description: err.message,
+        variant: 'destructive',
+      })
+    }
+  }
+
+  // Outfit Swap (P2.6): el outfit del formulario es el VESTUARIO NUEVO; la
+  // identidad no deriva (baseSeed fija en simulador; img2img con proveedor real).
+  const generarOutfitSwap = async () => {
+    if (!c) return
+    if (!outfit.trim()) {
+      toast({ title: 'Escribe el outfit NUEVO en el campo Outfit.', variant: 'destructive' })
+      return
+    }
+    try {
+      const r = await api<{ jobId: string; batchId: string; coste: number; piezas: number }>('/api/studio/outfit-swap', {
+        method: 'POST',
+        body: JSON.stringify({
+          characterId: c.id,
+          lane,
+          count,
+          outfit: outfit.trim(),
+          escena: escena.trim() || undefined,
+          luz: luz.trim() || undefined,
+          encuadre,
+        }),
+      })
+      setLoteId(r.batchId)
+      setRenderId(null)
+      setSeleccion(new Set())
+      toast({
+        title: `Outfit Swap: ${r.piezas} piezas con "${outfit.trim()}"…`,
+        description: `misma identidad, sin deriva facial · coste ${fmtDinero(r.coste)} cr.`,
+      })
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      toast({
+        title: err.status === 422 ? 'Bloqueo de compliance' : 'No se pudo lanzar el Outfit Swap',
         description: err.message,
         variant: 'destructive',
       })
@@ -279,6 +352,14 @@ export default function EstudioView({ inicial }: { inicial: CharacterT | null })
             <Button className="w-full" onClick={generarLote} disabled={!c || Boolean(loteJob)}>
               <Wand2 className="mr-1.5 h-4 w-4" aria-hidden /> Generar lote de previews
             </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" className="w-full" onClick={generarInstaDump} disabled={!c || Boolean(loteJob)} title="P2.5: 1 clic → escenas y outfits distintos automáticos (lo vacío lo planifica el genoma)">
+                <Layers className="mr-1.5 h-4 w-4" aria-hidden /> InstaDump
+              </Button>
+              <Button variant="outline" className="w-full" onClick={generarOutfitSwap} disabled={!c || Boolean(loteJob)} title="P2.6: mismo rostro, otro vestuario (usa el campo Outfit como outfit nuevo)">
+                <Shirt className="mr-1.5 h-4 w-4" aria-hidden /> Outfit Swap
+              </Button>
+            </div>
             {loteJob && <p className="text-xs text-amber-300">Lote en curso: {loteJob.status.replace('_', ' ')}…</p>}
             {renderJob && <p className="text-xs text-amber-300">Render en curso: {renderJob.status.replace('_', ' ')}…</p>}
             {modoPrivado && (

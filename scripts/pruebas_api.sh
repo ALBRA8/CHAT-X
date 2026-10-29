@@ -176,6 +176,90 @@ import json,sys
 l=json.load(sys.stdin).get(\"llm\") or {}
 assert l.get(\"estado\") in (\"OPERATIVO\",\"NO_CONFIGURADO\",\"ERROR\"), l"'
 
+# 6f. InstaDump nativo (P2.5): 1 clic → lote multi-escena/outfit automático
+if [ -n "${CHAR_ID:-}" ]; then
+  DUMP=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","lane":"PUBLICO","count":4,"paquete":"mixto"}' "$BASE/api/studio/instadump")
+  check "POST instadump → lote planificado"          bash -c 'echo '"'"''"$DUMP"''"'"' | grep -q "\"piezas\":4"'
+  check "instadump registra evento de compliance"    bash -c 'json_has "'"$BASE"'/api/compliance" "instadump"'
+  DUMP_JOB=$(echo "$DUMP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["jobId"])' 2>/dev/null || echo "")
+  DUMP_OK="NO"
+  if [ -n "$DUMP_JOB" ]; then
+    for i in $(seq 1 20); do
+      sleep 1
+      EST=$(curl -sf "$BASE/api/jobs/$DUMP_JOB" | python3 -c 'import json,sys; print(json.load(sys.stdin)["job"]["status"])' 2>/dev/null || echo "")
+      [ "$EST" = "listo" ] && DUMP_OK="OK" && break
+      [ "$EST" = "fallido" ] && break
+    done
+  fi
+  check "instadump job completo (4 previews)"        bash -c "[ '$DUMP_OK' = 'OK' ]"
+  DUMP_BATCH=$(echo "$DUMP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["batchId"])' 2>/dev/null || echo "")
+  if [ -n "$DUMP_BATCH" ]; then
+    check "piezas del dump con briefs DISTINTOS"     bash -c 'curl -sf "'"$BASE"'/api/media?batchId='"$DUMP_BATCH"'" | python3 -c "
+import json,sys
+ms=json.load(sys.stdin)[\"media\"]
+assert len(ms)>=4, len(ms)
+escenas=[m[\"prompt\"] for m in ms]
+assert len(set(escenas))>=4, \"briefs repetidos: \" + str(escenas)
+print(\"OK\")"'
+    check "piezas del dump etiquetadas IA"           bash -c 'curl -sf "'"$BASE"'/api/media?batchId='"$DUMP_BATCH"'" | grep -q "Contenido generado con IA"'
+  else
+    SKIP=$((SKIP+1)); echo "SKIP  piezas del dump (sin batchId)"
+  fi
+  code_edad_dump=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","count":4,"escena":"retrato infantil en el parque"}' "$BASE/api/studio/instadump")
+  check "instadump: filtro de edad en el ancla → 422" bash -c "[ '$code_edad_dump' = '422' ]"
+else
+  SKIP=$((SKIP+1)); echo "SKIP  instadump (sin personajes)"
+fi
+
+# 6g. Outfit Swap (P2.6): mismo rostro, otro vestuario
+if [ -n "${CHAR_ID:-}" ]; then
+  SWAP=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","lane":"PUBLICO","count":2,"outfit":"chaqueta de cuero negra"}' "$BASE/api/studio/outfit-swap")
+  check "POST outfit-swap → lote planificado"        bash -c 'echo '"'"''"$SWAP"''"'"' | grep -q "chaqueta de cuero negra"'
+  check "outfit-swap registra evento de compliance"  bash -c 'json_has "'"$BASE"'/api/compliance" "outfit_swap"'
+  SWAP_JOB=$(echo "$SWAP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["jobId"])' 2>/dev/null || echo "")
+  SWAP_OK="NO"
+  if [ -n "$SWAP_JOB" ]; then
+    for i in $(seq 1 20); do
+      sleep 1
+      EST=$(curl -sf "$BASE/api/jobs/$SWAP_JOB" | python3 -c 'import json,sys; print(json.load(sys.stdin)["job"]["status"])' 2>/dev/null || echo "")
+      [ "$EST" = "listo" ] && SWAP_OK="OK" && break
+      [ "$EST" = "fallido" ] && break
+    done
+  fi
+  check "outfit-swap job completo (2 previews)"      bash -c "[ '$SWAP_OK' = 'OK' ]"
+  SWAP_BATCH=$(echo "$SWAP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["batchId"])' 2>/dev/null || echo "")
+  if [ -n "$SWAP_BATCH" ]; then
+    check "piezas del swap comparten el outfit nuevo" bash -c 'curl -sf "'"$BASE"'/api/media?batchId='"$SWAP_BATCH"'" | python3 -c "
+import json,sys
+ms=json.load(sys.stdin)[\"media\"]
+assert len(ms)>=2, len(ms)
+for m in ms:
+    assert \"chaqueta de cuero negra\" in m[\"prompt\"], m[\"prompt\"]
+print(\"OK\")"'
+  else
+    SKIP=$((SKIP+1)); echo "SKIP  piezas del swap (sin batchId)"
+  fi
+  code_swap_vacio=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","outfit":""}' "$BASE/api/studio/outfit-swap")
+  check "outfit-swap sin outfit → 422"               bash -c "[ '$code_swap_vacio' = '422' ]"
+else
+  SKIP=$((SKIP+1)); echo "SKIP  outfit-swap (sin personajes)"
+fi
+
+# 6h. Piper-local (P1.3 fase 2): sonda de DOS capas honesta (paquete Y modelo)
+if [ -n "${CHAR_ID:-}" ]; then
+  check "sonda de voz declara estado piper honesto"  bash -c 'curl -sf "'"$BASE"'/api/characters/'"$CHAR_ID"'/voz" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+p=[x for x in d[\"proveedores\"] if x[\"provedor\"]==\"piper-local\"]
+assert p, d
+assert p[0][\"estado\"] in (\"OPERATIVO\",\"NO_DISPONIBLE\"), p[0]
+if p[0][\"estado\"]==\"NO_DISPONIBLE\":
+    assert (\"paquete\" in p[0][\"detalle\"]) or (\"modelo\" in p[0][\"detalle\"]), p[0]
+print(\"OK\")"'
+else
+  SKIP=$((SKIP+1)); echo "SKIP  sonda piper (sin personajes)"
+fi
+
 # 7. UI principal
 check "GET / (shell) 200"                            bash -c 'http_200 "'"$BASE"'/"'
 

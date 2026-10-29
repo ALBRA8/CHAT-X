@@ -110,8 +110,45 @@ P1.3 de CLONAKIT_BRECHAS implementado: contrato de voz por personaje +
 | Proveedor | Estado en esta máquina | Cómo activarlo |
 |---|---|---|
 | espeak-local | **OPERATIVO** ($0, binario espeak-ng 1.52, calidad robótica funcional) | ya activo — sin pasos |
-| piper-local | **NO_DISPONIBLE** (sin paquete python ni modelo) | `pip install piper-tts` + modelo `es_ES-carlfm-x_low` onnx (benchmark del 2026-10-28: 5.3 s de audio en 0.21 s de CPU — 20× tiempo real) |
+| piper-local | **OPERATIVO** (P1.3 fase 2: síntesis CABLEADA, paquete piper + modelo `es_ES-carlfm-x_low` en `models/piper/`; E2E real 2026-10-29: 4.1 s de audio en 0.14 s de CPU — 29× tiempo real) | ya activo — sin pasos (receta de instalación abajo para una máquina nueva) |
 
-El sondeo (`sondearProveedoresVoz()`) usa sonda real del binario/import: nunca
-reporta OPERATIVO por promesa. Piper es el objetivo de calidad natural para las
-notas de voz GFE; espeak cubre el contrato hoy con coste cero.
+El sondeo (`sondearProveedoresVoz()`) usa sonda real de DOS capas: paquete
+python `import piper` **Y** modelo onnx presente — nunca reporta OPERATIVO por
+promesa, y si falta una capa el detalle dice exactamente cuál y cómo instalarla.
+
+### Instalación de piper en una máquina nueva (una sola vez)
+```bash
+pip install piper-tts
+mkdir -p models/piper
+curl -L -o models/piper/es_ES-carlfm-x_low.onnx \
+  "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/es/es_ES/carlfm/x_low/es_ES-carlfm-x_low.onnx"
+curl -L -o models/piper/es_ES-carlfm-x_low.onnx.json \
+  "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/es/es_ES/carlfm/x_low/es_ES-carlfm-x_low.onnx.json"
+# reiniciar CHAT-X — la sonda /api/characters/[id]/voz declara piper-local OPERATIVO
+```
+Overridables: `PIPER_PY` (python3), `PIPER_SCRIPT` (scripts/piper_sintetizar.py),
+`PIPER_MODELO_DIR` (models/piper). El `tono` del contrato NO es ajustable en
+piper y se declara ignorado en la respuesta (honestidad sobre límites reales).
+
+## Contrato img2img (Outfit Swap P2.6) — implementado, prueba hermética incluida
+
+El adaptador ComfyUI soporta try-on real: si el GenerationRequest trae
+`img2img = { mediaRefId, denoise, rutaReferencia }`:
+1. Detecta un nodo `LoadImage`/`LoadImageMask` en el workflow exportado (API format).
+2. Extrae el PNG embebido de la pieza de referencia (SVG contenedor) y la sube
+   a `POST /upload/image` (multipart, `overwrite=true`).
+3. Inyecta el filename devuelto en el nodo `LoadImage` y fija `denoise` BAJO
+   (0.2–0.9, defecto 0.55) en el `KSampler` — denoise bajo = respetar identidad.
+
+Errores honestos cubiertos por unitarias herméticas (stub de contrato API):
+- workflow SIN `LoadImage` → "el workflow no tiene nodo LoadImage — exporta un
+  workflow con LoadImage + KSampler(denoise) para try-on real".
+- referencia SVG pura (pieza del simulador, sin raster embebido) → "img2img:
+  la referencia no contiene PNG embebido... try-on real requiere pieza raster
+  de proveedor real".
+
+La ruta `POST /api/studio/outfit-swap` valida que la referencia sea del propio
+personaje, esté APROBADA por QA y esté en carril público (no cifrada); el
+worker la REVALIDA antes de generar. Con el simulador, el Outfit Swap funciona
+sin referencia: la identidad es determinista por baseSeed y la procedencia
+declara `img2img_declarado` (vs `img2img_aplicado` con ComfyUI).

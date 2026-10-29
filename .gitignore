@@ -79,3 +79,6 @@ server.log
 dev.pid
 tool-results/
 backups/
+
+# Modelos locales de IA (piper TTS onnx, etc.) — grandes, NUNCA versionar
+/models/

@@ -171,6 +171,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     duracionS: Number(r.duracionS.toFixed(2)),
     bytes: r.bytes,
     provedor: r.provedor,
+    nota: r.nota ?? null, // honestidad: piper declara tono fijo / voz sustituta
     estado: 'OPERATIVO',
   })
 }

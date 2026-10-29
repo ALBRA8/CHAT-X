@@ -9,6 +9,7 @@ import {
   JOB_STATUS,
   PIPELINE,
   LANE,
+  LOTE_MAX,
   CHECKPOINT_SIMULADOR,
   ETIQUETA_IA,
   detectarTerminosProhibidos,
@@ -191,6 +192,10 @@ export interface OpcionesPieza {
   batchId: string
   index: number
   masterKey: Buffer | null
+  // Contrato img2img (Outfit Swap P2.6 con proveedor real): pieza de referencia
+  // aprobada del propio personaje + denoise bajo. Con simulador se declara en
+  // provenance (la identidad ya es determinista por baseSeed).
+  img2img?: { mediaRefId: string; refSeed: string; denoise: number; motivo: string; archivo: string } | null
 }
 
 interface ResultadoPieza {
@@ -262,6 +267,9 @@ async function producirPieza(op: OpcionesPieza): Promise<ResultadoPieza> {
     characterName: op.characterName,
     loraHash: op.loraHash,
     sceneName: op.sceneName,
+    img2img: op.img2img
+      ? { mediaRefId: op.img2img.mediaRefId, denoise: op.img2img.denoise, rutaReferencia: op.img2img.archivo }
+      : undefined,
   }
   if (provider.name === 'comfyui') {
     const { prepararImagenComfy } = await import('@/lib/provider/comfyui')
@@ -315,6 +323,19 @@ async function producirPieza(op: OpcionesPieza): Promise<ResultadoPieza> {
     batchId,
     kind: op.kind,
     sceneName: op.sceneName ?? null,
+    img2img: op.img2img
+      ? {
+          modo: provider.name === 'comfyui' ? 'img2img_aplicado' : 'img2img_declarado',
+          mediaRefId: op.img2img.mediaRefId,
+          refSeed: op.img2img.refSeed,
+          denoise: op.img2img.denoise,
+          motivo: op.img2img.motivo,
+          nota:
+            provider.name === 'comfyui'
+              ? 'referencia subida a ComfyUI con denoise bajo (sin deriva facial esperada)'
+              : `proveedor ${provider.name}: la identidad es determinista por baseSeed; img2img aplica con proveedor real (ComfyUI)`,
+        }
+      : null,
     archivos: { full: fullPath + '.svg', thumb: thumbPath + '.svg', cifrado: op.lane === LANE.PRIVADO },
     generadoEn: fecha.toISOString(),
   }
@@ -448,10 +469,40 @@ async function trabajoLoteFotos(jobId: string, character: { id: string; name: st
   const batchId = String(payload.batchId || `lote_${Date.now()}`)
   const varianteBase = Number(payload.varianteBase) || 0
 
+  // Multi-brief (InstaDump P2.5 / Outfit Swap P2.6): payload.briefs[] trae UN
+  // brief DISTINTO por pieza, ya planificado por src/lib/instadump.ts y ya
+  // filtrado por las rutas. El worker revalida el filtro de edad por pieza
+  // (producirPieza) y respeta LOTE_MAX como tope duro.
+  const briefsEntrada = Array.isArray(payload.briefs)
+    ? (payload.briefs as { sceneName?: string; brief: Brief }[]).filter(
+        (it) => it && typeof it.brief === 'object' && it.brief.escena,
+      )
+    : []
+
+  // Contrato img2img del Outfit Swap: la referencia se revalida AQUÍ (por si el
+  // payload llegara manipulado desde un flujo): del personaje, aprobada y pública.
+  let img2img: { mediaRefId: string; refSeed: string; denoise: number; motivo: string; archivo: string } | null = null
+  const rawImg2img = payload.img2img as { mediaRefId?: string; refSeed?: string; denoise?: number; motivo?: string } | null
+  if (rawImg2img && rawImg2img.mediaRefId) {
+    const ref = await db.media.findUnique({ where: { id: rawImg2img.mediaRefId } })
+    if (!ref || ref.characterId !== character.id) throw new Error('img2img: la referencia no pertenece al personaje')
+    if (ref.qualityVerdict !== 'APROBADO') throw new Error('img2img: la referencia no está aprobada por QA')
+    if (ref.encIv) throw new Error('img2img: la referencia está cifrada (carril privado) y no puede leerse como ancla visual')
+    if (!ref.filePath) throw new Error('img2img: la referencia no tiene archivo en disco')
+    img2img = {
+      mediaRefId: ref.id,
+      refSeed: ref.seed,
+      denoise: Math.max(0.2, Math.min(0.9, Number(rawImg2img.denoise) || 0.55)),
+      motivo: String(rawImg2img.motivo || 'outfit_swap'),
+      archivo: ref.filePath,
+    }
+  }
   const items: { sceneName?: string; brief: Brief }[] =
     modo === 'examen'
       ? (payload.escenas as { nombre: string; brief: Brief }[]).map((e) => ({ sceneName: e.nombre, brief: e.brief }))
-      : (payload.brief as Brief)
+      : briefsEntrada.length > 0
+        ? briefsEntrada.slice(0, LOTE_MAX)
+        : (payload.brief as Brief)
           ? Array.from({ length: Number(payload.count) || 8 }, () => ({ brief: payload.brief as Brief }))
           : []
 
@@ -484,6 +535,7 @@ async function trabajoLoteFotos(jobId: string, character: { id: string; name: st
       batchId,
       index: i,
       masterKey,
+      img2img,
     })
     creadas.push(pieza)
     await setProgreso(jobId, ((i + 1) / items.length) * 100)

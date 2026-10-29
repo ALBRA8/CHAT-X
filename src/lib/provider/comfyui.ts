@@ -35,6 +35,7 @@ interface WorkflowCargado {
   // nodos detectados donde inyectar (por orden de prioridad de class_type)
   nodoPrompt?: string
   nodoSeed?: string
+  nodoImagen?: string // LoadImage: presente = el workflow soporta img2img
 }
 
 const cacheWorkflow = globalThis as unknown as { __comfyWorkflow?: WorkflowCargado }
@@ -50,10 +51,42 @@ async function cargarWorkflow(): Promise<WorkflowCargado> {
     const clase = String((nodo as { class_type?: string }).class_type || '')
     if (!wf.nodoPrompt && (clase === 'CLIPTextEncode' || clase === 'Textbox')) wf.nodoPrompt = id
     if (!wf.nodoSeed && (clase === 'KSampler' || clase === 'KSamplerAdvanced')) wf.nodoSeed = id
+    if (!wf.nodoImagen && (clase === 'LoadImage' || clase === 'LoadImageMask')) wf.nodoImagen = id
   }
   if (!wf.nodoPrompt) throw new Error('El workflow no tiene un nodo CLIPTextEncode: revisa COMFYUI_WORKFLOW_JSON.')
   cacheWorkflow.__comfyWorkflow = wf
   return wf
+}
+
+/**
+ * Extrae los bytes PNG embebidos en un SVG contenedor (piezas de proveedores
+ * reales). Un SVG puro (simulador) NO sirve como referencia img2img: error honesto.
+ */
+export function extraerPngDeSvg(svg: string): Buffer {
+  const m = svg.match(/data:image\/png;base64,([A-Za-z0-9+/=]+)/)
+  if (!m) {
+    throw new Error(
+      'img2img: la referencia no contiene PNG embebido (pieza del simulador). El try-on real requiere una pieza raster de proveedor real (ComfyUI/local-cpu).',
+    )
+  }
+  return Buffer.from(m[1], 'base64')
+}
+
+/**
+ * Sube la imagen de referencia a ComfyUI (POST /upload/image, multipart) y
+ * devuelve el filename que debe ir en el nodo LoadImage.
+ */
+async function subirReferenciaComfy(png: Buffer, nombre: string): Promise<string> {
+  const base = comfyUrl()
+  const fd = new FormData()
+  fd.append('image', new Blob([new Uint8Array(png)], { type: 'image/png' }), nombre)
+  fd.append('overwrite', 'true')
+  fd.append('type', 'input')
+  const res = await fetchConTimeout(`${base}/upload/image`, { method: 'POST', body: fd, timeoutMs: 30000 })
+  if (!res.ok) throw new Error(`ComfyUI /upload/image respondió HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`)
+  const { name } = (await res.json()) as { name?: string }
+  if (!name) throw new Error('ComfyUI /upload/image no devolvió el nombre del archivo subido.')
+  return name
 }
 
 async function generarEnComfy(req: GenerationRequest): Promise<{ base64: string; width: number; height: number }> {
@@ -67,8 +100,23 @@ async function generarEnComfy(req: GenerationRequest): Promise<{ base64: string;
   const nodoPrompt = wf.json[wf.nodoPrompt!] as { inputs: Record<string, unknown> }
   nodoPrompt.inputs.text = prompt
   if (wf.nodoSeed) {
-    const nodoSeed = wf.json[wf.nodoSeed] as { inputs: Record<string, unknown> }
+    const nodoSeed = wf.json[wf.nodoSeed!] as { inputs: Record<string, unknown> }
     nodoSeed.inputs.seed = seedNum
+    // img2img (Outfit Swap P2.6): denoise BAJO = respetar identidad de la referencia
+    if (req.img2img && 'denoise' in nodoSeed.inputs) nodoSeed.inputs.denoise = req.img2img.denoise
+  }
+  if (req.img2img) {
+    if (!wf.nodoImagen) {
+      throw new Error(
+        'img2img: el workflow no tiene nodo LoadImage — exporta un workflow con LoadImage + KSampler(denoise) para try-on real (docs/MOTOR_GPU.md §img2img).',
+      )
+    }
+    const fs = await import('fs')
+    const png = extraerPngDeSvg(fs.readFileSync(req.img2img.rutaReferencia).toString('utf8'))
+    const nombre = `chatx_ref_${req.img2img.mediaRefId.slice(0, 16)}.png`
+    const nombreSubido = await subirReferenciaComfy(png, nombre)
+    const nodoImagen = wf.json[wf.nodoImagen] as { inputs: Record<string, unknown> }
+    nodoImagen.inputs.image = nombreSubido
   }
 
   const resPut = await fetchConTimeout(`${base}/prompt`, {
