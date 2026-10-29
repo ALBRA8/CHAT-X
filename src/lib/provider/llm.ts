@@ -38,9 +38,24 @@ export function baseLLM(): string {
   return (process.env.LLM_BASE_URL || 'https://api.groq.com/openai/v1').trim().replace(/\/+$/, '')
 }
 
-/** Modelo a usar (Groq: llama-3.3-70b-versatile es el workhorse gratuito). */
+/** Modelo a usar (Groq: llama-3.3-70b-versatile; NVIDIA NIM: z-ai/glm-5.3-flash, razonamiento). */
 export function modeloLLM(): string {
   return (process.env.LLM_MODEL || 'llama-3.3-70b-versatile').trim()
+}
+
+/** Presupuesto de tokens de salida. 1024 por defecto: los modelos de razonamiento
+ * (p.ej. GLM en NIM) queman tokens en reasoning_content ANTES del content — con
+ * presupuesto corto responden content=null y se declara el diagnóstico honesto. */
+export function maxTokensLLM(): number {
+  const n = Number(process.env.LLM_MAX_TOKENS)
+  return Number.isFinite(n) && n >= 64 && n <= 4096 ? Math.round(n) : 1024
+}
+
+/** Timeout de la llamada LLM. 60s por defecto: los modelos de razonamiento tardan
+ * ~25-40s (30s abortaba en seco — verificado con GLM en NIM). */
+export function timeoutLLM(): number {
+  const n = Number(process.env.LLM_TIMEOUT_MS)
+  return Number.isFinite(n) && n >= 5000 && n <= 120000 ? Math.round(n) : 60000
 }
 
 /** Etiqueta del proveedor para compliance/procedencia (groq | together | openrouter | ...). */
@@ -165,13 +180,13 @@ export async function generarRespuestaLLM(
   ]
   try {
     const ctl = new AbortController()
-    const t = setTimeout(() => ctl.abort(), 30000)
+    const t = setTimeout(() => ctl.abort(), timeoutLLM())
     let r: Response
     try {
       r = await fetch(`${baseLLM()}/chat/completions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${claveLLM()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: modeloLLM(), messages: mensajes, max_tokens: 300, temperature: 0.8 }),
+        body: JSON.stringify({ model: modeloLLM(), messages: mensajes, max_tokens: maxTokensLLM(), temperature: 0.8 }),
         signal: ctl.signal,
       })
     } finally {
@@ -182,11 +197,22 @@ export async function generarRespuestaLLM(
       return { ok: false, estado: 'ERROR', detalle: `HTTP ${r.status} — ${cuerpo.slice(0, 160) || 'sin cuerpo'}` }
     }
     const j = (await r.json()) as {
-      choices?: { message?: { content?: string } }[]
+      choices?: { message?: { content?: string | null; reasoning_content?: string | null }; finish_reason?: string | null }[]
       usage?: { prompt_tokens?: number; completion_tokens?: number }
     }
-    const texto = (j.choices?.[0]?.message?.content ?? '').trim()
-    if (!texto) return { ok: false, estado: 'ERROR', detalle: 'respuesta vacía del LLM' }
+    const choice = j.choices?.[0]
+    const texto = (choice?.message?.content ?? '').trim()
+    if (!texto) {
+      // Diagnóstico honesto: los modelos de razonamiento pueden quemar todo el
+      // presupuesto en reasoning_content y devolver content=null (finish=length).
+      const fin = choice?.finish_reason ?? 'desconocido'
+      const quemo = choice?.message?.reasoning_content ? ' (el modelo gastó tokens en reasoning_content)' : ''
+      return {
+        ok: false,
+        estado: 'ERROR',
+        detalle: `respuesta vacía del LLM (finish_reason=${fin}${quemo})${fin === 'length' ? ` — sube LLM_MAX_TOKENS (hoy ${maxTokensLLM()})` : ''}`,
+      }
+    }
     return {
       ok: true,
       texto,
