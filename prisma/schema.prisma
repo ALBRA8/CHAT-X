@@ -25,6 +25,7 @@ model Character {
   canonicalVariant  Int? // variante elegida de la cara canónica
   canonicalPath     String? // archivo SVG de la cara canónica
   loraHash          String? // hash de la LoRA activa
+  voiceContract     String  @default("{}") // JSON: {provedor, voz, velocidad, tono, actualizado} — contrato de voz por personaje (P1.3 brechas)
   datasetCount      Int       @default(0)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -77,7 +78,7 @@ model Media {
   id             String   @id @default(cuid())
   characterId    String
   character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  kind           String   @default("preview") // preview | render | cara_canonica | examen | dataset
+  kind           String   @default("preview") // preview | render | cara_canonica | examen | dataset | voz
   lane           String   @default("PUBLICO") // PUBLICO | PRIVADO
   prompt         String   @default("") // prompt final completo
   seed           String

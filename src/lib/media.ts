@@ -28,6 +28,20 @@ export function guardarCifrado(base: string, contenido: string, masterKey: Buffe
   return enc
 }
 
+/** Binario claro (p.ej. notas de voz .wav del carril público). */
+export function guardarBinarioClaro(base: string, contenido: Buffer): void {
+  fs.mkdirSync(path.dirname(base), { recursive: true })
+  fs.writeFileSync(base + '.wav', contenido)
+}
+
+/** Binario cifrado AES-256-GCM (p.ej. notas de voz .wav del carril privado). */
+export function guardarBinarioCifrado(base: string, contenido: Buffer, masterKey: Buffer): EncryptedBlob {
+  fs.mkdirSync(path.dirname(base), { recursive: true })
+  const enc = cifrarBuffer(contenido, masterKey)
+  fs.writeFileSync(base + '.enc', enc.data)
+  return enc
+}
+
 export function guardarIvTag(base: string, enc: EncryptedBlob): void {
   fs.writeFileSync(base + '.enc.iv', enc.iv, 'utf8')
   fs.writeFileSync(base + '.enc.tag', enc.tag, 'utf8')
@@ -59,7 +73,7 @@ export function miniaturaDe(svg: string): string {
 }
 
 export function borrarPieza(base: string): void {
-  for (const suf of ['.svg', '.enc', '.enc.iv', '.enc.tag']) {
+  for (const suf of ['.svg', '.wav', '.enc', '.enc.iv', '.enc.tag']) {
     try {
       fs.unlinkSync(base + suf)
     } catch {

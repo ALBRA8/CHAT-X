@@ -25,6 +25,7 @@ Fecha: 2026-10-28 — INTEL COMPLETA: 23/23 referentes documentados. CONFIDENCIA
 |---|---|---|
 | Calendario de publicación exportable | "IA Influencer" (gated por plan) / APATERO InstaDump | `GET /api/publicacion/calendario` ICS+CSV desde Sets reales, botones en UGC — gratis, sin gate |
 | Orquestador E2E con aprobación humana | OneManArmy / GramGenies / SuperAgentsAI (pipelines auto) | Módulo Automatización + lib/flujos.ts + 6 rutas API, probado E2E |
+| **Voice notes GFE — contrato de voz por personaje** (P1.3) | Fanvue AI Voice Notes (2026: paridad obligatoria, no gap) | `src/lib/provider/voz.ts` (espeak-local OPERATIVO $0, piper-local NO_DISPONIBLE documentado) + `voiceContract` por Character + `GET/PUT/POST /api/characters/[id]/voz` (muestra WAV real, Media kind=voz, cifrado carril privado, etiqueta IA, compliance `voz_generada`, filtro de edad duro también en texto de voz) — 12 unitarias + 7 checks API (40/40) |
 | Infra GPU real plugable | Todos los referentes dependen de créditos cloud | Provider ComfyUI real + /api/sistema + docs/MOTOR_GPU.md (ruta $0/mes) |
 | Estado de GPU/sistema medible | (transversal) | /api/sistema (nvidia-smi, cola, proveedor) + scripts/detectar_gpu.sh |
 | Registro de motores ampliado | AGENTE-GENERAL y CAZADOR añadidos como motores 7 y 8 con contratos reales | motores.ts + sondas + UI |
@@ -34,7 +35,7 @@ Fecha: 2026-10-28 — INTEL COMPLETA: 23/23 referentes documentados. CONFIDENCIA
 **P1 — directo a ingresos Fanvue:**
 1. Motor GFE "Modo Novia" con **imágenes generadas dentro del chat** (LovLab #1, top-1 de toda la investigación). Aceptación: desde el chat, pedir foto a la modelo y recibir pieza del carril correcto con QA + compliance.
 2. **Character card auto desde el genoma** (LovLab): export JSON/imagen de la tarjeta + prompt de sistema del companion en 1 clic desde el Panel. Aceptación: descargar tarjeta de Valentina.
-3. **Voice notes GFE** (Fanvue tiene AI Voice Notes; Kinku/Mage bindean voz): integrar TTS cuando exista proveedor; contrato de voz guardada por personaje.
+3. ~~**Voice notes GFE** (Fanvue tiene AI Voice Notes; Kinku/Mage bindean voz): integrar TTS cuando exista proveedor; contrato de voz guardada por personaje.~~ **CERRADA 2026-10-29** (contrato por personaje + espeak-local $0; consumidor final = chat GFE P1.1; voz natural = instalar piper, ver MOTOR_GPU.md).
 
 **P2 — fábrica más barata y rápida:**
 4. **Escalera de calidad de vídeo draft→max** (Apatero): coste por escalón antes de gastar. Requiere proveedor de vídeo (Google Flow del motor YT o nodos de vídeo ComfyUI).

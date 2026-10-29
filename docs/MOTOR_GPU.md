@@ -101,3 +101,17 @@ pip install diffusers transformers safetensors accelerate   # ≈ 2.5 GB en disc
 echo 'ESTUDIO_PROVIDER=local-cpu' >> .env    # y reiniciar CHAT-X
 # opcional: LOCAL_CPU_PASOS=12 · LOCAL_CPU_TIMEOUT_MS=600000
 ```
+
+## Voz (TTS) — estados honestos tras el provider de voz (2026-10-29)
+
+P1.3 de CLONAKIT_BRECHAS implementado: contrato de voz por personaje +
+`GET/PUT/POST /api/characters/[id]/voz` con sondeo real de proveedores.
+
+| Proveedor | Estado en esta máquina | Cómo activarlo |
+|---|---|---|
+| espeak-local | **OPERATIVO** ($0, binario espeak-ng 1.52, calidad robótica funcional) | ya activo — sin pasos |
+| piper-local | **NO_DISPONIBLE** (sin paquete python ni modelo) | `pip install piper-tts` + modelo `es_ES-carlfm-x_low` onnx (benchmark del 2026-10-28: 5.3 s de audio en 0.21 s de CPU — 20× tiempo real) |
+
+El sondeo (`sondearProveedoresVoz()`) usa sonda real del binario/import: nunca
+reporta OPERATIVO por promesa. Piper es el objetivo de calidad natural para las
+notas de voz GFE; espeak cubre el contrato hoy con coste cero.

@@ -12,7 +12,7 @@ Procedencia re-verificada hoy re-clonando (`--depth 1`, remoto `ALBRA8/<repo>`).
 | 2 | CRM-ALBRA (`crm-albra-saas`) | `ea87cc2` | (sin archivo) | Ídem. |
 | 3 | WHATSPOWER | `f4f7fc9` | (sin archivo) | Ídem. |
 | 4 | WHATSPOWER-ULTRA | `e6ef56d` | (sin archivo) | Ídem. |
-| 5 | NEX-SCOPE | `43e2e4c` | (sin archivo) | Ídem. |
+| 5 | NEX-SCOPE | `d818f3e` | (sin archivo) | Ídem. Avance del propio autor verificado en b5b210c (43e2e4c→d818f3e, fix bug upstream coma doble); tip actual del repo. |
 | 6 | AGENTE-LEADS | `f54226b` | (sin archivo) | Ídem. |
 | 7 | AGENTE-GENERAL | `69c79da` | **MIT** © 2026 ALBRA | Uso y modificación libres conservando el aviso. |
 | 8 | AGENTE-KREA | `460605e` | (sin archivo) | Propiedad ALBRA — todos los derechos reservados por defecto. |

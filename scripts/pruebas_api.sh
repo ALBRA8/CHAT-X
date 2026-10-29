@@ -106,6 +106,28 @@ else
   SKIP=$((SKIP+1)); echo "SKIP  plantilla Calendario (no sembrada)"
 fi
 
+# 6c. Voz GFE (P1.3): contrato de voz por personaje + muestra TTS local $0
+CHAR_ID=$(curl -sf "$BASE/api/characters" | python3 -c '
+import json,sys
+d=json.load(sys.stdin)
+cs=d.get("characters") or d.get("personajes") or []
+print(cs[0]["id"] if cs else "")' 2>/dev/null)
+if [ -n "${CHAR_ID:-}" ]; then
+  check "GET voz sondea proveedores honestos"        bash -c 'json_has "'"$BASE"'/api/characters/'"$CHAR_ID"'/voz" "espeak-local"'
+  code_put=$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H 'Content-Type: application/json' -d '{"provedor":"espeak-local","voz":"es","velocidad":170,"tono":50}' "$BASE/api/characters/$CHAR_ID/voz")
+  check "PUT contrato de voz → 200"                  bash -c "[ '$code_put' = '200' ]"
+  code_bad=$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H 'Content-Type: application/json' -d '{"provedor":"voz-inventada"}' "$BASE/api/characters/$CHAR_ID/voz")
+  check "PUT contrato inválido → 422"                bash -c "[ '$code_bad' = '422' ]"
+  body_voz=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"texto":"Hola, esta es una nota de voz de prueba del sistema.","lane":"PUBLICO"}' "$BASE/api/characters/$CHAR_ID/voz")
+  check "POST muestra de voz genera WAV real"        bash -c 'echo '"'"''"$body_voz"''"'"' | grep -q "\"estado\":\"OPERATIVO\""'
+  check "muestra queda etiquetada como IA"           bash -c 'echo '"'"''"$body_voz"''"'"' | grep -q "Contenido generado con IA"'
+  code_edad=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"texto":"una niña en el parque","lane":"PUBLICO"}' "$BASE/api/characters/$CHAR_ID/voz")
+  check "filtro de edad duro también en voz → 422"   bash -c "[ '$code_edad' = '422' ]"
+  check "compliance registra voz_generada"           bash -c 'json_has "'"$BASE"'/api/compliance" "voz_generada"'
+else
+  SKIP=$((SKIP+1)); echo "SKIP  voz (sin personajes)"
+fi
+
 # 7. UI principal
 check "GET / (shell) 200"                            bash -c 'http_200 "'"$BASE"'/"'
 
