@@ -51,29 +51,16 @@ export default function MotorYouTubeView() {
 
   return (
     <div className="space-y-5">
-      <TarjetaMotor def={def} estado={estado}>
-        {/* Datos reales del arnés cuando el motor está vivo */}
-        {sonda === 'OPERATIVO' && detalle?.datos ? (
-          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5 p-3">
-            <p className="text-[11px] font-semibold text-emerald-300">Datos reales del motor ({def.datosReales?.ruta})</p>
-            <pre className="mt-1.5 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-[10px] leading-relaxed text-muted-foreground">
-              {JSON.stringify(detalle.datos.datos ?? detalle.datos.detalle, null, 2).slice(0, 3000)}
-            </pre>
-          </div>
-        ) : null}
-        {sonda === 'OPERATIVO' && detalle?.datos && !detalle.datos.ok ? (
-          <p className="text-[11px] text-amber-300">{detalle.datos.detalle}</p>
-        ) : null}
-      </TarjetaMotor>
+      <TarjetaMotor def={def} estado={estado} />
 
       {/* Control real: validación Production JSON vía contrato */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <CardTitle className="text-sm">Control: validar Production JSON</CardTitle>
+              <CardTitle className="text-sm">Probar una instrucción de producción</CardTitle>
               <CardDescription className="mt-1 text-xs">
-                Acción real vía <code className="text-[10px]">POST /api/production_json/validate</code> del motor — valida el envelope sin ejecutar nada (op LOW del arnés).
+                Comprueba una instrucción contra el motor sin ejecutar nada: valida el formato y responde con el resultado.
               </CardDescription>
             </div>
             <EstadoPill estado={sonda ?? 'NO_CONFIGURADO'} />
@@ -84,14 +71,14 @@ export default function MotorYouTubeView() {
             value={envelope}
             onChange={(e) => setEnvelope(e.target.value)}
             className="min-h-40 font-mono text-[11px]"
-            aria-label="Envelope Production JSON"
+            aria-label="Instrucción de producción (Production JSON)"
           />
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={validar} disabled={accion.isPending || sonda !== 'OPERATIVO'}>
-              {accion.isPending ? 'Validando…' : 'Validar contra el motor'}
+              {accion.isPending ? 'Validando…' : 'Validar instrucción'}
             </Button>
             {sonda !== 'OPERATIVO' ? (
-              <p className="text-[11px] text-muted-foreground">Disponible cuando el motor esté operativo en su URL configurada.</p>
+              <p className="text-[11px] text-muted-foreground">Disponible cuando el motor esté listo.</p>
             ) : null}
           </div>
           {resultado ? (
@@ -100,23 +87,38 @@ export default function MotorYouTubeView() {
         </CardContent>
       </Card>
 
-      {/* Ruta de datos y flags — información real del repo */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Cómo corre este motor (respetando sus reglas)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-[11px] leading-relaxed text-muted-foreground">
+      {/* Datos reales del arnés cuando el motor está vivo */}
+      {sonda === 'OPERATIVO' && detalle?.datos ? (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Respuesta real del motor</CardTitle>
+            {detalle.datos.ok ? null : <CardDescription className="text-xs text-amber-300">{detalle.datos.detalle}</CardDescription>}
+          </CardHeader>
+          <CardContent>
+            <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-[10px] leading-relaxed text-muted-foreground">
+              {JSON.stringify(detalle.datos.datos ?? detalle.datos.detalle, null, 2).slice(0, 3000)}
+            </pre>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {/* Puesta en marcha: información útil, plegada para no estorbar */}
+      <details className="rounded-lg border border-border/60 bg-card">
+        <summary className="cursor-pointer select-none px-4 py-3 text-xs font-medium">
+          ¿Cómo se pone en marcha este motor?
+        </summary>
+        <div className="space-y-2 border-t border-border/60 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
           <p>
-            <span className="font-medium text-foreground">En tu máquina:</span> clona/entra al repo y lanza <code>start.sh</code> (Linux/Mac/WSL) o <code>INICIAR-ALBRA.vbs</code> (Windows). FastAPI queda en <code>127.0.0.1:8000</code>. Después define esa URL en «Conectar motor» y CHAT-X lo sondará y operará.
+            <span className="font-medium text-foreground">En tu máquina:</span> entra al repo del motor y lanza <code>start.sh</code> (Linux/Mac/WSL) o <code>INICIAR-ALBRA.vbs</code> (Windows). FastAPI queda en <code>127.0.0.1:8000</code>. Después indica esa dirección en «Conectar motor».
           </p>
           <p>
-            <span className="font-medium text-foreground">Google Flow real:</span> requiere Chrome dedicado con sesión Google autenticada (CDP :9333) y activar <code>FLOW_MCP_ENABLED=1</code> + <code>FLOW_MCP_VIDEO_ENABLED=1</code> en el backend del motor. La vía validada E2E es GoogleFlowMCP (Gates A/C en LIVE PASS); el canal extensión no tiene E2E demostrado.
+            <span className="font-medium text-foreground">Google Flow (opcional):</span> requiere Chrome dedicado con sesión Google autenticada (CDP :9333) y activar <code>FLOW_MCP_ENABLED=1</code> + <code>FLOW_MCP_VIDEO_ENABLED=1</code> en el backend del motor.
           </p>
           <p>
-            <span className="font-medium text-foreground">Frontera del motor:</span> CHAT-X consume el arnés m2m y el contrato Production JSON; NUNCA reimplanta el pipeline (regla de frontera del propio repo).
+            <span className="font-medium text-foreground">Frontera:</span> CHAT-X opera el motor por su contrato; nunca reimplanta su pipeline interno.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </details>
     </div>
   )
 }

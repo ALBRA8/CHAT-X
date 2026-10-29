@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import {
+  Coins,
   Gauge,
   Clapperboard,
   Briefcase,
@@ -13,6 +14,8 @@ import {
   Megaphone,
   Telescope,
   Workflow,
+  Lock,
+  LockOpen,
 } from 'lucide-react'
 import Providers from '@/components/estudio/providers'
 import OperacionesView from '@/components/plataforma/OperacionesView'
@@ -79,8 +82,8 @@ function Shell() {
             {MODULOS.map((m) => nav(m.id))}
           </nav>
           <div className="space-y-1 px-4 py-4 text-[10px] text-muted-foreground">
-            <p>{motores ? `${motores.resumen.operativos}/${motores.motores.length} motores operativos` : 'sondeando motores…'}</p>
-            <p>proveedor estudio: {settings?.provider ?? 'simulador'}</p>
+            <p>{motores ? `${motores.resumen.operativos} de ${motores.motores.length} motores listos` : 'comprobando motores…'}</p>
+            <p>proveedor del estudio: {settings?.provider ?? 'simulador'}</p>
           </div>
         </aside>
 
@@ -93,11 +96,13 @@ function Shell() {
                 <p className="truncate text-[10px] text-muted-foreground">{actual.desc}</p>
               </div>
               <div className="ml-auto flex items-center gap-1.5">
-                <Badge variant="outline" className="text-[11px] tabular-nums">
-                  🪙 {fmtDinero(settings?.credits ?? 0)} cr.
+                <Badge variant="outline" className="gap-1 text-[11px] tabular-nums">
+                  <Coins className="h-3 w-3" aria-hidden />
+                  {fmtDinero(settings?.credits ?? 0)} cr.
                 </Badge>
-                <Badge variant="outline" className={`text-[11px] ${privado?.desbloqueado ? 'text-rose-300 border-rose-500/40' : 'text-muted-foreground'}`}>
-                  {privado?.desbloqueado ? '🔓 privado' : '🔒 privado'}
+                <Badge variant="outline" className={`gap-1 text-[11px] ${privado?.desbloqueado ? 'text-rose-300 border-rose-500/40' : 'text-muted-foreground'}`}>
+                  {privado?.desbloqueado ? <LockOpen className="h-3 w-3" aria-hidden /> : <Lock className="h-3 w-3" aria-hidden />}
+                  privado
                 </Badge>
               </div>
             </div>
@@ -134,8 +139,8 @@ function Shell() {
 
       <footer className="mt-auto border-t border-border bg-card/60">
         <div className="flex max-w-5xl flex-col gap-1 px-4 py-3 text-[11px] text-muted-foreground md:mx-auto md:flex-row md:items-center md:justify-between">
-          <p>CHAT-X · plataforma central del ecosistema ALBRA8 — motores independientes, contratos reales, cero reconstrucciones.</p>
-          <p>una plataforma · una interfaz · múltiples motores</p>
+          <p>CHAT-X · plataforma central del ecosistema ALBRA8</p>
+          <p>toda la fuerza por dentro, simplicidad por fuera</p>
         </div>
       </footer>
     </div>
