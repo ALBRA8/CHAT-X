@@ -3,9 +3,11 @@
 Fuentes: research/clonakit/INFORME_BATCH0_8.md (8 originales: OmniBrain,
 OmniMint, TokPrimeAI, Cinemation, Clientforce, BuzzAgentsAI, GPTVideos,
 Synthesys Studio), INFORME_JVZOO_BATCH_A.md (11 generalistas),
-INFORME_ADULTOS_BATCH_B.md (KINKU, LOVELAB, APATERO, MAGE) y
-research/ia-influencer/ANALISIS.md (intel por dentro de "IA Influencer").
-Fecha: 2026-10-28 — INTEL COMPLETA: 23/23 referentes documentados. CONFIDENCIAL (no sube a GitHub).
+INFORME_ADULTOS_BATCH_B.md (KINKU, LOVELAB, APATERO, MAGE),
+research/ia-influencer/ANALISIS.md (intel por dentro de "IA Influencer") y
+research/clonakit/INFORME_RECON_BATCH_C.md (lote 2026-10-30: Pykaso, Recraft,
+Krea, Enhancor, Pikaso, Pyksel).
+Fecha: 2026-10-28 — 23/23 referentes. Ampliado 2026-10-30: 29/29 (Batch C). CONFIDENCIAL (no sube a GitHub).
 
 ## Lo que YA supera CHAT-X a los referentes (no tocar, mantener)
 
@@ -29,6 +31,38 @@ Fecha: 2026-10-28 — INTEL COMPLETA: 23/23 referentes documentados. CONFIDENCIA
 | Estado de GPU/sistema medible | (transversal) | /api/sistema (nvidia-smi, cola, proveedor) + scripts/detectar_gpu.sh |
 | Registro de motores ampliado | AGENTE-GENERAL y CAZADOR añadidos como motores 7 y 8 con contratos reales | motores.ts + sondas + UI |
 
+## Recon Batch C (2026-10-30) — referentes 24–29 y adopciones
+
+Detalle completo en research/clonakit/INFORME_RECON_BATCH_C.md. Veredictos:
+24 Pykaso (deep pendiente; face swap NCII no copiar) · 25 Recraft (patrón de
+vectorización para cara canónica) · 26 Krea (paridad con nuestra arquitectura;
+solo adopta multi-referencia) · **27 Enhancor (joya del lote: realismo de piel**
+**para GFE)** · 28 Pikaso (descartado, avatares sobre rostros reales) ·
+29 Pyksel (MUERTO 30-sep-2026 — lección de mortalidad SaaS).
+
+Adopciones concretas del lote (integran al roadmap):
+
+- **A1 — Objetivo de realismo de piel** (Enhancor): el provider real (GPU) debe
+  producir piel sin look plástico (poros, textura, iluminación natural).
+  Criterio: comparativa antes/después sobre el examen de identidad, sin deriva.
+- **A2 — Biblioteca de presets con nombre** (Enhancor): iluminación
+  cinematográfica (Ethereal Light, Blinds Noir, Gobo…) + iPhone Selfie V1–V4
+  (natural daylight, studio soft, vivid, night) como fragmentos de prompt en los
+  presets del Estudio. $0, se adopta en ficha, no en código del provider.
+- **A3 — Control de intensidad en signKit** (Enhancor Freckle Control): los
+  rasgos firmantes aceptan intensidad/ubicación, no solo presencia.
+- **A4 — Post-proceso de voz sintética** (Enhancor UGC Audio Fixer): cuando la
+  capa 3 de voz tenga síntesis, añadir pulido de audio para quitar artefactos
+  robóticos (registra en la arquitectura de voz, no bloquea nada hoy).
+- **A5 — Multi-referencia en imagen** (Krea Muse): alimenta la brecha P2 #6
+  (outfit swap) — el contrato del provider real debe aceptar N imágenes de
+  referencia, no solo una.
+- **A6 — Créditos que nunca expiran** (Enhancor, igual que Apatero rollover):
+  segunda validación del modelo de monetización P3 #9.
+- **A7 — Vectorización como ruta futura de cara canónica** (Recraft):
+  patrón para derivar SVG de cara canónica desde foto real del examen; hoy la
+  cara canónica se dibuja, el patrón permite una vía alternativa local.
+
 ## Brechas PRIORIZADAS pendientes (roadmap con criterio de aceptación)
 
 **P1 — directo a ingresos Fanvue:**
@@ -50,7 +84,7 @@ Fecha: 2026-10-28 — INTEL COMPLETA: 23/23 referentes documentados. CONFIDENCIA
 12. **White-label / marketplace de terceros** (OmniMint builder + Kinku 90/10): abrir CHAT-X como plataforma marcada con creadores externos (requiere multi-tenant y compliance reforzado).
 13. **Agente de llamadas telefónicas IA** (Synthesys AI Calls / Clientforce): solo si abrimos venta consultiva B2B; NO núcleo Fanvue.
 
-**No copiar:** deepfake de personas reales (NCII) — prohibido por Fanvue y por nuestra política de compliance; scraping agresivo estilo "10k leads en 1 segundo" (riesgo legal/ToS); automatización de publicación en Facebook (ToS Meta, riesgo de cuenta).
+**No copiar:** deepfake de personas reales (NCII) — prohibido por Fanvue y por nuestra política de compliance; **face swap sobre rostros de terceros (Pykaso) y avatares generados desde fotos de personas reales (pikaso.ai) — misma línea NCII**; scraping agresivo estilo "10k leads en 1 segundo" (riesgo legal/ToS); automatización de publicación en Facebook (ToS Meta, riesgo de cuenta).
 
 ## Conclusión
 CHAT-X ya tiene el núcleo que los referentes NO tienen (compliance + CRM + multi-motor + consistencia verificable). La brecha competitiva real está en el carril de chat GFE con media en contexto y en voz — ambas dependen del motor GFE (fase 2) y de proveedor real de imagen/vídeo/voz (GPU local desbloqueable con docs/MOTOR_GPU.md).
