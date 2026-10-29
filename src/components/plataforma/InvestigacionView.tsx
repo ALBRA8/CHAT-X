@@ -64,11 +64,19 @@ export default function InvestigacionView() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Hacia dónde apunta la estrategia</CardTitle>
+          <CardTitle className="text-sm">Para qué sirve investigar</CardTitle>
           <CardDescription className="text-xs leading-relaxed">
-            NEX-SCOPE descubre nichos y despacha planes directos al motor YOUTUBE-AUTOMATON (<code>/api/automations/dispatch → :8000</code>). Para el Estudio, el mismo patrón de investigación alimenta los nichos de Fanvue: CAZADOR captura tendencias → la Fábrica las recrea con nuestras modelos. El proveedor del panel es <code>{settings?.provider ?? 'simulador'}</code>.
+            Lo que se descubre aquí alimenta al resto del ecosistema: los nichos que encuentra NEX-SCOPE se convierten en planes para el motor de YouTube, y las tendencias que captura CAZADOR son las que la Fábrica recrea con nuestras modelos en el Estudio.
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          <details className="rounded-md border border-border/60 bg-muted/20 p-2.5">
+            <summary className="cursor-pointer select-none text-[11px] font-medium">Rutas y detalle técnico</summary>
+            <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+              NEX-SCOPE despacha planes directos al motor YOUTUBE-AUTOMATION vía <code>/api/automations/dispatch → :8000</code>. Proveedor actual del panel: <code>{settings?.provider ?? 'simulador'}</code>.
+            </p>
+          </details>
+        </CardContent>
       </Card>
     </div>
   )

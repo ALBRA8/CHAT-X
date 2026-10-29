@@ -181,7 +181,10 @@ export function useAprobarPaso(id: string) {
   return useMutation({
     mutationFn: (vals: { aprobado: boolean; nota?: string }) =>
       api<{ ok: boolean; mensaje: string }>(`/api/flujos/ejecuciones/${id}/aprobar`, { method: 'POST', body: JSON.stringify(vals) }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['ejecucion', id] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['ejecucion', id] })
+      void qc.invalidateQueries({ queryKey: ['flujos'] })
+    },
   })
 }
 
@@ -189,7 +192,10 @@ export function useCancelarEjecucion(id: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: () => api<{ ok: boolean }>(`/api/flujos/ejecuciones/${id}/cancelar`, { method: 'POST' }),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['ejecucion', id] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['ejecucion', id] })
+      void qc.invalidateQueries({ queryKey: ['flujos'] })
+    },
   })
 }
 
