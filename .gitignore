@@ -79,3 +79,6 @@ server.log
 dev.pid
 tool-results/
 backups/
+
+# Modelos de voz/IA locales (descarga única, GB, jamás en el repo)
+/models/

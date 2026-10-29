@@ -34,6 +34,7 @@ model Character {
   media        Media[]
   sets         Set[]
   kpis         KpiEntry[]
+  voiceProfiles VoiceProfile[]
 }
 
 model LoraVersion {
@@ -228,6 +229,38 @@ model FlujoEjecucion {
 
   @@index([flujoId])
   @@index([estado])
+}
+
+// ───────────────────── Voz — capa 3: clonación local ─────────────────────
+
+// Identidad de voz (speaker embedding) extraída de muestras de audio del
+// personaje. La identidad pesa KB (el vector son ~hundreds de floats); las
+// muestras fuente quedan en Media (kind="voz", lane PRIVADO, AES-256-GCM).
+// El modelo extractor vive en models/clon/ (fuera del repo, descargado una
+// vez y compartido por todas las voces). Sin modelo instalado el estado es
+// honesto: NO_CONFIGURADO con detalle de qué falta.
+// Consentimiento (regla dura): solo voces propias (PROPIO) o con
+// autorización registrada (AUTORIZADO). GFE: personajes sintéticos →
+// muestras producidas por nosotros. Voz real de terceros → autorización
+// escrita obligatoria.
+model VoiceProfile {
+  id                 String    @id @default(cuid())
+  characterId        String
+  character          Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  nombre             String    @default("voz principal")
+  embeddingB64       String    @default("") // vector del hablante en base64 (KB, no MB)
+  dim                Int       @default(0) // dimensionalidad del vector (ej. 256)
+  extractor          String    @default("") // extractor usado (ej. resemblyzer-ge2e)
+  duracionMuestrasS  Float     @default(0) // segundos de audio total usados
+  sampleMediaId      String?   @unique // Media kind="voz" PRIVADO con la muestra fuente cifrada
+  consentimiento     String    @default("PENDIENTE") // PENDIENTE | PROPIO | AUTORIZADO
+  consentimientoNota String    @default("") // detalle de la autorización (quién, cuándo, cómo)
+  estado             String    @default("NO_CONFIGURADO") // NO_CONFIGURADO | OPERATIVO | ERROR
+  detalle            String    @default("") // estado honesto: qué falta o qué pasó
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([characterId])
 }
 
 // ───────────────────────────── Ajustes ─────────────────────────────

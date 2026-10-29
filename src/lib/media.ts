@@ -68,6 +68,34 @@ export function borrarPieza(base: string): void {
   }
 }
 
+// ── Binarios (audio de muestras de voz, zips…) — mismo patrón .enc/.iv/.tag ──
+
+/** Guarda un binario cifrado con la clave maestra (AES-256-GCM). Devuelve iv/tag para la BD. */
+export function guardarBinarioCifrado(base: string, datos: Buffer, masterKey: Buffer): EncryptedBlob {
+  fs.mkdirSync(path.dirname(base), { recursive: true })
+  const enc = cifrarBuffer(datos, masterKey)
+  fs.writeFileSync(base + '.enc', enc.data)
+  guardarIvTag(base, enc)
+  return enc
+}
+
+/** Lee y descifra un binario guardado con guardarBinarioCifrado. null si no existe o falla. */
+export function leerBinarioCifrado(base: string, masterKey: Buffer): Buffer | null {
+  try {
+    const data = fs.readFileSync(base + '.enc')
+    const iv = fs.readFileSync(base + '.enc.iv', 'utf8').trim()
+    const tag = fs.readFileSync(base + '.enc.tag', 'utf8').trim()
+    return descifrarBuffer({ iv, tag, data }, masterKey)
+  } catch {
+    return null
+  }
+}
+
+/** Borra los archivos de un binario cifrado (mismo sufijo que borrarPieza). */
+export function borrarBinario(base: string): void {
+  borrarPieza(base)
+}
+
 export function carpetaDataset(characterId: string): string {
   return path.join(RAIZ, characterId, 'dataset')
 }

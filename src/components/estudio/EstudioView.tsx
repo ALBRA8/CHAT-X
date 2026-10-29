@@ -25,6 +25,7 @@ import {
   type PresetT,
 } from './api'
 import { MediaImg, Vacio, VeredictoBadge, fmtDinero, fmtFecha } from './ui-bits'
+import VozCard from './VozCard'
 import { COSTOS } from '@/lib/constants'
 
 const ENCUADRES = ['primer_plano', 'plano_medio', 'cuerpo_entero'] as const
@@ -211,6 +212,9 @@ export default function EstudioView({ inicial }: { inicial: CharacterT | null })
           </div>
         </CardContent>
       </Card>
+
+      {/* Voz — identidad clonada (capa 3, local y $0) */}
+      {c && <VozCard characterId={c.id} desbloqueado={modoPrivado} />}
 
       {/* Brief + costes */}
       <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
