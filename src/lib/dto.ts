@@ -12,6 +12,10 @@ export interface RasgoFirmante {
   tipo: string
   descripcion: string
   ubicacion: string
+  // A3 (adopción ClonaKit del Batch C, patrón Enhancor Freckle Control): los rasgos
+  // firmantes aceptan intensidad, no solo presencia. 1 sutil … 5 dominante.
+  // Opcional por compatibilidad: filas antiguas sin campo se tratan como 3 (media).
+  intensidad?: number
 }
 
 export function genomeDe(character: Character): Genome {

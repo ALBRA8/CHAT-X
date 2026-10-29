@@ -26,6 +26,7 @@ import {
 } from './api'
 import { MediaImg, Vacio, VeredictoBadge, fmtDinero, fmtFecha } from './ui-bits'
 import VozCard from './VozCard'
+import { BIBLIOTECA_PRESETS } from './biblioteca'
 import { COSTOS } from '@/lib/constants'
 
 const ENCUADRES = ['primer_plano', 'plano_medio', 'cuerpo_entero'] as const
@@ -81,6 +82,16 @@ export default function EstudioView({ inicial }: { inicial: CharacterT | null })
 
   const aplicarPreset = (p: PresetT) => {
     setEscena(p.escena); setOutfit(p.outfit); setPose(p.pose); setEncuadre(p.encuadre); setLuz(p.luz)
+  }
+
+  // Biblioteca A2 (Enhancor): a diferencia del preset del usuario (foto completa del
+  // brief), la biblioteca solo rellena los campos no vacíos del fragmento.
+  const aplicarBiblioteca = (p: PresetT) => {
+    if (p.escena) setEscena(p.escena)
+    if (p.outfit) setOutfit(p.outfit)
+    if (p.pose) setPose(p.pose)
+    setEncuadre(p.encuadre)
+    if (p.luz) setLuz(p.luz)
   }
 
   const abrirCarrilPrivado = () => {
@@ -226,6 +237,16 @@ export default function EstudioView({ inicial }: { inicial: CharacterT | null })
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-[11px] text-muted-foreground">Biblioteca de iluminación (A2 · patrón Enhancor) — clic rellena el brief sin borrar lo que ya escribiste:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {BIBLIOTECA_PRESETS.map((p) => (
+                  <Badge key={p.nombre} variant="secondary" className="cursor-pointer text-[11px]" onClick={() => aplicarBiblioteca(p)} title={`${p.escena} · ${p.luz}`}>
+                    {p.nombre}
+                  </Badge>
+                ))}
+              </div>
+            </div>
             {settings && settings.presets.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {settings.presets.map((p, i) => (

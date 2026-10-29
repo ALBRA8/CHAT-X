@@ -108,6 +108,22 @@ describe('worker — composición de prompt (procedencia)', () => {
     expect(p).toContain('carril: PRIVADO')
     expect(p).not.toContain('pelo:')
   })
+  test('A3 — rasgos firmantes con intensidad y ubicación entran al prompt', () => {
+    const p = componerPrompt(
+      'Valentina', '', {},
+      { escena: 'terraza', outfit: '', pose: '', encuadre: 'primer_plano', luz: '' },
+      'PUBLICO',
+      [{ tipo: 'tatuaje', descripcion: 'minimalista', ubicacion: 'antebrazo izq', intensidad: 4 }],
+    )
+    expect(p).toContain('rasgos firmantes:')
+    expect(p).toContain('tatuaje minimalista en antebrazo izq (intensidad 4/5)')
+  })
+  test('A3 — sin intensidad declarada usa media (3/5); sin rasgos no emite bloque', () => {
+    const conRasgo = componerPrompt('X', '', {}, { escena: 'a', outfit: '', pose: '', encuadre: 'plano_medio', luz: '' }, 'PUBLICO', [{ tipo: 'lunar', descripcion: 'pequeño', ubicacion: '' }])
+    expect(conRasgo).toContain('(intensidad 3/5)')
+    const sinRasgos = componerPrompt('X', '', {}, { escena: 'a', outfit: '', pose: '', encuadre: 'plano_medio', luz: '' }, 'PUBLICO')
+    expect(sinRasgos).not.toContain('rasgos firmantes:')
+  })
 })
 
 describe('flujos — validación de definición (whitelist)', () => {

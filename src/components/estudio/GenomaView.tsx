@@ -98,7 +98,7 @@ export default function GenomaView({ onActivada }: { onActivada: (c: CharacterT)
     setAficiones(c.genome.aficiones || '')
     setLore(c.genome.lore || '')
     setTono(c.genome.tono || '')
-    setKit(c.signKit ?? [])
+    setKit((c.signKit ?? []).map((r) => ({ ...r, intensidad: r.intensidad ?? 3 })))
     const a = c.genome.atributos ?? {}
     setAttrs((prev) => ({
       pelo: a.pelo || prev.pelo,
@@ -438,18 +438,34 @@ export default function GenomaView({ onActivada }: { onActivada: (c: CharacterT)
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Paso 5 · Kit de rasgos firmantes</CardTitle>
-            <p className="text-xs text-muted-foreground">Tatuajes, piercings, lunares o pecas con ubicación exacta — se validan en cada QA de identidad.</p>
+            <p className="text-xs text-muted-foreground">
+              Tatuajes, piercings, lunares o pecas con ubicación e intensidad (A3, patrón Enhancor Freckle Control:
+              1 sutil … 5 dominante) — entran al prompt de generación y se validan en cada QA de identidad.
+            </p>
           </CardHeader>
           <CardContent className="space-y-3">
             {kit.map((r, i) => (
-              <div key={i} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1.4fr_1fr_auto]">
+              <div key={i} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1.4fr_1fr_140px_auto]">
                 <Input aria-label="Tipo de rasgo" value={r.tipo} placeholder="tipo (tatuaje…)" onChange={(e) => setKit((k) => k.map((x, j) => (j === i ? { ...x, tipo: e.target.value } : x)))} />
                 <Input aria-label="Descripción" value={r.descripcion} placeholder="descripción" onChange={(e) => setKit((k) => k.map((x, j) => (j === i ? { ...x, descripcion: e.target.value } : x)))} />
                 <Input aria-label="Ubicación" value={r.ubicacion} placeholder="ubicación (antebrazo izq…)" onChange={(e) => setKit((k) => k.map((x, j) => (j === i ? { ...x, ubicacion: e.target.value } : x)))} />
+                <Select
+                  value={String(r.intensidad ?? 3)}
+                  onValueChange={(v) => setKit((k) => k.map((x, j) => (j === i ? { ...x, intensidad: Number(v) } : x)))}
+                >
+                  <SelectTrigger aria-label={`Intensidad del rasgo ${i + 1}`}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 · sutil</SelectItem>
+                    <SelectItem value="2">2 · ligera</SelectItem>
+                    <SelectItem value="3">3 · media</SelectItem>
+                    <SelectItem value="4">4 · marcada</SelectItem>
+                    <SelectItem value="5">5 · dominante</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button variant="ghost" size="icon" aria-label={`Quitar rasgo ${i + 1}`} onClick={() => setKit((k) => k.filter((_, j) => j !== i))}>✕</Button>
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={() => setKit((k) => [...k, { tipo: '', descripcion: '', ubicacion: '' }])}>
+            <Button variant="outline" size="sm" onClick={() => setKit((k) => [...k, { tipo: '', descripcion: '', ubicacion: '', intensidad: 3 }])}>
               <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden /> Añadir rasgo
             </Button>
             <div className="flex gap-2">

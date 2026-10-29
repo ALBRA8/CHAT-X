@@ -27,6 +27,7 @@ import { claveMaestraServidor } from '@/lib/clave-privada'
 import { registrarEvento } from '@/lib/compliance'
 import { ejecucionesVivas } from '@/lib/flujos'
 import type { Brief, GenerationRequest } from '@/lib/provider/types'
+import { parseJson, type RasgoFirmante } from '@/lib/dto'
 
 interface PesoJob {
   type: string
@@ -154,15 +155,24 @@ export function componerPrompt(
   attrs: Record<string, string>,
   brief: Brief,
   lane: string,
+  rasgos?: RasgoFirmante[],
 ): string {
   const attrTxt = Object.entries(attrs)
     .filter(([, v]) => v && v.trim())
     .map(([k, v]) => `${k}: ${v}`)
     .join(' · ')
+  // A3 (adopción ClonaKit, patrón Enhancor Freckle Control): el kit firmante entra
+  // al prompt con intensidad y ubicación — no solo presencia — para que la generación
+  // y su procedencia reflejen exactamente los rasgos validados en QA de identidad.
+  const firmas = (rasgos ?? [])
+    .filter((r) => r && r.tipo && r.descripcion)
+    .map((r) => `${r.tipo} ${r.descripcion} en ${r.ubicacion || 'ubicación libre'} (intensidad ${r.intensidad ?? 3}/5)`)
+    .join(' | ')
   return [
     `personaje: ${characterName}`,
     anchorTrait ? `rasgo ancla: ${anchorTrait}` : '',
     attrTxt,
+    firmas ? `rasgos firmantes: ${firmas}` : '',
     `escena: ${brief.escena || 'libre'}`,
     `outfit: ${brief.outfit || 'libre'}`,
     `pose: ${brief.pose || 'libre'}`,
@@ -191,6 +201,7 @@ export interface OpcionesPieza {
   batchId: string
   index: number
   masterKey: Buffer | null
+  rasgos?: RasgoFirmante[] // kit firmante con intensidad (A3) — entra al prompt y a la procedencia
 }
 
 interface ResultadoPieza {
@@ -211,7 +222,7 @@ async function producirPieza(op: OpcionesPieza): Promise<ResultadoPieza> {
   }
   const provider = getProvider()
   const brief = op.brief
-  const promptFinal = componerPrompt(op.characterName, op.anchorTrait, op.attrs, brief, op.lane)
+  const promptFinal = componerPrompt(op.characterName, op.anchorTrait, op.attrs, brief, op.lane, op.rasgos)
   const fecha = new Date()
   const batchId = op.batchId
 
@@ -440,10 +451,11 @@ async function trabajoEntrenamiento(jobId: string, character: { id: string; name
 }
 
 // LOTE DE FOTOS (vistas previas baratas o examen de identidad)
-async function trabajoLoteFotos(jobId: string, character: { id: string; name: string; seed: string; anchorTrait: string; genome: string; loraHash: string | null }, payload: Record<string, unknown>): Promise<void> {
+async function trabajoLoteFotos(jobId: string, character: { id: string; name: string; seed: string; anchorTrait: string; genome: string; signKit: string | null; loraHash: string | null }, payload: Record<string, unknown>): Promise<void> {
   const modo = payload.modo === 'examen' ? 'examen' : 'preview'
   const lane = (payload.lane === LANE.PRIVADO ? LANE.PRIVADO : LANE.PUBLICO) as Lane
   const attrs = (JSON.parse(character.genome).atributos ?? {}) as Record<string, string>
+  const rasgos = parseJson<RasgoFirmante[]>(character.signKit, []).filter((r) => r && r.tipo && r.descripcion)
   const masterKey = lane === LANE.PRIVADO ? await claveMaestraServidor() : null
   const batchId = String(payload.batchId || `lote_${Date.now()}`)
   const varianteBase = Number(payload.varianteBase) || 0
@@ -484,6 +496,7 @@ async function trabajoLoteFotos(jobId: string, character: { id: string; name: st
       batchId,
       index: i,
       masterKey,
+      rasgos,
     })
     creadas.push(pieza)
     await setProgreso(jobId, ((i + 1) / items.length) * 100)
@@ -496,9 +509,10 @@ async function trabajoLoteFotos(jobId: string, character: { id: string; name: st
 }
 
 // RENDER FINAL caro de las piezas elegidas
-async function trabajoRenderFinal(jobId: string, character: { id: string; name: string; seed: string; anchorTrait: string; genome: string; loraHash: string | null }, payload: Record<string, unknown>): Promise<void> {
+async function trabajoRenderFinal(jobId: string, character: { id: string; name: string; seed: string; anchorTrait: string; genome: string; signKit: string | null; loraHash: string | null }, payload: Record<string, unknown>): Promise<void> {
   const lane = (payload.lane === LANE.PRIVADO ? LANE.PRIVADO : LANE.PUBLICO) as Lane
   const attrs = (JSON.parse(character.genome).atributos ?? {}) as Record<string, string>
+  const rasgos = parseJson<RasgoFirmante[]>(character.signKit, []).filter((r) => r && r.tipo && r.descripcion)
   const masterKey = lane === LANE.PRIVADO ? await claveMaestraServidor() : null
   const mediaIds = (payload.mediaIds as string[]) || []
   const brief = payload.brief as Brief
@@ -527,6 +541,7 @@ async function trabajoRenderFinal(jobId: string, character: { id: string; name: 
       batchId,
       index: i,
       masterKey,
+      rasgos,
     })
     finales.push(pieza.id)
     if (pieza.veredicto === 'APROBADO' && lane === LANE.PRIVADO) aprobadasPrivadas.push(pieza.id)

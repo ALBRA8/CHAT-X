@@ -7,7 +7,7 @@ INFORME_ADULTOS_BATCH_B.md (KINKU, LOVELAB, APATERO, MAGE),
 research/ia-influencer/ANALISIS.md (intel por dentro de "IA Influencer") y
 research/clonakit/INFORME_RECON_BATCH_C.md (lote 2026-10-30: Pykaso, Recraft,
 Krea, Enhancor, Pikaso, Pyksel).
-Fecha: 2026-10-28 — 23/23 referentes. Ampliado 2026-10-30: 29/29 (Batch C). CONFIDENCIAL (no sube a GitHub).
+Fecha: 2026-10-28 — 23/23 referentes. Ampliado 2026-10-30: 29/29 (Batch C). Ampliado 2026-10-30 (2.ª): 30/30 (Adobe Firefly, propuesto por el fundador). CONFIDENCIAL (no sube a GitHub).
 
 ## Lo que YA supera CHAT-X a los referentes (no tocar, mantener)
 
@@ -45,12 +45,16 @@ Adopciones concretas del lote (integran al roadmap):
 - **A1 — Objetivo de realismo de piel** (Enhancor): el provider real (GPU) debe
   producir piel sin look plástico (poros, textura, iluminación natural).
   Criterio: comparativa antes/después sobre el examen de identidad, sin deriva.
-- **A2 — Biblioteca de presets con nombre** (Enhancor): iluminación
-  cinematográfica (Ethereal Light, Blinds Noir, Gobo…) + iPhone Selfie V1–V4
-  (natural daylight, studio soft, vivid, night) como fragmentos de prompt en los
-  presets del Estudio. $0, se adopta en ficha, no en código del provider.
-- **A3 — Control de intensidad en signKit** (Enhancor Freckle Control): los
-  rasgos firmantes aceptan intensidad/ubicación, no solo presencia.
+- **A2 — Biblioteca de presets con nombre** (Enhancor) — **IMPLEMENTADA 2026-10-30**:
+  `src/components/estudio/biblioteca.ts` con 8 presets (Ethereal Light, Blinds Noir,
+  Gobo Spotlight, Golden Hour Window + iPhone Selfie V1–V4) y fila "Biblioteca de
+  iluminación" en el Brief del Estudio. Semántica de fragmento: rellena solo los
+  campos no vacíos, no pisa el brief del usuario. $0, adoptada en ficha.
+- **A3 — Control de intensidad en signKit** (Enhancor Freckle Control) — **IMPLEMENTADA 2026-10-30**:
+  `RasgoFirmante.intensidad` (1 sutil … 5 dominante, ausencia = 3 media por compatibilidad);
+  Select por rasgo en el paso 5 del Genoma; el kit firmante entra ahora al prompt real de
+  generación (`rasgos firmantes: … (intensidad n/5)`) en lote y render final, con
+  unitarias nuevas en nucleo.test.ts. Compatibilidad hacia atrás sin migración.
 - **A4 — Post-proceso de voz sintética** (Enhancor UGC Audio Fixer): cuando la
   capa 3 de voz tenga síntesis, añadir pulido de audio para quitar artefactos
   robóticos (registra en la arquitectura de voz, no bloquea nada hoy).
@@ -62,6 +66,19 @@ Adopciones concretas del lote (integran al roadmap):
 - **A7 — Vectorización como ruta futura de cara canónica** (Recraft):
   patrón para derivar SVG de cara canónica desde foto real del examen; hoy la
   cara canónica se dibuja, el patrón permite una vía alternativa local.
+
+## Adobe Firefly (2026-10-30) — referente 30, veredicto NO VIABLE para el nicho
+
+Propuesto por el fundador como opción "dado el caso que toque usar tokens".
+Veredicto honesto tras verificar la política pública: **Adobe Generative AI User
+Guidelines (rev. 2026-05-15) prohíben crear material pornográfico o desnudez
+explícita** — el "commercially safe" de Firefly es incompatible con el carril 18+
+incluso pagando ($9.99–$199.99/mo por créditos; tier gratis con límites diarios).
+Solo serviría para activos SFW (portadas, marca, material no explícito) que el
+pipeline local ya cubre a coste cero. **Decisión: no gastar tokens en Firefly.**
+Si algún día hace falta un provider de pago por capacidad, debe ser adult-tolerant
+y requerirá autorización explícita del fundador (regla $0). La lección Pyksel
+(mortalidad SaaS) ya marcó la dirección: modelos locales primero.
 
 ## Brechas PRIORIZADAS pendientes (roadmap con criterio de aceptación)
 

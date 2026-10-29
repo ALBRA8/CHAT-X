@@ -34,6 +34,9 @@ export interface RasgoFirmante {
   tipo: string
   descripcion: string
   ubicacion: string
+  // A3 (Enhancor Freckle Control): intensidad del rasgo, 1 sutil … 5 dominante.
+  // Opcional por compatibilidad con kit guardado antes de esta adopción (ausencia = 3).
+  intensidad?: number
 }
 
 export interface CharacterT {
