@@ -65,11 +65,11 @@ requiere proveedor de vídeo (Google Flow vía YOUTUBE-AUTOMATION o nodo de víd
 en ComfyUI) y está registrada como bloqueada por hardware/credenciales, no como
 implementada.
 
-## Raster de motores candidatos (intel referente #24 IA HUB, 2026-10-29)
+## Raster de motores candidatos — open-weights y SaaS del nicho (mapeo 2026-10-29)
 
-Mapa de motores que el nicho está usando HOY (curso IA HUB «Imperio») — candidatos
-para el día del desbloqueo, NO integrados todavía. Ninguno cambia el estado honesto
-actual: sin GPU local o cuenta externa, el vídeo sigue BLOQUEADO EXTERNO.
+Mapa de motores que el nicho está usando HOY — candidatos para el día del
+desbloqueo, NO integrados todavía. Ninguno cambia el estado honesto actual:
+sin GPU local o cuenta externa, el vídeo sigue BLOQUEADO EXTERNO.
 
 | Motor | Modalidad | Vía de entrada en CHAT-X |
 |---|---|---|
