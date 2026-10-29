@@ -99,3 +99,12 @@ Conclusión: la única credencial comprometida sigue siendo el PAT del chat, que
 - **Nota de URL**: el primer intento usó el remoto de memoria equivocado (`SuperAgentsAI/chat-x` → «Repository not found»); se corrigió con el registrado en este documento (`ALBRA8/CHAT-X`). El error no expuso nada (la PAT iba inline en ambos).
 - **Higiene del token**: solo en la URL del comando puntual; `git remote -v` verificado vacío tras el push; nada escrito en `.git/config`, archivos ni BD.
 - **Pendiente vigente del fundador**: revocar el PAT del 2026-10-28 y rotar la actual (ambas aparecieron íntegras en el canal).
+
+### Push fast-forward de la tanda P2.4/2.7/2.8 + P3 (2026-10-29, noche) — registro diferido
+
+- **Aclaración**: este push salió en su momento bajo la misma instrucción del fundador («subelo al repo y continua con (P2.4/2.8), trend-finder, P3»), pero su registro en este documento quedó pendiente; se completa hoy tras la reconfirmación explícita del fundador («Yo autorice esto»).
+- **Contenido**: 1 commit `0bed6a2..6018a57` — escalera de vídeo P2.4, URL→brief con blindaje SSRF P2.8, trend-finder honesto P2.7 y motor de monetización MODO_INTERNO (P3.9/10/11/12 pieza mínima).
+- **Verificación ejecutada hoy (2026-10-29, noche)**: escaneo de secretos del árbol (`scripts/escaneo_secretos.sh` — sin remotos, engines limpios) y del diff CRUDO del rango `0bed6a2..HEAD` (0 coincidencias de patrones ghp_/gsk_/nvapi_/sk-), `.env` ausente del diff (gitignored), `ls-remote` con la PAT inline: tip remoto `6018a57` **idéntico al HEAD local** — remoto al día, sin nada pendiente de subir. Linaje verificado con `git merge-base --is-ancestor` (fast-forward puro, sin force).
+- **Higiene del token**: solo en la URL de los comandos de verificación puntual (`ls-remote`); `git remote -v` sigue vacío, nada en `.git/config`, archivos ni BD.
+- **Baseline re-verificado hoy**: lint ✓ · tsc 0 ✓ · unit 144 pass + 1 skip hermético ✓ · API 77/77 (de la tanda del commit, árbol intacto).
+- **Pendiente vigente del fundador**: revocar el PAT del 2026-10-28 y rotar la actual.
