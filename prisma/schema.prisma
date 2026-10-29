@@ -65,6 +65,7 @@ model Job {
   character    Character? @relation(fields: [characterId], references: [id], onDelete: SetNull)
   priority     Int       @default(5) // 1 = más alta
   status       String    @default("en_cola") // en_cola | procesando | listo | fallido
+  attempts     Int       @default(0) // intentos consumidos (reintentos con tope del worker)
   progress     Int       @default(0) // 0..100
   costEstimate Float     @default(0)
   costReal     Float     @default(0)

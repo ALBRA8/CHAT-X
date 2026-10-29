@@ -16,6 +16,7 @@ import { spawnSync } from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
+import { qaForense } from '@/lib/qa-forense'
 
 export type EstadoVoz = 'OPERATIVO' | 'NO_DISPONIBLE' | 'ERROR'
 
@@ -226,6 +227,25 @@ function generarVozPiper(texto: string, contrato: ContratoVoz): ResultadoVoz {
     if (wav.length < 45 || wav.toString('ascii', 0, 4) !== 'RIFF') {
       return { ok: false, estado: 'ERROR', detalle: 'piper produjo un WAV inválido', provedor: 'piper-local' }
     }
+    // QA forense (patrón YT-Automation): la firma RIFF no basta — se verifica
+    // estructura real y se detecta audio silencioso antes de aceptar el medio.
+    const dictamen = qaForense(wav, 'wav')
+    if (dictamen.veredicto === 'RECHAZADO') {
+      return {
+        ok: false,
+        estado: 'ERROR',
+        detalle: `piper produjo un medio rechazado por QA forense: ${dictamen.razones.join(' · ')}`,
+        provedor: 'piper-local',
+      }
+    }
+    if (dictamen.avisos.some((a) => a.includes('silencioso'))) {
+      return {
+        ok: false,
+        estado: 'ERROR',
+        detalle: 'piper produjo audio completamente silencioso: una nota de voz sin audio audible no se entrega (honesto, no se finge)',
+        provedor: 'piper-local',
+      }
+    }
     const nota = modelo.exacto
       ? `voz ${path.basename(modelo.onnx, '.onnx')} · tono fijo (piper no ajusta pitch; contrato.tono=${contrato.tono} ignorado)`
       : `voz ${path.basename(modelo.onnx, '.onnx')} (no hay modelo para "${contrato.voz}"; usando el disponible) · tono fijo (contrato.tono=${contrato.tono} ignorado)`
@@ -271,6 +291,23 @@ export async function generarVoz(texto: string, contrato: ContratoVoz): Promise<
     const wav = fs.readFileSync(salida)
     if (wav.length < 45) {
       return { ok: false, estado: 'ERROR', detalle: 'espeak-ng produjo un WAV vacío', provedor: 'espeak-local' }
+    }
+    const dictamen = qaForense(wav, 'wav')
+    if (dictamen.veredicto === 'RECHAZADO') {
+      return {
+        ok: false,
+        estado: 'ERROR',
+        detalle: `espeak-ng produjo un medio rechazado por QA forense: ${dictamen.razones.join(' · ')}`,
+        provedor: 'espeak-local',
+      }
+    }
+    if (dictamen.avisos.some((a) => a.includes('silencioso'))) {
+      return {
+        ok: false,
+        estado: 'ERROR',
+        detalle: 'espeak-ng produjo audio completamente silencioso: no se entrega (honesto, no se finge)',
+        provedor: 'espeak-local',
+      }
     }
     return { ok: true, wav, duracionS: duracionWav(wav), bytes: wav.length, provedor: 'espeak-local' }
   } catch (e) {

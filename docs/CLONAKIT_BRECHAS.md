@@ -66,3 +66,17 @@ CHAT-X ya tiene el núcleo que los referentes NO tienen (compliance + CRM + mult
 ## Estado tras la tanda 2026-10-29 (P2.4/2.7/2.8 + P3)
 - **Baseline**: lint ✓ · tsc 0 ✓ · unit 145 (144 pass + 1 skip hermético) ✓ · API 77/77 ✓.
 - **Pendiente EXTERNO (solo el fundador puede desbloquear)**: GPU/proveedor de vídeo real (cierra el render de P2.4/2.8), feeds RSS deseados para el trend-finder, validación del 90/10 real de Kinku, procesador de pagos (cierra P3.9/10 reales), lanzamiento JVZoo/Whop (P3.11), multi-tenant (P3.12 completo), telefonía (P3.13).
+
+## Paridad de gobernanza 2026-10-29 (sala limpia desde los engines internos)
+
+Criterio del fundador: «los cambios, siempre y cuando sean de utilidad» y «no cambiar un Ferrari por un Twingo» — solo se transfirió lo que CHAT-X NO tenía y lo hace MEJOR; nada de duplicar territorio de los satélites (el canvas de flujos de WHATSPOWER y el Campaign Studio de WHATSPOWER-ULTRA siguen siendo de ellos). Patrones destilados de YouTube-Automation (§14-17 cola endurecida, §30 security hardening, video-QA forense, taxonomía v1.1) reimplementados al estilo CHAT-X, sin copiar código:
+
+| Patrón | Implementación en CHAT-X |
+|---|---|
+| **Claim atómico de jobs (anti-TOCTOU)** | `worker.ts` tick: el `findFirst` es solo mirada; el claim real es `updateMany` CONDICIONAL al status `en_cola` — dos procesos que miran el mismo job no pueden claimarlo ambos (SQLite serializa la escritura). |
+| **Reintentos con tope + reembolso único** | `attempts` en el modelo Job (columna aditiva, BD respaldada antes del push): fallos transitorios reintentan hasta `MAX_INTENTOS_JOB=3`; al agotarse → FALLIDO con causa clasificada y reembolso UNA vez (antes: sin reintentos y reembolso en cada fallo). |
+| **Taxonomía honesta de errores (v1.1)** | `taxonomiaError()` en `src/lib/qa-forense.ts`: VALIDACION (terminal, no reintenta) > LOCAL_TIMEOUT (un abort local JAMÁS se reporta como fallo del proveedor) > PROVEEDOR > DESCONOCIDO (transitorio). El error del job sale prefijado `[CLASE]` — visible en API/panel. |
+| **Saneo anti-inyección de texto externo** | `src/lib/saneo.ts` `sanitizarTextoExterno()`: neutraliza secuestros de prompt (ES/EN/tokens chatml/marcadores de rol/exfiltración), decodifica entidades, quita caracteres de control, tope duro — determinista y auditado. Cableado en las TRES puertas de texto externo: `analizarTrend` (entrada manual), `parsearRSS` (títulos de feeds) y `metadatosDesdeURL` (og:title/og:description del P2.8). El filtro de edad sigue corriendo sobre el TEXTO CRUDO antes (el saneo no lo sustituye: segunda capa). |
+| **QA forense de bytes reales** | `qaForense()` en `src/lib/qa-forense.ts`: firma real por magic bytes — HTML/texto disfrazado de PNG/WAV RECHAZADO (la lección exacta del referente), PNG/JPEG truncados detectados, WAV con duración y silencio medidos (PCM 16-bit, umbral ≈ -58 dBFS). Gate activo en `voz.ts` (piper Y espeak): un audio silencioso o inválido NO se entrega — ERROR honesto. Listo para raster de proveedores reales (ComfyUI) cuando llegue la GPU. |
+
+- **Baseline tras la tanda**: lint ✓ · tsc 0 ✓ · unit 179 (178 pass + 1 skip hermético) ✓ · API 77/77 ✓ (con el worker endurecido procesando jobs reales E2E). Stub de piper en tests actualizado a audio audible realista (el gate forense rechaza silencio puro — y debe).

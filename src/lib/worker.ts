@@ -16,6 +16,7 @@ import {
   type Lane,
 } from '@/lib/constants'
 import { hexSha256 } from '@/lib/rng'
+import { taxonomiaError } from '@/lib/qa-forense'
 import {
   rutaPieza,
   guardarClaro,
@@ -33,6 +34,15 @@ interface PesoJob {
   type: string
   payload: Record<string, unknown>
 }
+
+/**
+ * Tope de reintentos por job (paridad de gobernanza con YouTube-Automation
+ * §14-17: "no reintentar infinitamente"). Los fallos TERMINALES (validación)
+ * no reintentan nunca; los transitorios (timeout local, proveedor,
+ * desconocido) reintentan hasta MAX_INTENTOS_JOB y luego quedan FALLIDO con
+ * la taxonomía visible y reembolso único.
+ */
+export const MAX_INTENTOS_JOB = 3
 
 const g = globalThis as unknown as {
   __estudioWorker?: { timer: NodeJS.Timeout; ocupado: boolean }
@@ -104,22 +114,52 @@ async function tick(state: { ocupado: boolean }): Promise<void> {
     orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
   })
   if (!job) return
+  // CLAIM ATÓMICO (paridad YT-Automation §14: UPDATE condicional, TOCTOU
+  // cerrado): solo el proceso cuyo updateMany afecta 1 fila se queda el job.
+  // El findFirst anterior es solo una mirada; dos workers que miran el mismo
+  // job NO pueden claimarlo ambos porque el UPDATE es condicional al status.
+  const claim = await db.job.updateMany({
+    where: { id: job.id, status: JOB_STATUS.EN_COLA },
+    data: { status: JOB_STATUS.PROCESANDO, startedAt: new Date() },
+  })
+  if (claim.count === 0) return // otro proceso lo reclamó primero: siguiente tick
   state.ocupado = true
   try {
     await procesar(job.id, job.type as string, JSON.parse(job.payload) as Record<string, unknown>)
   } catch (err) {
-    await db.job
-      .update({
-        where: { id: job.id },
-        data: {
-          status: JOB_STATUS.FALLIDO,
-          finishedAt: new Date(),
-          error: err instanceof Error ? err.message : 'Error desconocido',
-        },
-      })
-      .catch(() => undefined)
-    // devuelve los créditos estimados al fallar
-    await reembolsar(job.id, job.costEstimate).catch(() => undefined)
+    // Fallo clasificado por evidencia (taxonomía honesta v1.1): un timeout
+    // local NUNCA se reporta como fallo del proveedor, y la validación es
+    // terminal. Reintento con tope; reembolso UNA sola vez al agotarse.
+    const mensaje = err instanceof Error ? err.message : 'Error desconocido'
+    const tax = taxonomiaError(mensaje)
+    const intentos = (job.attempts ?? 0) + 1
+    if (!tax.terminal && intentos < MAX_INTENTOS_JOB) {
+      await db.job
+        .update({
+          where: { id: job.id },
+          data: {
+            status: JOB_STATUS.EN_COLA,
+            progress: 0,
+            attempts: intentos,
+            error: `[${tax.clase}][intento ${intentos}/${MAX_INTENTOS_JOB}] ${mensaje.slice(0, 260)}`,
+          },
+        })
+        .catch(() => undefined)
+    } else {
+      await db.job
+        .update({
+          where: { id: job.id },
+          data: {
+            status: JOB_STATUS.FALLIDO,
+            finishedAt: new Date(),
+            attempts: intentos,
+            error: `[${tax.clase}] ${mensaje.slice(0, 260)}${tax.nota ? ` — ${tax.nota}` : ''}`,
+          },
+        })
+        .catch(() => undefined)
+      // reembolso único al agotar los intentos (paridad "reembolso por fallo")
+      await reembolsar(job.id, job.costEstimate).catch(() => undefined)
+    }
   } finally {
     state.ocupado = false
   }

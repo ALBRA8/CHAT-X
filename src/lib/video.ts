@@ -17,6 +17,7 @@
 // bytes, timeout corto y user-agent honesto.
 import { saludComfy } from '@/lib/provider/comfyui'
 import { detectarTerminosProhibidos } from '@/lib/constants'
+import { textoSano } from '@/lib/saneo'
 
 // ─────────────────────── P2.4 — Escalera de calidad ───────────────────────
 
@@ -335,7 +336,14 @@ export async function metadatosDesdeURL(url: string): Promise<{ titulo: string; 
       /<meta[^>]+name=["']twitter:description["'][^>]+content=["']([^"']+)["']/i,
     ])
     const sitio = extraerMeta(limpio, [/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i]) || u.hostname
-    return { titulo, descripcion, sitio, html: limpio.slice(0, 4000) }
+    // Saneo anti-inyección: los metadatos son TEXTO DE UN TERCERO y pueden
+    // intentar secuestrar prompts/briefs posteriores ("ignora tus instrucciones…").
+    return {
+      titulo: textoSano(titulo, 300),
+      descripcion: textoSano(descripcion || '', 600),
+      sitio: textoSano(sitio, 120),
+      html: textoSano(limpio, 4000),
+    }
   } catch (e) {
     if (e instanceof ErrorURLInsegura) throw e
     const motivo = e instanceof Error ? (e.name === 'AbortError' ? `timeout de ${TIMEOUT_URL_MS / 1000}s` : e.message) : 'error de red'

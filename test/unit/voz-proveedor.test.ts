@@ -193,12 +193,13 @@ describe('duracionWav (header PCM)', () => {
 const CONTRATO_PIPER: ContratoVoz = { ...CONTRATO_OK, provedor: 'piper-local' }
 
 function stubPiper(): string {
-  // Stub de síntesis: WAV RIFF válido (1 s de silencio) + JSON del contrato del script real.
+  // Stub de síntesis: WAV RIFF válido (1 s con tono audible, como piper real —
+  // el QA forense rechazaría silencio puro, y debe: piper jamás lo produce) + JSON del contrato del script real.
   const ruta = path.join(os.tmpdir(), `chatx_piper_stub_${process.pid}.py`)
   fs.writeFileSync(
     ruta,
     [
-      'import argparse, json, wave',
+      'import argparse, json, math, struct, wave',
       'ap = argparse.ArgumentParser()',
       "ap.add_argument('--texto', required=True)",
       "ap.add_argument('--modelo', required=True)",
@@ -209,7 +210,11 @@ function stubPiper(): string {
       "assert a.longitud_escala > 0, 'escala inválida'",
       "with wave.open(a.salida, 'wb') as w:",
       '    w.setnchannels(1); w.setsampwidth(2); w.setframerate(22050)',
-      "    w.writeframes(b'\\x00\\x00' * 22050)",
+      '    frames = bytearray()',
+      '    for i in range(22050):',
+      '        v = int(3000 * math.sin(2 * math.pi * 220 * i / 22050))',
+      "        frames += struct.pack('<h', v)",
+      '    w.writeframes(bytes(frames))',
       "print(json.dumps({'ok': True, 'duracion_s': 1.0, 'hz': 22050, 'bytes': 44 + 44100}))",
     ].join('\n'),
   )

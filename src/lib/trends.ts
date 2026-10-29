@@ -16,6 +16,7 @@
 // El análisis es DETERMINISTA (sin LLM): mismas entradas → mismo análisis.
 // Todo texto que entra pasa (y sale) por el filtro de edad aparente.
 import { detectarTerminosProhibidos } from '@/lib/constants'
+import { sanitizarTextoExterno } from '@/lib/saneo'
 
 // ─────────────────────── Análisis determinista ───────────────────────
 
@@ -72,20 +73,29 @@ export function angulosDe(keywords: string[]): string[] {
   return angulos
 }
 
-/** Análisis completo de una entrada de tendencia. Lanza si viola el filtro. */
+/**
+ * Análisis completo de una entrada de tendencia. Lanza si viola el filtro.
+ * Doble capa: el filtro de edad corre sobre el texto CRUDO (constitucional)
+ * y el texto que alimenta el análisis/briefs pasa ANTES por el saneo
+ * anti-inyección (una tendencia puede intentar secuestrar el prompt de
+ * herramientas posteriores con "ignora tus instrucciones...").
+ */
 export function analizarTrend(titulo: string, texto: string): AnalisisTrend {
-  const plano = `${titulo} ${texto}`
-  const prohibidos = detectarTerminosProhibidos(plano)
+  const planoCrudo = `${titulo} ${texto}`
+  const prohibidos = detectarTerminosProhibidos(planoCrudo)
   if (prohibidos.length > 0) {
     throw new Error(
       `Filtro de edad aparente: la tendencia contiene términos prohibidos "${prohibidos.join('", "')}". No se registra (regla constitucional).`,
     )
   }
+  const tituloSano = sanitizarTextoExterno(titulo, 200).texto
+  const textoSaneado = sanitizarTextoExterno(texto, 2000).texto
+  const plano = `${tituloSano} ${textoSaneado}`
   const keywords = keywordsDe(plano)
   return {
     keywords,
     formato: formatoDe(plano),
-    gancho: titulo.trim().slice(0, 120) || keywords.slice(0, 3).join(' · '),
+    gancho: tituloSano.trim().slice(0, 120) || keywords.slice(0, 3).join(' · '),
     angulos: angulosDe(keywords),
   }
 }
@@ -191,7 +201,7 @@ export function parsearRSS(xml: string): ItemRSS[] {
     let url = bloque.match(/<link[^>]*href=["']([^"']+)["']/i)?.[1] || ''
     if (!url) url = bloque.match(/<link[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/link>/i)?.[1]?.trim() || ''
     const fecha = bloque.match(/<(pubDate|published|updated)[^>]*>([^<]+)<\/\1>/i)?.[2]?.trim()
-    if (titulo) items.push({ titulo: titulo.replace(/\s+/g, ' ').slice(0, 200), url, fecha })
+    if (titulo) items.push({ titulo: sanitizarTextoExterno(titulo.replace(/\s+/g, ' '), 200).texto, url, fecha })
     if (items.length >= RSS_MAX_ITEMS) break
   }
   return items
