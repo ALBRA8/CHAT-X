@@ -260,6 +260,95 @@ else
   SKIP=$((SKIP+1)); echo "SKIP  sonda piper (sin personajes)"
 fi
 
+# 6i. Escalera de vídeo + URL→brief (P2.4/P2.8): planificación GRATIS con estado honesto
+check "GET /api/studio/video-escalera declara escalera" bash -c 'curl -sf "'"$BASE"'/api/studio/video-escalera" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert [e[\"escalon\"] for e in d[\"escalera\"]]==[\"draft\",\"standard\",\"max\"], d
+assert d[\"proveedor\"][\"estado\"] in (\"OPERATIVO\",\"NO_DISPONIBLE\",\"NO_CONFIGURADO\"), d
+assert d[\"proveedor\"][\"comoActivar\"], d
+print(\"OK\")"'
+code_vid_url_priv=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"url":"http://169.254.169.254/latest/meta-data"}' "$BASE/api/studio/video-escalera")
+check "URL→brief bloquea IP privada (SSRF → 422)"   bash -c "[ '$code_vid_url_priv' = '422' ]"
+code_vid_file=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"url":"file:///etc/passwd"}' "$BASE/api/studio/video-escalera")
+check "URL→brief bloquea protocolo file (→ 422)"    bash -c "[ '$code_vid_file' = '422' ]"
+check "POST video-escalera plan sin URL no gasta"   bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"escalon\":\"standard\",\"duracionSeg\":10}" "'"$BASE"'/api/studio/video-escalera" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+esc={p[\"escalon\"]:p[\"creditos\"] for p in d[\"plan\"][\"escalera\"]}
+assert esc[\"draft\"] < esc[\"standard\"] < esc[\"max\"], esc
+assert esc[\"standard\"] == 8*3.5*10, esc
+print(\"OK\")"'
+
+# 6j. Trend-finder UGC (P2.7): registro manual, RSS honesto, sugerencias
+check "GET /api/trends expone conector RSS honesto" bash -c 'curl -sf "'"$BASE"'/api/trends" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d[\"conectorRSS\"][\"estado\"] in (\"NO_CONFIGURADO\",\"CONFIGURADO\"), d
+assert \"senalesInternas\" in d, d
+print(\"OK\")"'
+code_trend_edad=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"action":"registrar","titulo":"loli anime cute","texto":"x"}' "$BASE/api/trends")
+check "trend con término prohibido → 422"           bash -c "[ '$code_trend_edad' = '422' ]"
+TREND_ID=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"action":"registrar","titulo":"Rutina de café en la mañana","texto":"vlog de cafetería con encuadre casero","plataforma":"instagram","tipo":"tendencia"}' "$BASE/api/trends" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' 2>/dev/null)
+if [ -n "${TREND_ID:-}" ]; then
+  check "trend registrada con análisis determinista" bash -c 'curl -sf "'"$BASE"'/api/trends" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+t=[x for x in d[\"tendencias\"] if x[\"fuente\"]==\"manual\"]
+assert t, d
+a=t[0][\"analisis\"]
+assert a[\"keywords\"] and a[\"formato\"] and a[\"angulos\"], a
+print(\"OK\")"'
+  if [ -n "${CHAR_ID:-}" ]; then
+    check "sugerencias UGC desde tendencia (genoma)" bash -c 'curl -sf "'"$BASE"'/api/trends/sugerencias?characterId='"$CHAR_ID"'" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d[\"tendenciasConsideradas\"] >= 1, d
+assert len(d[\"sugerencias\"]) >= 1, d
+assert d[\"sugerencias\"][0][\"briefTexto\"], d
+print(\"OK\")"'
+  else
+    SKIP=$((SKIP+1)); echo "SKIP  sugerencias UGC (sin personajes)"
+  fi
+  check "trend → estado usada (trazable)"            bash -c "curl -sf -X POST -H 'Content-Type: application/json' -d '{\"action\":\"estado\",\"id\":\"$TREND_ID\",\"estado\":\"usada\"}' \"$BASE/api/trends\" | grep -q '\"estado\":\"usada\"'"
+else
+  SKIP=$((SKIP+1)); echo "SKIP  ciclo de tendencia (registro falló)"
+fi
+check "rss_refrescar sin env responde honesto"      bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"action\":\"rss_refrescar\"}" "'"$BASE"'/api/trends" | grep -q "NO_CONFIGURADO"'
+
+# 6k. Monetización (P3 #9/#10): MODO_INTERNO con aritmética real y ledger simulado
+check "GET /api/monetizacion declara modo INTERNO"  bash -c 'curl -sf "'"$BASE"'/api/monetizacion" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d[\"modo\"]==\"INTERNO\", d
+assert [p[\"id\"] for p in d[\"planes\"]]==[\"base\",\"pro\",\"estudio\"], d
+assert d[\"split\"][\"pctCreadorDefecto\"]==90, d
+assert d[\"notaHonestidad\"], d
+print(\"OK\")"'
+check "renovación Pro con rollover 25% (tope 500)"  bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"action\":\"simular_renovacion\",\"planId\":\"pro\",\"saldoActual\":400}" "'"$BASE"'/api/monetizacion" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d[\"aritmetica\"][\"heredados\"]==100, d
+assert d[\"entrada\"][\"modo\"]==\"simulacion\", d
+assert d[\"entrada\"][\"tipo\"]==\"renovacion\", d
+print(\"OK\")"'
+check "pack eterno precio coherente en ledger"      bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"action\":\"simular_pack\",\"packId\":\"pack500\"}" "'"$BASE"'/api/monetizacion" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d[\"entrada\"][\"creditos\"]==500, d
+assert d[\"pack\"][\"descuentoPct\"]==10, d
+print(\"OK\")"'
+check "split 90/10 trazado con pct en la entrada"   bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"action\":\"simular_comision\",\"brutoCents\":1000,\"pctCreador\":90}" "'"$BASE"'/api/monetizacion" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+s=d[\"split\"]
+assert s[\"creadorCents\"]+s[\"plataformaCents\"]==s[\"brutoCents\"]==1000, s
+assert s[\"creadorCents\"]==900 and s[\"plataformaCents\"]==100, s
+assert d[\"entrada\"][\"pctCreador\"]==90, d
+print(\"OK\")"'
+code_mon_bad=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"action":"simular_renovacion","planId":"oro"}' "$BASE/api/monetizacion")
+check "plan inexistente → 422"                      bash -c "[ '$code_mon_bad' = '422' ]"
+
 # 7. UI principal
 check "GET / (shell) 200"                            bash -c 'http_200 "'"$BASE"'/"'
 

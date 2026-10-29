@@ -91,3 +91,11 @@ Conclusión: la única credencial comprometida sigue siendo el PAT del chat, que
 - **Ejecución**: escaneo de secretos previo (`scripts/escaneo_secretos.sh`: 0 coincidencias en árbol versionado e historial completo), lectura del remoto con `ls-remote` (tip `56bb175` — los dos pushes anteriores ya estaban), verificación de linaje con `git merge-base --is-ancestor` (fast-forward puro, sin force ni lease) y `git push` puntual `56bb175..5f6db99` (cerebro LLM del chat). Verificación post-push: remoto `main = 5f6db99` idéntico al local.
 - **Higiene del token**: usado solo en la URL del comando (patrón documentado); NO persistido como remote, en `.git/config`, archivos ni BD (`git remote -v` verificado vacío tras el push). La key de Groq del cerebro LLM sigue solo en `.env` (gitignored); al repo subió únicamente el placeholder `gsk_xxx` de `.env.example`.
 - **Pendiente vigente del fundador**: revocar el PAT del 2026-10-28 y planificar rotación de esta PAT nueva (también apareció íntegra en el chat).
+
+### Push fast-forward con la misma PAT del fundador (2026-10-29, tarde)
+
+- **Autorización**: el fundador escribió «subelo al repo y continua con (P2.4/2.8), trend-finder, P3». Push por instrucción explícita; la política de prohibido por defecto se mantiene para pushes futuros sin instrucción.
+- **Ejecución**: doble escaneo de secretos sobre el rango `5f6db99..HEAD` (filtrado y CRUDO — 0 coincidencias reales; solo `.env.example` con placeholders en el diff, `.env` real gitignored y ausente del diff), `ls-remote` con la PAT inline (tip remoto `5f6db99` = padre exacto del HEAD local) y push fast-forward `5f6db99..0bed6a2` (3 commits: registro de seguridad, cerebro LLM con NVIDIA NIM, mejoras sin bloqueos externos — piper/InstaDump/Outfit Swap). Verificación post-push: remoto `main = 0bed6a2` idéntico al local.
+- **Nota de URL**: el primer intento usó el remoto de memoria equivocado (`SuperAgentsAI/chat-x` → «Repository not found»); se corrigió con el registrado en este documento (`ALBRA8/CHAT-X`). El error no expuso nada (la PAT iba inline en ambos).
+- **Higiene del token**: solo en la URL del comando puntual; `git remote -v` verificado vacío tras el push; nada escrito en `.git/config`, archivos ni BD.
+- **Pendiente vigente del fundador**: revocar el PAT del 2026-10-28 y rotar la actual (ambas aparecieron íntegras en el canal).

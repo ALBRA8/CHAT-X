@@ -256,7 +256,7 @@ model FlujoEjecucion {
   @@index([estado])
 }
 
-// ───────────────────────────── Ajustes ─────────────────────────────
+// ───────────────────────── Ajustes ─────────────────────────────
 
 model Settings {
   id           String   @id @default("main")
@@ -269,4 +269,52 @@ model Settings {
   presets      String   @default("[]") // JSON: presets del estudio (briefs guardados)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// ───────────────── Trend-finder UGC (P2.7 de CLONAKIT_BRECHAS) ────────────────
+// Descubrimiento de formatos/temas para alimentar briefs del carril social.
+// Fuentes HONESTAS: entrada manual del operador, señales internas (lo que ya
+// funciona en nuestros propios sets/publicaciones) y conectores externos
+// OPT-IN (RSS sindicado con límites estrictos; sin credenciales → NO_CONFIGURADO).
+// NUNCA scraping agresivo (prohibido por la constitución).
+
+model TrendEntry {
+  id        String   @id @default(cuid())
+  fuente    String // manual | rss:<nombre> | interna
+  tipo      String // tendencia | competidor | senal_interna
+  titulo    String
+  url       String   @default("")
+  texto     String   @default("")
+  metricas  String   @default("{}") // JSON: {plataforma, interacciones, fecha, autor}
+  analisis  String   @default("{}") // JSON: {keywords[], formato, gancho, angulos[]}
+  estado    String   @default("nueva") // nueva | usada | descartada
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fuente])
+  @@index([estado])
+}
+
+// ───────────── Monetización de la plataforma (P3 de CLONAKIT_BRECHAS) ────────────
+// Motor de planes (suscripción con rollover), packs eternos y split de
+// marketplace. MODO_INTERNO honesto: hasta que CHAT-X abra a terceros TODO es
+// simulación/planificación — el ledger marca cada entrada con modo='simulacion'
+// y jamás se cobra nada real (sin procesador de pagos = sin cobros).
+
+model LedgerMonetizacion {
+  id              String   @id @default(cuid())
+  tipo            String // renovacion | pack | comision | ajuste
+  concepto        String   @default("") // p.ej. "plan Pro — renovación mensual"
+  brutoCents      Int      @default(0)
+  creadorCents    Int      @default(0) // split marketplace (0 si no aplica)
+  plataformaCents Int      @default(0)
+  creditos        Float    @default(0) // créditos movidos por la operación
+  saldoCreditos   Float    @default(0) // saldo resultante tras la operación
+  pctCreador      Int      @default(0) // % del split usado (trazabilidad del 90/10 configurable)
+  modo            String   @default("simulacion") // simulacion | real (real solo con procesador de pagos, HOY no existe)
+  meta            String   @default("{}") // JSON extra
+  createdAt       DateTime @default(now())
+
+  @@index([tipo])
+  @@index([createdAt])
 }
