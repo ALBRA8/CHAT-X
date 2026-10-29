@@ -84,3 +84,10 @@ Conclusión: la única credencial comprometida sigue siendo el PAT del chat, que
 - **Lección operativa**: los scrubbers de vista del entorno pueden ocultar el secreto al agente mientras los bytes reales lo conservan — la verificación válida es `git grep` sobre el árbol, no la lectura visual. Push Protection funcionó como última línea: la higiene previa (no escribir el token nunca) sigue siendo la única defensa real.
 - **Pendiente vigente**: rotación del PAT por el fundador (apareció íntegro en el chat el 2026-10-28; sigue en el canal aunque el repo está limpio).
 - **Pushes de hoy (autorizados por el fundador con «sí a todo»)**: `be91025→0914c56` (recuperación + voz GFE) y `0914c56→0a4cc15` (motor GFE P1.1 + tarjeta P1.2), ambos con `--force-with-lease` anclado al SHA esperado y verificación post-push con `ls-remote`.
+
+### Push fast-forward con PAT nueva del fundador (2026-10-29)
+
+- **Autorización**: el fundador pegó en el chat el mensaje «subelo al repo» seguido de un PAT nueva (la anterior del 2026-10-28 quedó en el canal y su revocación sigue pendiente de su navegador). Push por instrucción explícita — la política de prohibido por defecto se mantiene.
+- **Ejecución**: escaneo de secretos previo (`scripts/escaneo_secretos.sh`: 0 coincidencias en árbol versionado e historial completo), lectura del remoto con `ls-remote` (tip `56bb175` — los dos pushes anteriores ya estaban), verificación de linaje con `git merge-base --is-ancestor` (fast-forward puro, sin force ni lease) y `git push` puntual `56bb175..5f6db99` (cerebro LLM del chat). Verificación post-push: remoto `main = 5f6db99` idéntico al local.
+- **Higiene del token**: usado solo en la URL del comando (patrón documentado); NO persistido como remote, en `.git/config`, archivos ni BD (`git remote -v` verificado vacío tras el push). La key de Groq del cerebro LLM sigue solo en `.env` (gitignored); al repo subió únicamente el placeholder `gsk_xxx` de `.env.example`.
+- **Pendiente vigente del fundador**: revocar el PAT del 2026-10-28 y planificar rotación de esta PAT nueva (también apareció íntegra en el chat).
