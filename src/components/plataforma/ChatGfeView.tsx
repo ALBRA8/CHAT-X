@@ -101,7 +101,7 @@ export default function ChatGfeView() {
           <CardTitle className="flex items-center gap-2 text-base"><MessageCircle className="size-4" /> Chat GFE — Modo Novia</CardTitle>
           <CardDescription>
             Pide fotos (entran al pipeline real con QA + compliance), notas de voz (contrato por personaje, TTS $0) o conversa.
-            Cerebro honesto: plantillas del genoma — sin LLM configurado aún (meta.modo=plantilla_genoma).
+            Cerebro honesto: LLM real si la sonda da OPERATIVO (meta.modo=llm_*); si no, plantillas del genoma declaradas (meta.modo=plantilla_genoma + llmEstado).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

@@ -12,6 +12,7 @@ export type TipoEvento =
   | 'acceso_privado'
   | 'desbloqueo_venta'
   | 'voz_generada'
+  | 'llm_chat'
 
 export async function registrarEvento(
   type: TipoEvento,

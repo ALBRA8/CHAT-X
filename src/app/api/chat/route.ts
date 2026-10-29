@@ -7,7 +7,10 @@
 //             el reembolso de créditos por fallo ya es del worker).
 //   - voz   → nota de voz del contrato del personaje (P1.3) generada al vuelo
 //             ($0 local) + Media kind=voz; 409 honesto si no hay contrato.
-//   - texto → plantilla desde genoma (sin LLM: meta.modo='plantilla_genoma').
+//   - texto → LLM real (sonda OPERATIVA: Groq u otro OpenAI-compatible) con el system
+//             prompt del companion; la salida pasa por el filtro de edad igual que la
+//             entrada. Si el LLM no está operativo, plantilla del genoma DECLARADA
+//             (meta.modo='plantilla_genoma' + llmEstado/llmFallo) — nunca se finge LLM.
 //
 // GET /api/chat?characterId=&limit= → historial con resolución de estados y
 // datos de la pieza adjunta (kind, lane, etiqueta IA, procedencia).
@@ -20,6 +23,7 @@ import { asegurarSaldo } from '@/lib/api-utils'
 import { registrarEvento } from '@/lib/compliance'
 import { rutaPieza, guardarBinarioClaro } from '@/lib/media'
 import { parsearContratoGuardado, estadoProveedor, generarVoz } from '@/lib/provider/voz'
+import { sondearLLM, generarRespuestaLLM, historialDesdeMensajes, salidaLLMSegura } from '@/lib/provider/llm'
 import { detectarIntencion, briefDesdeGenoma, respuestaPlantilla, fraseEntregaFoto, parseGenoma } from '@/lib/chat'
 
 const MAX_TEXTO = 600
@@ -117,7 +121,7 @@ export async function POST(req: NextRequest) {
     await registrarEvento('rechazo_qa', { modulo: 'chat_gfe', motivo: 'Filtro de edad aparente', terminos: prohibidos }, { characterId })
     return NextResponse.json({ error: 'Filtro de edad aparente', terminos: prohibidos, estado: 'RECHAZADO' }, { status: 422 })
   }
-  await db.chatMessage.create({ data: { characterId, rol: 'operador', tipo: 'texto', texto } })
+  const msgOperador = await db.chatMessage.create({ data: { characterId, rol: 'operador', tipo: 'texto', texto } })
 
   const intencion = detectarIntencion(texto)
 
@@ -207,12 +211,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ mensaje: { id: msg.id, tipo: msg.tipo, estado: msg.estado, mediaId: media.id, duracionS: Number(r.duracionS.toFixed(2)) }, estado: 'OPERATIVO' })
   }
 
-  // ── Texto: plantilla desde genoma (honesto — sin LLM) ──
+  // ── Texto: LLM real si la sonda da OPERATIVO; si no, plantilla del genoma DECLARADA ──
+  const sondaLLM = await sondearLLM()
+  let textoRespuesta = respuestaPlantilla(c, texto)
+  let modo = 'plantilla_genoma'
+  const meta: Record<string, unknown> = { intencion: 'texto', modo }
+
+  if (sondaLLM.estado === 'OPERATIVO') {
+    // Historial de texto ANTERIOR al mensaje recién guardado (últimos 12, en orden)
+    const filas = await db.chatMessage.findMany({
+      where: { characterId, tipo: 'texto', id: { not: msgOperador.id } },
+      orderBy: { createdAt: 'desc' },
+      take: 12,
+    })
+    const r = await generarRespuestaLLM(c, historialDesdeMensajes(filas.reverse()), texto)
+    if (r.ok) {
+      const salida = salidaLLMSegura(r.texto)
+      if (salida.ok) {
+        textoRespuesta = salida.texto
+        modo = `llm_${r.provedor}`
+        meta.modo = modo
+        meta.modelo = r.modelo
+        meta.uso = r.uso
+        await registrarEvento('llm_chat', { origen: 'chat_gfe', provedor: r.provedor, modelo: r.modelo, caracteres: salida.texto.length, uso: r.uso }, { characterId })
+      } else {
+        // El LLM violó el filtro de edad en su SALIDA → plantilla + rechazo auditado
+        meta.llmEstado = 'RECHAZADO_FILTRO'
+        meta.llmMotivo = 'la salida del LLM activó el filtro de edad de la plataforma'
+        await registrarEvento('rechazo_qa', { modulo: 'chat_gfe', motivo: 'Filtro de edad en la salida del LLM', terminosRechazados: salida.terminos.length, provedor: r.provedor }, { characterId })
+      }
+    } else {
+      meta.llmEstado = r.estado
+      meta.llmFallo = r.detalle.slice(0, 200)
+    }
+  } else {
+    meta.llmEstado = sondaLLM.estado
+    meta.llmDetalle = sondaLLM.detalle.slice(0, 200)
+  }
+
   const msg = await db.chatMessage.create({
-    data: {
-      characterId, rol: 'personaje', tipo: 'texto', texto: respuestaPlantilla(c, texto),
-      meta: JSON.stringify({ intencion: 'texto', modo: 'plantilla_genoma' }),
-    },
+    data: { characterId, rol: 'personaje', tipo: 'texto', texto: textoRespuesta, meta: JSON.stringify(meta) },
   })
-  return NextResponse.json({ mensaje: { id: msg.id, rol: msg.rol, tipo: msg.tipo, texto: msg.texto, estado: msg.estado, modo: 'plantilla_genoma' }, estado: 'OPERATIVO' })
+  return NextResponse.json({ mensaje: { id: msg.id, rol: msg.rol, tipo: msg.tipo, texto: msg.texto, estado: msg.estado, modo }, estado: 'OPERATIVO' })
 }

@@ -8,6 +8,7 @@ import os from 'os'
 import { db } from '@/lib/db'
 import { getProvider } from '@/lib/provider'
 import { saludComfy } from '@/lib/provider/comfyui'
+import { sondearLLM } from '@/lib/provider/llm'
 import { JOB_STATUS } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
@@ -59,6 +60,9 @@ export async function GET() {
     proveedor = { ...proveedor, comfy: salud }
   }
 
+  // Cerebro LLM del chat: sonda real (con key → prueba {base}/models y declara 403/200)
+  const llm = await sondearLLM()
+
   // Cola de trabajos real
   const [enCola, procesando, listos, fallidos] = await Promise.all([
     db.job.count({ where: { status: JOB_STATUS.EN_COLA } }),
@@ -77,6 +81,7 @@ export async function GET() {
     },
     gpu: nvidia ?? { nombre: 'none', vramMb: 0, driver: 'none', cuda: 'none', fuente: 'sin nvidia-smi accesible desde este host' },
     proveedor,
+    llm,
     cola: { enCola, procesando, listos, fallidos },
     generadoEn: new Date().toISOString(),
   })

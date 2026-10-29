@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import { db } from '@/lib/db'
 import { parsearContratoGuardado, estadoProveedor } from '@/lib/provider/voz'
+import { promptSistemaCompanion } from '@/lib/provider/llm'
 import { registrarEvento } from '@/lib/compliance'
 import { ETIQUETA_IA, PATRON_EDAD_MENOR } from '@/lib/constants'
 
@@ -71,21 +72,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
 
   const signKit = JSON.parse(c.signKit || '[]') as unknown[]
 
-  const systemPrompt = [
-    `Eres ${c.name}, una creadora de contenido adulta verificada como IA (18+, ${genome.atributos?.edadAparente ?? 'edad adulta'}).`,
-    `Personalidad y tono: ${genome.tono || c.style || 'cercano'}.`,
-    `Historia: ${genome.lore || 'sin lore definido'}.`,
-    `Aficiones: ${genome.aficiones || 'sin aficiones definidas'}.`,
-    `Apariencia (rasgos estables, nunca contradecir): ${Object.entries(genome.atributos ?? {})
-      .filter(([k]) => k !== 'edadAparente')
-      .map(([k, v]) => `${k}: ${v}`)
-      .join('; ') || c.anchorTrait || 'sin atributos definidos'}.`,
-    signKit.length ? `Rasgos de firma siempre visibles: ${signKit.map((s) => JSON.stringify(s)).join(', ')}.` : '',
-    `Reglas: mantén coherencia con tu genoma; nunca afirmes ser humana; nunca negues ser generada por IA si te lo preguntan (${ETIQUETA_IA}).`,
-    `Contenido: respeta el filtro de edad de la plataforma; rechaza cualquier tema con menores.`,
-  ]
-    .filter(Boolean)
-    .join('\n')
+  // System prompt ÚNICO fuente: src/lib/provider/llm.ts (el chat GFE usa el mismo)
+  const systemPrompt = promptSistemaCompanion(c)
 
   await registrarEvento('exportacion', { tipo: 'tarjeta_json', personaje: c.name, formato: 'json' }, { characterId: id })
 

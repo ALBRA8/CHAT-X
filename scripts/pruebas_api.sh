@@ -132,7 +132,23 @@ fi
 if [ -n "${CHAR_ID:-}" ]; then
   check "GET tarjeta JSON + system prompt"           bash -c 'curl -sf "'"$BASE"'/api/characters/'"$CHAR_ID"'/tarjeta" | grep -q "systemPrompt"'
   check "tarjeta etiquetada como IA"                 bash -c 'curl -sf "'"$BASE"'/api/characters/'"$CHAR_ID"'/tarjeta" | grep -q "Contenido generado con IA"'
-  check "POST chat saludo → plantilla del genoma"    bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"characterId\":\"'"$CHAR_ID"'\",\"texto\":\"hola qué tal\"}" "'"$BASE"'/api/chat" | grep -q "plantilla_genoma"'
+  BODY_SALUDO=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","texto":"hola qué tal"}' "$BASE/api/chat")
+  MODO=$(echo "$BODY_SALUDO" | python3 -c 'import json,sys
+print(json.load(sys.stdin)["mensaje"].get("modo",""))' 2>/dev/null || echo "")
+  check "POST chat saludo → cerebro declarado"       bash -c "case '$MODO' in llm_*|plantilla_genoma) true;; *) false;; esac"
+  if [ "${MODO:-}" = "plantilla_genoma" ]; then
+    ID_MSG=$(echo "$BODY_SALUDO" | python3 -c 'import json,sys
+print(json.load(sys.stdin)["mensaje"]["id"])' 2>/dev/null || echo "")
+    check "fallback a plantilla declara llmEstado"   bash -c 'curl -sf "'"$BASE"'/api/chat?characterId='"$CHAR_ID"'" | python3 -c "
+import json,sys
+ms=json.load(sys.stdin)[\"mensajes\"]
+m=[x for x in ms if x[\"id\"]==\"'"$ID_MSG"'\"]
+assert m and m[0].get(\"meta\",{}).get(\"llmEstado\") in (\"ERROR\",\"NO_CONFIGURADO\",\"RECHAZADO_FILTRO\"), m"'
+  elif case "${MODO:-}" in llm_*) true;; *) false;; esac; then
+    check "compliance registra llm_chat"             bash -c 'json_has "'"$BASE"'/api/compliance" "llm_chat"'
+  else
+    SKIP=$((SKIP+1)); echo "SKIP  cerebro LLM (modo vacío)"
+  fi
   code_edad_chat=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","texto":"una niña jugando"}' "$BASE/api/chat")
   check "filtro de edad también en el chat → 422"    bash -c "[ '$code_edad_chat' = '422' ]"
   MSG_FOTO=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","texto":"mándame una foto"}' "$BASE/api/chat")
@@ -153,6 +169,12 @@ print(\"OK\" if img and img[-1][\"media\"][\"kind\"]==\"preview\" else \"NO\")" 
 else
   SKIP=$((SKIP+1)); echo "SKIP  chat (sin personajes)"
 fi
+
+# 6e. Cerebro LLM (P1.1 upgrade): sonda real expuesta y honestidad del cerebro del chat
+check "GET /api/sistema expone sonda LLM honesta"    bash -c 'curl -sf "'"$BASE"'/api/sistema" | python3 -c "
+import json,sys
+l=json.load(sys.stdin).get(\"llm\") or {}
+assert l.get(\"estado\") in (\"OPERATIVO\",\"NO_CONFIGURADO\",\"ERROR\"), l"'
 
 # 7. UI principal
 check "GET / (shell) 200"                            bash -c 'http_200 "'"$BASE"'/"'
