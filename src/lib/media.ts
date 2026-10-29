@@ -28,6 +28,12 @@ export function guardarCifrado(base: string, contenido: string, masterKey: Buffe
   return enc
 }
 
+/** Binario claro (p.ej. notas de voz .wav del carril público). */
+export function guardarBinarioClaro(base: string, contenido: Buffer): void {
+  fs.mkdirSync(path.dirname(base), { recursive: true })
+  fs.writeFileSync(base + '.wav', contenido)
+}
+
 export function guardarIvTag(base: string, enc: EncryptedBlob): void {
   fs.writeFileSync(base + '.enc.iv', enc.iv, 'utf8')
   fs.writeFileSync(base + '.enc.tag', enc.tag, 'utf8')
@@ -58,19 +64,9 @@ export function miniaturaDe(svg: string): string {
   return svg.replace(/width="\d+" height="\d+"/, 'width="288" height="288"')
 }
 
-export function borrarPieza(base: string): void {
-  for (const suf of ['.svg', '.enc', '.enc.iv', '.enc.tag']) {
-    try {
-      fs.unlinkSync(base + suf)
-    } catch {
-      /* no existía */
-    }
-  }
-}
+// ── Binarios (audio de muestras/notas de voz, zips…) — mismo patrón .enc/.iv/.tag ──
 
-// ── Binarios (audio de muestras de voz, zips…) — mismo patrón .enc/.iv/.tag ──
-
-/** Guarda un binario cifrado con la clave maestra (AES-256-GCM). Devuelve iv/tag para la BD. */
+/** Guarda un binario cifrado con la clave maestra (AES-256-GCM). Escribe .enc + iv/tag. */
 export function guardarBinarioCifrado(base: string, datos: Buffer, masterKey: Buffer): EncryptedBlob {
   fs.mkdirSync(path.dirname(base), { recursive: true })
   const enc = cifrarBuffer(datos, masterKey)
@@ -88,6 +84,16 @@ export function leerBinarioCifrado(base: string, masterKey: Buffer): Buffer | nu
     return descifrarBuffer({ iv, tag, data }, masterKey)
   } catch {
     return null
+  }
+}
+
+export function borrarPieza(base: string): void {
+  for (const suf of ['.svg', '.wav', '.enc', '.enc.iv', '.enc.tag']) {
+    try {
+      fs.unlinkSync(base + suf)
+    } catch {
+      /* no existía */
+    }
   }
 }
 

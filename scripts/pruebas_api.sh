@@ -106,6 +106,249 @@ else
   SKIP=$((SKIP+1)); echo "SKIP  plantilla Calendario (no sembrada)"
 fi
 
+# 6c. Voz GFE (P1.3): contrato de voz por personaje + muestra TTS local $0
+CHAR_ID=$(curl -sf "$BASE/api/characters" | python3 -c '
+import json,sys
+d=json.load(sys.stdin)
+cs=d.get("characters") or d.get("personajes") or []
+print(cs[0]["id"] if cs else "")' 2>/dev/null)
+if [ -n "${CHAR_ID:-}" ]; then
+  check "GET voz sondea proveedores honestos"        bash -c 'json_has "'"$BASE"'/api/characters/'"$CHAR_ID"'/voz" "espeak-local"'
+  code_put=$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H 'Content-Type: application/json' -d '{"provedor":"espeak-local","voz":"es","velocidad":170,"tono":50}' "$BASE/api/characters/$CHAR_ID/voz")
+  check "PUT contrato de voz → 200"                  bash -c "[ '$code_put' = '200' ]"
+  code_bad=$(curl -s -o /dev/null -w '%{http_code}' -X PUT -H 'Content-Type: application/json' -d '{"provedor":"voz-inventada"}' "$BASE/api/characters/$CHAR_ID/voz")
+  check "PUT contrato inválido → 422"                bash -c "[ '$code_bad' = '422' ]"
+  body_voz=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"texto":"Hola, esta es una nota de voz de prueba del sistema.","lane":"PUBLICO"}' "$BASE/api/characters/$CHAR_ID/voz")
+  check "POST muestra de voz genera WAV real"        bash -c 'echo '"'"''"$body_voz"''"'"' | grep -q "\"estado\":\"OPERATIVO\""'
+  check "muestra queda etiquetada como IA"           bash -c 'echo '"'"''"$body_voz"''"'"' | grep -q "Contenido generado con IA"'
+  code_edad=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"texto":"una niña en el parque","lane":"PUBLICO"}' "$BASE/api/characters/$CHAR_ID/voz")
+  check "filtro de edad duro también en voz → 422"   bash -c "[ '$code_edad' = '422' ]"
+  check "compliance registra voz_generada"           bash -c 'json_has "'"$BASE"'/api/compliance" "voz_generada"'
+else
+  SKIP=$((SKIP+1)); echo "SKIP  voz (sin personajes)"
+fi
+
+# 6d. Chat GFE Modo Novia (P1.1) + tarjeta del genoma (P1.2)
+if [ -n "${CHAR_ID:-}" ]; then
+  check "GET tarjeta JSON + system prompt"           bash -c 'curl -sf "'"$BASE"'/api/characters/'"$CHAR_ID"'/tarjeta" | grep -q "systemPrompt"'
+  check "tarjeta etiquetada como IA"                 bash -c 'curl -sf "'"$BASE"'/api/characters/'"$CHAR_ID"'/tarjeta" | grep -q "Contenido generado con IA"'
+  BODY_SALUDO=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","texto":"hola qué tal"}' "$BASE/api/chat")
+  MODO=$(echo "$BODY_SALUDO" | python3 -c 'import json,sys
+print(json.load(sys.stdin)["mensaje"].get("modo",""))' 2>/dev/null || echo "")
+  check "POST chat saludo → cerebro declarado"       bash -c "case '$MODO' in llm_*|plantilla_genoma) true;; *) false;; esac"
+  if [ "${MODO:-}" = "plantilla_genoma" ]; then
+    ID_MSG=$(echo "$BODY_SALUDO" | python3 -c 'import json,sys
+print(json.load(sys.stdin)["mensaje"]["id"])' 2>/dev/null || echo "")
+    check "fallback a plantilla declara llmEstado"   bash -c 'curl -sf "'"$BASE"'/api/chat?characterId='"$CHAR_ID"'" | python3 -c "
+import json,sys
+ms=json.load(sys.stdin)[\"mensajes\"]
+m=[x for x in ms if x[\"id\"]==\"'"$ID_MSG"'\"]
+assert m and m[0].get(\"meta\",{}).get(\"llmEstado\") in (\"ERROR\",\"NO_CONFIGURADO\",\"RECHAZADO_FILTRO\"), m"'
+  elif case "${MODO:-}" in llm_*) true;; *) false;; esac; then
+    check "compliance registra llm_chat"             bash -c 'json_has "'"$BASE"'/api/compliance" "llm_chat"'
+  else
+    SKIP=$((SKIP+1)); echo "SKIP  cerebro LLM (modo vacío)"
+  fi
+  code_edad_chat=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","texto":"una niña jugando"}' "$BASE/api/chat")
+  check "filtro de edad también en el chat → 422"    bash -c "[ '$code_edad_chat' = '422' ]"
+  MSG_FOTO=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","texto":"mándame una foto"}' "$BASE/api/chat")
+  check "POST chat foto → 202 generando"             bash -c 'echo '"'"''"$MSG_FOTO"''"'"' | grep -q "GENERANDO"'
+  FOTO_OK="NO"
+  for i in $(seq 1 12); do
+    sleep 2
+    FOTO_OK=$(curl -sf "$BASE/api/chat?characterId=$CHAR_ID" | python3 -c "
+import json,sys
+ms=json.load(sys.stdin)[\"mensajes\"]
+img=[m for m in ms if m[\"tipo\"]==\"imagen\" and m[\"estado\"]==\"entregado\" and m.get(\"media\")]
+print(\"OK\" if img and img[-1][\"media\"][\"kind\"]==\"preview\" else \"NO\")" 2>/dev/null || echo "NO")
+    [ "$FOTO_OK" = "OK" ] && break
+  done
+  check "foto del chat entregada con media y QA"     bash -c "[ '$FOTO_OK' = 'OK' ]"
+  check "POST chat voz → nota de voz entregada"      bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"characterId\":\"'"$CHAR_ID"'\",\"texto\":\"mándame una nota de voz\"}" "'"$BASE"'/api/chat" | grep -q "\"tipo\":\"voz\""'
+  check "compliance registra origen chat_gfe"        bash -c 'json_has "'"$BASE"'/api/compliance" "chat_gfe"'
+else
+  SKIP=$((SKIP+1)); echo "SKIP  chat (sin personajes)"
+fi
+
+# 6e. Cerebro LLM (P1.1 upgrade): sonda real expuesta y honestidad del cerebro del chat
+check "GET /api/sistema expone sonda LLM honesta"    bash -c 'curl -sf "'"$BASE"'/api/sistema" | python3 -c "
+import json,sys
+l=json.load(sys.stdin).get(\"llm\") or {}
+assert l.get(\"estado\") in (\"OPERATIVO\",\"NO_CONFIGURADO\",\"ERROR\"), l"'
+
+# 6f. InstaDump nativo (P2.5): 1 clic → lote multi-escena/outfit automático
+if [ -n "${CHAR_ID:-}" ]; then
+  DUMP=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","lane":"PUBLICO","count":4,"paquete":"mixto"}' "$BASE/api/studio/instadump")
+  check "POST instadump → lote planificado"          bash -c 'echo '"'"''"$DUMP"''"'"' | grep -q "\"piezas\":4"'
+  check "instadump registra evento de compliance"    bash -c 'json_has "'"$BASE"'/api/compliance" "instadump"'
+  DUMP_JOB=$(echo "$DUMP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["jobId"])' 2>/dev/null || echo "")
+  DUMP_OK="NO"
+  if [ -n "$DUMP_JOB" ]; then
+    for i in $(seq 1 20); do
+      sleep 1
+      EST=$(curl -sf "$BASE/api/jobs/$DUMP_JOB" | python3 -c 'import json,sys; print(json.load(sys.stdin)["job"]["status"])' 2>/dev/null || echo "")
+      [ "$EST" = "listo" ] && DUMP_OK="OK" && break
+      [ "$EST" = "fallido" ] && break
+    done
+  fi
+  check "instadump job completo (4 previews)"        bash -c "[ '$DUMP_OK' = 'OK' ]"
+  DUMP_BATCH=$(echo "$DUMP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["batchId"])' 2>/dev/null || echo "")
+  if [ -n "$DUMP_BATCH" ]; then
+    check "piezas del dump con briefs DISTINTOS"     bash -c 'curl -sf "'"$BASE"'/api/media?batchId='"$DUMP_BATCH"'" | python3 -c "
+import json,sys
+ms=json.load(sys.stdin)[\"media\"]
+assert len(ms)>=4, len(ms)
+escenas=[m[\"prompt\"] for m in ms]
+assert len(set(escenas))>=4, \"briefs repetidos: \" + str(escenas)
+print(\"OK\")"'
+    check "piezas del dump etiquetadas IA"           bash -c 'curl -sf "'"$BASE"'/api/media?batchId='"$DUMP_BATCH"'" | grep -q "Contenido generado con IA"'
+  else
+    SKIP=$((SKIP+1)); echo "SKIP  piezas del dump (sin batchId)"
+  fi
+  code_edad_dump=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","count":4,"escena":"retrato infantil en el parque"}' "$BASE/api/studio/instadump")
+  check "instadump: filtro de edad en el ancla → 422" bash -c "[ '$code_edad_dump' = '422' ]"
+else
+  SKIP=$((SKIP+1)); echo "SKIP  instadump (sin personajes)"
+fi
+
+# 6g. Outfit Swap (P2.6): mismo rostro, otro vestuario
+if [ -n "${CHAR_ID:-}" ]; then
+  SWAP=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","lane":"PUBLICO","count":2,"outfit":"chaqueta de cuero negra"}' "$BASE/api/studio/outfit-swap")
+  check "POST outfit-swap → lote planificado"        bash -c 'echo '"'"''"$SWAP"''"'"' | grep -q "chaqueta de cuero negra"'
+  check "outfit-swap registra evento de compliance"  bash -c 'json_has "'"$BASE"'/api/compliance" "outfit_swap"'
+  SWAP_JOB=$(echo "$SWAP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["jobId"])' 2>/dev/null || echo "")
+  SWAP_OK="NO"
+  if [ -n "$SWAP_JOB" ]; then
+    for i in $(seq 1 20); do
+      sleep 1
+      EST=$(curl -sf "$BASE/api/jobs/$SWAP_JOB" | python3 -c 'import json,sys; print(json.load(sys.stdin)["job"]["status"])' 2>/dev/null || echo "")
+      [ "$EST" = "listo" ] && SWAP_OK="OK" && break
+      [ "$EST" = "fallido" ] && break
+    done
+  fi
+  check "outfit-swap job completo (2 previews)"      bash -c "[ '$SWAP_OK' = 'OK' ]"
+  SWAP_BATCH=$(echo "$SWAP" | python3 -c 'import json,sys; print(json.load(sys.stdin)["batchId"])' 2>/dev/null || echo "")
+  if [ -n "$SWAP_BATCH" ]; then
+    check "piezas del swap comparten el outfit nuevo" bash -c 'curl -sf "'"$BASE"'/api/media?batchId='"$SWAP_BATCH"'" | python3 -c "
+import json,sys
+ms=json.load(sys.stdin)[\"media\"]
+assert len(ms)>=2, len(ms)
+for m in ms:
+    assert \"chaqueta de cuero negra\" in m[\"prompt\"], m[\"prompt\"]
+print(\"OK\")"'
+  else
+    SKIP=$((SKIP+1)); echo "SKIP  piezas del swap (sin batchId)"
+  fi
+  code_swap_vacio=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","outfit":""}' "$BASE/api/studio/outfit-swap")
+  check "outfit-swap sin outfit → 422"               bash -c "[ '$code_swap_vacio' = '422' ]"
+else
+  SKIP=$((SKIP+1)); echo "SKIP  outfit-swap (sin personajes)"
+fi
+
+# 6h. Piper-local (P1.3 fase 2): sonda de DOS capas honesta (paquete Y modelo)
+if [ -n "${CHAR_ID:-}" ]; then
+  check "sonda de voz declara estado piper honesto"  bash -c 'curl -sf "'"$BASE"'/api/characters/'"$CHAR_ID"'/voz" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+p=[x for x in d[\"proveedores\"] if x[\"provedor\"]==\"piper-local\"]
+assert p, d
+assert p[0][\"estado\"] in (\"OPERATIVO\",\"NO_DISPONIBLE\"), p[0]
+if p[0][\"estado\"]==\"NO_DISPONIBLE\":
+    assert (\"paquete\" in p[0][\"detalle\"]) or (\"modelo\" in p[0][\"detalle\"]), p[0]
+print(\"OK\")"'
+else
+  SKIP=$((SKIP+1)); echo "SKIP  sonda piper (sin personajes)"
+fi
+
+# 6i. Escalera de vídeo + URL→brief (P2.4/P2.8): planificación GRATIS con estado honesto
+check "GET /api/studio/video-escalera declara escalera" bash -c 'curl -sf "'"$BASE"'/api/studio/video-escalera" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert [e[\"escalon\"] for e in d[\"escalera\"]]==[\"draft\",\"standard\",\"max\"], d
+assert d[\"proveedor\"][\"estado\"] in (\"OPERATIVO\",\"NO_DISPONIBLE\",\"NO_CONFIGURADO\"), d
+assert d[\"proveedor\"][\"comoActivar\"], d
+print(\"OK\")"'
+code_vid_url_priv=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"url":"http://169.254.169.254/latest/meta-data"}' "$BASE/api/studio/video-escalera")
+check "URL→brief bloquea IP privada (SSRF → 422)"   bash -c "[ '$code_vid_url_priv' = '422' ]"
+code_vid_file=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"url":"file:///etc/passwd"}' "$BASE/api/studio/video-escalera")
+check "URL→brief bloquea protocolo file (→ 422)"    bash -c "[ '$code_vid_file' = '422' ]"
+check "POST video-escalera plan sin URL no gasta"   bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"escalon\":\"standard\",\"duracionSeg\":10}" "'"$BASE"'/api/studio/video-escalera" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+esc={p[\"escalon\"]:p[\"creditos\"] for p in d[\"plan\"][\"escalera\"]}
+assert esc[\"draft\"] < esc[\"standard\"] < esc[\"max\"], esc
+assert esc[\"standard\"] == 8*3.5*10, esc
+print(\"OK\")"'
+
+# 6j. Trend-finder UGC (P2.7): registro manual, RSS honesto, sugerencias
+check "GET /api/trends expone conector RSS honesto" bash -c 'curl -sf "'"$BASE"'/api/trends" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d[\"conectorRSS\"][\"estado\"] in (\"NO_CONFIGURADO\",\"CONFIGURADO\"), d
+assert \"senalesInternas\" in d, d
+print(\"OK\")"'
+code_trend_edad=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"action":"registrar","titulo":"loli anime cute","texto":"x"}' "$BASE/api/trends")
+check "trend con término prohibido → 422"           bash -c "[ '$code_trend_edad' = '422' ]"
+TREND_ID=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"action":"registrar","titulo":"Rutina de café en la mañana","texto":"vlog de cafetería con encuadre casero","plataforma":"instagram","tipo":"tendencia"}' "$BASE/api/trends" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' 2>/dev/null)
+if [ -n "${TREND_ID:-}" ]; then
+  check "trend registrada con análisis determinista" bash -c 'curl -sf "'"$BASE"'/api/trends" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+t=[x for x in d[\"tendencias\"] if x[\"fuente\"]==\"manual\"]
+assert t, d
+a=t[0][\"analisis\"]
+assert a[\"keywords\"] and a[\"formato\"] and a[\"angulos\"], a
+print(\"OK\")"'
+  if [ -n "${CHAR_ID:-}" ]; then
+    check "sugerencias UGC desde tendencia (genoma)" bash -c 'curl -sf "'"$BASE"'/api/trends/sugerencias?characterId='"$CHAR_ID"'" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d[\"tendenciasConsideradas\"] >= 1, d
+assert len(d[\"sugerencias\"]) >= 1, d
+assert d[\"sugerencias\"][0][\"briefTexto\"], d
+print(\"OK\")"'
+  else
+    SKIP=$((SKIP+1)); echo "SKIP  sugerencias UGC (sin personajes)"
+  fi
+  check "trend → estado usada (trazable)"            bash -c "curl -sf -X POST -H 'Content-Type: application/json' -d '{\"action\":\"estado\",\"id\":\"$TREND_ID\",\"estado\":\"usada\"}' \"$BASE/api/trends\" | grep -q '\"estado\":\"usada\"'"
+else
+  SKIP=$((SKIP+1)); echo "SKIP  ciclo de tendencia (registro falló)"
+fi
+check "rss_refrescar sin env responde honesto"      bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"action\":\"rss_refrescar\"}" "'"$BASE"'/api/trends" | grep -q "NO_CONFIGURADO"'
+
+# 6k. Monetización (P3 #9/#10): MODO_INTERNO con aritmética real y ledger simulado
+check "GET /api/monetizacion declara modo INTERNO"  bash -c 'curl -sf "'"$BASE"'/api/monetizacion" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d[\"modo\"]==\"INTERNO\", d
+assert [p[\"id\"] for p in d[\"planes\"]]==[\"base\",\"pro\",\"estudio\"], d
+assert d[\"split\"][\"pctCreadorDefecto\"]==90, d
+assert d[\"notaHonestidad\"], d
+print(\"OK\")"'
+check "renovación Pro con rollover 25% (tope 500)"  bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"action\":\"simular_renovacion\",\"planId\":\"pro\",\"saldoActual\":400}" "'"$BASE"'/api/monetizacion" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d[\"aritmetica\"][\"heredados\"]==100, d
+assert d[\"entrada\"][\"modo\"]==\"simulacion\", d
+assert d[\"entrada\"][\"tipo\"]==\"renovacion\", d
+print(\"OK\")"'
+check "pack eterno precio coherente en ledger"      bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"action\":\"simular_pack\",\"packId\":\"pack500\"}" "'"$BASE"'/api/monetizacion" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+assert d[\"entrada\"][\"creditos\"]==500, d
+assert d[\"pack\"][\"descuentoPct\"]==10, d
+print(\"OK\")"'
+check "split 90/10 trazado con pct en la entrada"   bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"action\":\"simular_comision\",\"brutoCents\":1000,\"pctCreador\":90}" "'"$BASE"'/api/monetizacion" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+s=d[\"split\"]
+assert s[\"creadorCents\"]+s[\"plataformaCents\"]==s[\"brutoCents\"]==1000, s
+assert s[\"creadorCents\"]==900 and s[\"plataformaCents\"]==100, s
+assert d[\"entrada\"][\"pctCreador\"]==90, d
+print(\"OK\")"'
+code_mon_bad=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"action":"simular_renovacion","planId":"oro"}' "$BASE/api/monetizacion")
+check "plan inexistente → 422"                      bash -c "[ '$code_mon_bad' = '422' ]"
+
 # 7. UI principal
 check "GET / (shell) 200"                            bash -c 'http_200 "'"$BASE"'/"'
 

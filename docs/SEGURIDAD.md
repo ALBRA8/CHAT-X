@@ -76,3 +76,35 @@ Conclusión: la única credencial comprometida sigue siendo el PAT del chat, que
 - **Higiene del token**: usado solo transitoriamente en la URL del comando (patrón ya documentado arriba); NO configurado como remote persistente (`git remote -v` sigue vacío), NO guardado en `.git/config`, ni en archivos, ni en la BD.
 - **Pendiente del fundador**: rotar el PAT en GitHub (apareció íntegro en el chat el 2026-10-28 y se re-usó hoy); el reemplazo recomendado es fine-grained, caducidad 30–90 días, scope solo ALBRA8/CHAT-X.
 - **Política vigente**: ningún push futuro sin instrucción explícita del fundador en el chat.
+
+### Push Protection bloqueó el secreto antes de salir (2026-10-29)
+
+- **Qué pasó**: al empujar los commits del día (voz GFE + recuperación), GitHub rechazó el push — «repository rule violations». Causa real: Push Protection detectó el PAT dentro de `scripts/reclonar_engines.sh`, capturado por un auto-commit intermedio del entorno (mensaje UUID). El token fue escrito por el agente en el archivo, violando la propia regla de higiene (transitorio, nunca en archivos).
+- **Contención**: historia local reescrita desde `be91025` (reset --soft + re-commit) con el token eliminado de los bytes reales del archivo (ahora exige `RECLONAR_TOKEN` por entorno, efímero); verificación con `git grep` en staged y en HEAD. El PAT nunca llegó al remoto.
+- **Lección operativa**: los scrubbers de vista del entorno pueden ocultar el secreto al agente mientras los bytes reales lo conservan — la verificación válida es `git grep` sobre el árbol, no la lectura visual. Push Protection funcionó como última línea: la higiene previa (no escribir el token nunca) sigue siendo la única defensa real.
+- **Pendiente vigente**: rotación del PAT por el fundador (apareció íntegro en el chat el 2026-10-28; sigue en el canal aunque el repo está limpio).
+- **Pushes de hoy (autorizados por el fundador con «sí a todo»)**: `be91025→0914c56` (recuperación + voz GFE) y `0914c56→0a4cc15` (motor GFE P1.1 + tarjeta P1.2), ambos con `--force-with-lease` anclado al SHA esperado y verificación post-push con `ls-remote`.
+
+### Push fast-forward con PAT nueva del fundador (2026-10-29)
+
+- **Autorización**: el fundador pegó en el chat el mensaje «subelo al repo» seguido de un PAT nueva (la anterior del 2026-10-28 quedó en el canal y su revocación sigue pendiente de su navegador). Push por instrucción explícita — la política de prohibido por defecto se mantiene.
+- **Ejecución**: escaneo de secretos previo (`scripts/escaneo_secretos.sh`: 0 coincidencias en árbol versionado e historial completo), lectura del remoto con `ls-remote` (tip `56bb175` — los dos pushes anteriores ya estaban), verificación de linaje con `git merge-base --is-ancestor` (fast-forward puro, sin force ni lease) y `git push` puntual `56bb175..5f6db99` (cerebro LLM del chat). Verificación post-push: remoto `main = 5f6db99` idéntico al local.
+- **Higiene del token**: usado solo en la URL del comando (patrón documentado); NO persistido como remote, en `.git/config`, archivos ni BD (`git remote -v` verificado vacío tras el push). La key de Groq del cerebro LLM sigue solo en `.env` (gitignored); al repo subió únicamente el placeholder `gsk_xxx` de `.env.example`.
+- **Pendiente vigente del fundador**: revocar el PAT del 2026-10-28 y planificar rotación de esta PAT nueva (también apareció íntegra en el chat).
+
+### Push fast-forward con la misma PAT del fundador (2026-10-29, tarde)
+
+- **Autorización**: el fundador escribió «subelo al repo y continua con (P2.4/2.8), trend-finder, P3». Push por instrucción explícita; la política de prohibido por defecto se mantiene para pushes futuros sin instrucción.
+- **Ejecución**: doble escaneo de secretos sobre el rango `5f6db99..HEAD` (filtrado y CRUDO — 0 coincidencias reales; solo `.env.example` con placeholders en el diff, `.env` real gitignored y ausente del diff), `ls-remote` con la PAT inline (tip remoto `5f6db99` = padre exacto del HEAD local) y push fast-forward `5f6db99..0bed6a2` (3 commits: registro de seguridad, cerebro LLM con NVIDIA NIM, mejoras sin bloqueos externos — piper/InstaDump/Outfit Swap). Verificación post-push: remoto `main = 0bed6a2` idéntico al local.
+- **Nota de URL**: el primer intento usó el remoto de memoria equivocado (`SuperAgentsAI/chat-x` → «Repository not found»); se corrigió con el registrado en este documento (`ALBRA8/CHAT-X`). El error no expuso nada (la PAT iba inline en ambos).
+- **Higiene del token**: solo en la URL del comando puntual; `git remote -v` verificado vacío tras el push; nada escrito en `.git/config`, archivos ni BD.
+- **Pendiente vigente del fundador**: revocar el PAT del 2026-10-28 y rotar la actual (ambas aparecieron íntegras en el canal).
+
+### Push fast-forward de la tanda P2.4/2.7/2.8 + P3 (2026-10-29, noche) — registro diferido
+
+- **Aclaración**: este push salió en su momento bajo la misma instrucción del fundador («subelo al repo y continua con (P2.4/2.8), trend-finder, P3»), pero su registro en este documento quedó pendiente; se completa hoy tras la reconfirmación explícita del fundador («Yo autorice esto»).
+- **Contenido**: 1 commit `0bed6a2..6018a57` — escalera de vídeo P2.4, URL→brief con blindaje SSRF P2.8, trend-finder honesto P2.7 y motor de monetización MODO_INTERNO (P3.9/10/11/12 pieza mínima).
+- **Verificación ejecutada hoy (2026-10-29, noche)**: escaneo de secretos del árbol (`scripts/escaneo_secretos.sh` — sin remotos, engines limpios) y del diff CRUDO del rango `0bed6a2..HEAD` (0 coincidencias de patrones ghp_/gsk_/nvapi_/sk-), `.env` ausente del diff (gitignored), `ls-remote` con la PAT inline: tip remoto `6018a57` **idéntico al HEAD local** — remoto al día, sin nada pendiente de subir. Linaje verificado con `git merge-base --is-ancestor` (fast-forward puro, sin force).
+- **Higiene del token**: solo en la URL de los comandos de verificación puntual (`ls-remote`); `git remote -v` sigue vacío, nada en `.git/config`, archivos ni BD.
+- **Baseline re-verificado hoy**: lint ✓ · tsc 0 ✓ · unit 144 pass + 1 skip hermético ✓ · API 77/77 (de la tanda del commit, árbol intacto).
+- **Pendiente vigente del fundador**: revocar el PAT del 2026-10-28 y rotar la actual.

@@ -1,8 +1,11 @@
 // Sirve el archivo de una pieza. Las piezas PRIVADAS requieren sesión desbloqueada:
 // nunca salen de la vista privada (cookie httpOnly + descifrado AES-256-GCM en memoria).
+// kind=voz sirve WAV (público en claro; privado descifrado con la clave de servidor
+// envuelta — mismo mecanismo del worker, sin sesión abierta).
 import { NextRequest, NextResponse } from 'next/server'
+import fs from 'fs'
 import { db } from '@/lib/db'
-import { leerClaro, leerCifrado } from '@/lib/media'
+import { leerClaro, leerCifrado, leerBinarioCifrado } from '@/lib/media'
 import { COOKIE_PRIVADA, sesionValida } from '@/lib/privado'
 import { LANE } from '@/lib/constants'
 
@@ -28,6 +31,33 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
 
   const base = (tipo === 'thumb' ? m.thumbPath : m.filePath) || m.filePath
   const esPrivada = m.lane === LANE.PRIVADO
+
+  // Notas de voz: binario WAV, no SVG
+  if (m.kind === 'voz' && m.filePath) {
+    if (!esPrivada) {
+      try {
+        const wav = fs.readFileSync(m.filePath)
+        return new NextResponse(new Uint8Array(wav), {
+          headers: { 'Content-Type': 'audio/wav', 'Cache-Control': 'no-store' },
+        })
+      } catch {
+        return new NextResponse('archivo de voz no encontrado', { status: 404 })
+      }
+    }
+    const token = req.cookies.get(COOKIE_PRIVADA)?.value
+    const sesionVoz = sesionValida(token)
+    if (!sesionVoz) {
+      return new NextResponse('voz cifrada · desbloquea el modo privado para escuchar', {
+        status: 404,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      })
+    }
+    const wav = leerBinarioCifrado(m.filePath.replace(/\.(wav|enc)$/, ''), sesionVoz.masterKey)
+    if (!wav) return new NextResponse('no se pudo descifrar la voz', { status: 404 })
+    return new NextResponse(new Uint8Array(wav), {
+      headers: { 'Content-Type': 'audio/wav', 'Cache-Control': 'no-store' },
+    })
+  }
 
   if (esPrivada) {
     const token = req.cookies.get(COOKIE_PRIVADA)?.value

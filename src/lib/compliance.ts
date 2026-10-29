@@ -11,6 +11,10 @@ export type TipoEvento =
   | 'publicacion'
   | 'acceso_privado'
   | 'desbloqueo_venta'
+  | 'voz_generada'
+  | 'llm_chat'
+  | 'plan_video'
+  | 'trend_ingestida'
 
 export async function registrarEvento(
   type: TipoEvento,

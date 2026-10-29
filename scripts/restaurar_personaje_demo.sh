@@ -71,7 +71,7 @@ else
   N=$(echo "$PIEZAS" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)))')
   if [ "$N" -lt 1 ]; then
     echo "  sin previews aprobadas libres — encolo un lote de 4 y espero…"
-    J=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CID"'","variante":1}' "$BASE/api/studio/lote" | json 'd["jobId"]' 2>/dev/null || echo "")
+    J=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CID"'","variante":1,"brief":{"escena":"café al atardecer","outfit":"abrigo gris","pose":"de pie","encuadre":"plano_medio","luz":"suave"}}' "$BASE/api/studio/lote" | json 'd["jobId"]' 2>/dev/null || echo "")
     [ -n "$J" ] && esperar_job "$J"
     PIEZAS=$(curl -sf "$BASE/api/media?limit=40" | json 'json.dumps([m["id"] for m in d["media"] if m.get("characterId")=="'"$CID"'" and m.get("kind")=="preview" and m.get("qualityVerdict")=="APROBADO" and not m.get("setId")][:4])' 2>/dev/null)
   fi

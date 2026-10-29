@@ -76,7 +76,7 @@ export default function VozCard({ characterId, desbloqueado }: { characterId: st
       fd.append('archivo', archivo)
       fd.append('consentimiento', consentimiento)
       fd.append('nota', nota)
-      const res = await fetch(`/api/characters/${characterId}/voz`, { method: 'POST', body: fd, cache: 'no-store' })
+      const res = await fetch(`/api/characters/${characterId}/voz/muestra`, { method: 'POST', body: fd, cache: 'no-store' })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error((data as { error?: string }).error || `Error ${res.status}`)
       toast({
@@ -97,7 +97,7 @@ export default function VozCard({ characterId, desbloqueado }: { characterId: st
   const eliminar = async () => {
     if (!window.confirm('¿Eliminar la identidad de voz y su muestra cifrada?')) return
     try {
-      await api(`/api/characters/${characterId}/voz`, { method: 'DELETE' })
+      await api(`/api/characters/${characterId}/voz/muestra`, { method: 'DELETE' })
       toast({ title: 'Identidad de voz eliminada.' })
       await cargar()
     } catch (e) {

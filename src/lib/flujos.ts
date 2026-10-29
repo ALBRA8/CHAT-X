@@ -347,11 +347,42 @@ async function accionPaso(paso: PasoDef, vars: Variables, ctx?: { ejecucionId: s
       return { ok: true, mensaje: `Set "${existe.name}" programado para ${fecha.toISOString().slice(0, 10)} (visible en el calendario ICS/CSV del módulo UGC).`, resultado: { setId, fecha: fecha.toISOString() } }
     }
 
+    // ── URL→brief de vídeo (P2.8 de CLONAKIT_BRECHAS): una URL pública → brief
+    // determinista + escalera de costes (P2.4). La parte NO bloqueada del flujo
+    // GPTVideos; el render queda declarado en el estado honesto del proveedor. ──
+    case 'url_video_brief': {
+      const { briefDesdeURL, escaleraCompleta, sondearVideo, ErrorURLInsegura } = await import('@/lib/video')
+      const url = String(params.url || vars.urlFuente || '').trim()
+      if (!url) return { ok: false, mensaje: 'Sin URL: pasa params.url (página pública de la que extraer el brief).' }
+      const escalonIn = String(params.escalon || 'draft')
+      if (!['draft', 'standard', 'max'].includes(escalonIn)) return { ok: false, mensaje: `Escalón inválido "${escalonIn}": usa draft, standard o max.` }
+      try {
+        const brief = await briefDesdeURL(url, escalonIn as 'draft' | 'standard' | 'max')
+        const duracion = brief.escenas.reduce((acc, e) => acc + e.duracionSeg, 0)
+        const sonda = await sondearVideo()
+        vars.urlFuente = url
+        vars.urlVideoBrief = brief
+        vars.escaleraCostos = Object.fromEntries(escaleraCompleta(duracion).map((p) => [p.escalon, p.creditos]))
+        return {
+          ok: true,
+          mensaje:
+            `URL→brief OK (P2.8): "${brief.titulo}" con ${brief.escenas.length} escenas (~${duracion}s). ` +
+            (sonda.estado === 'OPERATIVO'
+              ? 'Proveedor de vídeo OPERATIVO: el render puede encolarse.'
+              : `HONESTO: el render de vídeo está ${sonda.estado} en esta máquina — el brief y la escalera de costes quedan en vars.urlVideoBrief/vars.escaleraCostos para cuando haya GPU (${sonda.comoActivar}).`),
+          resultado: { brief, escalera: vars.escaleraCostos, proveedor: sonda.estado },
+        }
+      } catch (e) {
+        if (e instanceof ErrorURLInsegura) return { ok: false, mensaje: `URL rechazada (blindaje): ${e.message}` }
+        return { ok: false, mensaje: `url_video_brief falló: ${e instanceof Error ? e.message : 'error'}` }
+      }
+    }
+
     case 'aprobacion_humana':
       return { ok: false, mensaje: 'Paso de aprobación humana mal construido: el orquestador debe interceptarlo ANTES (requiereAprobacion: true).' }
 
     default:
-      return { ok: false, mensaje: `Tipo de paso desconocido: "${paso.tipo}". Tipos válidos: sondear_motor, registrar_evento, youtube_validar, youtube_submit, youtube_estado, estudio_lote, estudio_esperar_job, crm_accion, ultra_step, programar_publicacion, aprobacion_humana.` }
+      return { ok: false, mensaje: `Tipo de paso desconocido: "${paso.tipo}". Tipos válidos: sondear_motor, registrar_evento, youtube_validar, youtube_submit, youtube_estado, estudio_lote, estudio_esperar_job, crm_accion, ultra_step, programar_publicacion, url_video_brief, aprobacion_humana.` }
   }
 }
 
@@ -574,7 +605,7 @@ export const FLUJOS_PLANTILLAS: { nombre: string; descripcion: string; pasos: Pa
 export function validarDefinicion(pasos: unknown): { ok: boolean; error?: string; pasos?: PasoDef[] } {
   if (!Array.isArray(pasos) || pasos.length === 0) return { ok: false, error: 'definicion debe ser un array con al menos un paso.' }
   if (pasos.length > 20) return { ok: false, error: 'Máximo 20 pasos por flujo.' }
-  const TIPOS = ['sondear_motor', 'registrar_evento', 'youtube_validar', 'youtube_submit', 'youtube_estado', 'estudio_lote', 'estudio_esperar_job', 'crm_accion', 'aprobacion_humana', 'ultra_step', 'programar_publicacion']
+  const TIPOS = ['sondear_motor', 'registrar_evento', 'youtube_validar', 'youtube_submit', 'youtube_estado', 'estudio_lote', 'estudio_esperar_job', 'crm_accion', 'aprobacion_humana', 'ultra_step', 'programar_publicacion', 'url_video_brief']
   for (const p of pasos) {
     const paso = p as Record<string, unknown>
     if (typeof paso.id !== 'string' || typeof paso.tipo !== 'string' || typeof paso.nombre !== 'string') {

@@ -14,6 +14,7 @@ import {
   Megaphone,
   Telescope,
   Workflow,
+  MessageCircle,
   Lock,
   LockOpen,
 } from 'lucide-react'
@@ -24,13 +25,14 @@ import MotoresComercialesView from '@/components/plataforma/MotoresComercialesVi
 import UgcView from '@/components/plataforma/UgcView'
 import InvestigacionView from '@/components/plataforma/InvestigacionView'
 import AutomatizacionView from '@/components/plataforma/AutomatizacionView'
+import ChatGfeView from '@/components/plataforma/ChatGfeView'
 import EstudioModulo from '@/components/estudio/EstudioModulo'
 import { useSettings, usePrivado } from '@/components/estudio/api'
 import { fmtDinero } from '@/components/estudio/ui-bits'
 import { useMotores } from '@/components/plataforma/api'
 import { cn } from '@/lib/utils'
 
-type Modulo = 'operaciones' | 'youtube' | 'comercial' | 'estudio' | 'ugc' | 'investigacion' | 'automatizacion'
+type Modulo = 'operaciones' | 'youtube' | 'comercial' | 'estudio' | 'ugc' | 'investigacion' | 'automatizacion' | 'chat'
 
 const MODULOS: { id: Modulo; label: string; corto: string; icono: typeof Gauge; desc: string }[] = [
   { id: 'operaciones', label: 'Centro de Operaciones', corto: 'Ops', icono: Gauge, desc: 'Estado del ecosistema, GPU, trabajos y compliance' },
@@ -40,6 +42,7 @@ const MODULOS: { id: Modulo; label: string; corto: string; icono: typeof Gauge; 
   { id: 'ugc', label: 'UGC y Campañas', corto: 'UGC', icono: Megaphone, desc: 'Briefs, avatares, calendario y campañas' },
   { id: 'investigacion', label: 'Investigación', corto: 'Nicho', icono: Telescope, desc: 'NEX-SCOPE · AGENTE-LEADS · AGENTE-GENERAL' },
   { id: 'automatizacion', label: 'Automatización', corto: 'Flujos', icono: Workflow, desc: 'Orquestador de flujos extremo a extremo' },
+  { id: 'chat', label: 'Chat GFE — Modo Novia', corto: 'Chat', icono: MessageCircle, desc: 'Conversación con media en contexto: fotos con QA y notas de voz' },
 ]
 
 function Shell() {
@@ -133,6 +136,7 @@ function Shell() {
             {modulo === 'ugc' && <UgcView />}
             {modulo === 'investigacion' && <InvestigacionView />}
             {modulo === 'automatizacion' && <AutomatizacionView />}
+            {modulo === 'chat' && <ChatGfeView />}
           </main>
         </div>
       </div>

@@ -1,172 +1,194 @@
-// Voz del personaje — capa 3 de clonación local (identidad por speaker embedding).
-// Reglas duras:
-//   · Las muestras son material PRIVADO: requieren sesión privada desbloqueada
-//     (cookie httpOnly) y se guardan cifradas AES-256-GCM en Media (kind="voz").
-//   · Consentimiento obligatorio: PROPIO (voz del equipo/producida) o
-//     AUTORIZADO (tercero con permiso registrado). Sin consentimiento no hay
-//     identidad — PENDIENTE se rechaza.
-//   · Honestidad: sin extractor/modelo instalado, la muestra queda guardada y
-//     el perfil queda NO_CONFIGURADO con el detalle exacto de qué falta.
+// Voz del personaje — PILAR COMPLETO (integración de las dos líneas de trabajo, 2026-10-30):
+//   · Capa 2 — contrato de voz por personaje + generación de notas de voz (P1.3,
+//     TTS local $0: espeak/piper). GET devuelve proveedores sondeados + contrato
+//     guardado; PUT guarda el contrato; POST genera la nota de voz.
+//   · Capa 3 — clonación local (identidad por speaker embedding): la gestión de
+//     muestras (subida cifrada + extracción + borrado) vive en voz/muestra/.
+// Reglas duras compartidas:
+//   · Material PRIVADO se cifra AES-256-GCM; las muestras exigen consentimiento
+//     PROPIO/AUTORIZADO (PENDIENTE rechazado) con sesión privada abierta.
+//   · Filtro de edad duro también para el texto hablado (misma lista que el brief).
+//   · Honestidad: 503 con estado real del proveedor; 409 NO_CONFIGURADO con detalle.
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { db } from '@/lib/db'
-import { COOKIE_PRIVADA, sesionValida } from '@/lib/privado'
+import { LANE, ETIQUETA_IA, detectarTerminosProhibidos } from '@/lib/constants'
+import { rutaPieza, guardarBinarioClaro, guardarBinarioCifrado, guardarIvTag } from '@/lib/media'
 import { registrarEvento } from '@/lib/compliance'
-import { dirDePieza, guardarBinarioCifrado, borrarBinario, leerBinarioCifrado } from '@/lib/media'
+import { claveMaestraServidor } from '@/lib/clave-privada'
+import { sondaClonLocal } from '@/lib/voz'
 import {
-  consentimientoValido,
-  extraerEmbedding,
-  sondaClonLocal,
-  validarMuestra,
-} from '@/lib/voz'
-import path from 'path'
+  parsearContratoGuardado,
+  sondearProveedoresVoz,
+  validarContratoVoz,
+  generarVoz,
+} from '@/lib/provider/voz'
 
 export const dynamic = 'force-dynamic'
 
-function noAutorizado() {
-  return NextResponse.json(
-    { error: 'Las muestras de voz son material privado: desbloquea el modo privado para gestionarlas.' },
-    { status: 401 },
-  )
-}
-
-function sesionDe(req: NextRequest) {
-  return sesionValida(req.cookies.get(COOKIE_PRIVADA)?.value)
-}
+const MAX_TEXTO = 600 // ~60 s de nota de voz a velocidad normal
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
-  const character = await db.character.findUnique({ where: { id } })
-  if (!character) return NextResponse.json({ error: 'personaje no encontrado' }, { status: 404 })
+  const c = await db.character.findUnique({ where: { id } })
+  if (!c) return NextResponse.json({ error: 'Personaje no encontrado' }, { status: 404 })
 
+  // GET unión: capa 2 (proveedores + contrato) y capa 3 (perfil clon + sonda honesta).
   const [perfil, sonda] = await Promise.all([
     db.voiceProfile.findFirst({ where: { characterId: id }, orderBy: { createdAt: 'desc' } }),
     sondaClonLocal(),
   ])
-  return NextResponse.json({ perfil, sonda })
+  return NextResponse.json({
+    proveedores: sondearProveedoresVoz(),
+    contrato: parsearContratoGuardado(c.voiceContract),
+    perfil,
+    sonda,
+  })
+}
+
+export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params
+  const body = await req.json().catch(() => ({}))
+  const c = await db.character.findUnique({ where: { id }, select: { id: true } })
+  if (!c) return NextResponse.json({ error: 'Personaje no encontrado' }, { status: 404 })
+
+  const v = validarContratoVoz(body)
+  if (!v.ok) return NextResponse.json({ error: 'Contrato de voz inválido', errores: v.errores }, { status: 422 })
+
+  await db.character.update({ where: { id }, data: { voiceContract: JSON.stringify(v.contrato) } })
+  return NextResponse.json({ contrato: v.contrato })
 }
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
-  const sesion = sesionDe(req)
-  if (!sesion) return noAutorizado()
+  const body = await req.json().catch(() => ({}))
+  const c = await db.character.findUnique({ where: { id } })
+  if (!c) return NextResponse.json({ error: 'Personaje no encontrado' }, { status: 404 })
 
-  const character = await db.character.findUnique({ where: { id } })
-  if (!character) return NextResponse.json({ error: 'personaje no encontrado' }, { status: 404 })
-
-  let form: FormData
-  try {
-    form = await req.formData()
-  } catch {
-    return NextResponse.json({ error: 'se espera multipart/form-data con el archivo de audio' }, { status: 400 })
-  }
-
-  const archivo = form.get('archivo')
-  const consentimiento = String(form.get('consentimiento') ?? '')
-  const nota = String(form.get('nota') ?? '').slice(0, 500)
-  if (!(archivo instanceof File)) {
-    return NextResponse.json({ error: 'falta el archivo de audio (campo "archivo")' }, { status: 400 })
-  }
-  if (!consentimientoValido(consentimiento)) {
+  // Contrato: el guardado por personaje es la única fuente (honesto: sin override
+  // ad-hoc por petición — el contrato se define y se audita en el Panel).
+  const contrato = parsearContratoGuardado(c.voiceContract)
+  if (!contrato) {
     return NextResponse.json(
-      { error: 'consentimiento inválido: declara PROPIO (voz del equipo) o AUTORIZADO (permiso de tercero registrado)' },
-      { status: 400 },
-    )
-  }
-  if (consentimiento === 'AUTORIZADO' && !nota.trim()) {
-    return NextResponse.json(
-      { error: 'voz AUTORIZADA requiere nota con quién autorizó y cuándo (trazabilidad)' },
-      { status: 400 },
+      { error: 'Este personaje no tiene contrato de voz. Define uno con PUT en esta ruta.', estado: 'NO_CONFIGURADO' },
+      { status: 409 },
     )
   }
 
-  const validacion = validarMuestra(archivo.name, archivo.type, archivo.size)
-  if (!validacion.ok) {
-    return NextResponse.json({ error: validacion.motivo }, { status: 400 })
+  const texto = typeof body.texto === 'string' ? body.texto.trim() : ''
+  if (!texto) return NextResponse.json({ error: 'texto requerido (1–600 caracteres)' }, { status: 422 })
+  if (texto.length > MAX_TEXTO) return NextResponse.json({ error: `texto demasiado largo (máx ${MAX_TEXTO})` }, { status: 422 })
+
+  // Filtro de edad duro — la voz no es excepción: mismos términos prohibidos que el brief visual.
+  const prohibidos = detectarTerminosProhibidos(texto)
+  if (prohibidos.length) {
+    await registrarEvento(
+      'rechazo_qa',
+      { modulo: 'voz', moduloDetalle: 'Filtro de edad aparente', terminos: prohibidos, textoLen: texto.length },
+      { characterId: id },
+    )
+    return NextResponse.json(
+      { error: 'Filtro de edad aparente', terminos: prohibidos, estado: 'RECHAZADO' },
+      { status: 422 },
+    )
   }
 
-  const bytes = Buffer.from(await archivo.arrayBuffer())
-  const mediaId = `voz-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  const base = path.join(dirDePieza(id), mediaId)
-  const enc = guardarBinarioCifrado(base, bytes, sesion.masterKey)
+  const lane = body.lane === LANE.PUBLICO ? LANE.PUBLICO : LANE.PRIVADO
 
-  // Media de la muestra: PRIVADO, cifrada, con procedencia completa.
+  // Carril privado: exige contraseña privada definida (clave envuelta con secreto de servidor).
+  let masterKey: Buffer | null = null
+  if (lane === LANE.PRIVADO) {
+    masterKey = await claveMaestraServidor()
+    if (!masterKey) {
+      return NextResponse.json(
+        { error: 'Carril privado bloqueado: define la contraseña privada antes de cifrar notas de voz.', estado: 'NO_CONFIGURADO' },
+        { status: 409 },
+      )
+    }
+  }
+
+  const r = await generarVoz(texto, contrato)
+  if (!r.ok) {
+    return NextResponse.json({ error: 'Generación de voz no disponible', estado: r.estado, detalle: r.detalle, provedor: r.provedor }, { status: 503 })
+  }
+
+  // Pieza de voz: Media kind="voz" con procedencia completa (Anexo A regla 5).
+  const mediaId = randomUUID()
+  const fecha = new Date()
+  const base = rutaPieza(id, mediaId, 'full', fecha)
+  let filePath: string
+  let encIv: string | null = null
+  let encTag: string | null = null
+
+  if (lane === LANE.PRIVADO && masterKey) {
+    const enc = guardarBinarioCifrado(base, r.wav, masterKey)
+    guardarIvTag(base, enc)
+    filePath = base + '.enc'
+    encIv = enc.iv // ya es hex string (convención EncryptedBlob de crypto.ts)
+    encTag = enc.tag
+  } else {
+    guardarBinarioClaro(base, r.wav)
+    filePath = base + '.wav'
+  }
+
+  const provenance = {
+    personaje: c.name,
+    characterId: id,
+    modulo: 'voz',
+    provedor: r.provedor,
+    contrato,
+    texto,
+    textoLen: texto.length,
+    duracionS: Number(r.duracionS.toFixed(2)),
+    bytes: r.bytes,
+    carril: lane,
+    coste: 0, // TTS local, $0 — sin cobro (la vía de cobro es asegurarSaldo y no aplica)
+    generadoEn: fecha.toISOString(),
+  }
+
   const media = await db.media.create({
     data: {
+      id: mediaId,
       characterId: id,
       kind: 'voz',
-      lane: 'PRIVADO',
-      seed: mediaId,
-      prompt: `muestra de voz para identidad (${consentimiento})`,
-      filePath: `${base}.enc`,
-      encIv: enc.iv,
-      encTag: enc.tag,
-      provenance: JSON.stringify({
-        origen: 'muestra_voz',
-        archivoOriginal: archivo.name,
-        bytes: archivo.size,
-        tipo: archivo.type,
-        consentimiento,
-        consentimientoNota: nota,
-        registradoEn: new Date().toISOString(),
-      }),
-      aiLabels: JSON.stringify(['Muestra de voz — material privado']),
+      lane,
+      prompt: texto, // procedencia: el texto exacto hablado
+      seed: `voz-${mediaId}`,
+      checkpoint: contrato.provedor, // marcador de proveedor real (espeak-local | piper-local)
+      qualityVerdict: 'APROBADO', // sin QA visual aplicable; el filtro de edad ya pasó
+      filtersTriggered: JSON.stringify([]),
+      aiLabels: JSON.stringify([ETIQUETA_IA]),
+      pipelineStatus: lane === LANE.PRIVADO ? 'cifrado' : 'aprobado',
+      filePath,
+      encIv,
+      encTag,
+      provenance: JSON.stringify(provenance),
     },
   })
 
   await registrarEvento(
-    'cifrado',
-    { tipo: 'muestra_voz', consentimiento, bytes: archivo.size, archivoOriginal: archivo.name },
+    'voz_generada',
+    { provedor: r.provedor, voz: contrato.voz, duracionS: Number(r.duracionS.toFixed(2)), bytes: r.bytes, carril: lane },
     { mediaId: media.id, characterId: id },
   )
 
-  // Extracción de identidad. Si el extractor no está instalado, la identidad
-  // queda pendiente con el bloqueo exacto — la muestra ya está segura.
-  const resultado = await extraerEmbedding(`${base}.enc`)
-  const perfilAnterior = await db.voiceProfile.findFirst({ where: { characterId: id } })
-
-  const datos = {
-    characterId: id,
-    sampleMediaId: media.id,
-    duracionMuestrasS: resultado.duracionS ?? perfilAnterior?.duracionMuestrasS ?? 0,
-    consentimiento,
-    consentimientoNota: nota,
-    ...(resultado.ok
-      ? {
-          embeddingB64: resultado.embeddingB64!,
-          dim: resultado.dim!,
-          extractor: resultado.extractor!,
-          estado: 'OPERATIVO',
-          detalle: `identidad extraída de ${resultado.duracionS ?? '?'}s de audio con ${resultado.extractor}`,
-        }
-      : {
-          estado: resultado.bloqueo?.includes('demasiado corta') || resultado.bloqueo?.includes('ausente o vacío') ? 'ERROR' : 'NO_CONFIGURADO',
-          detalle: `muestra guardada y cifrada; identidad pendiente: ${resultado.bloqueo ?? 'motivo desconocido'}`,
-        }),
-  }
-
-  const perfil = perfilAnterior
-    ? await db.voiceProfile.update({ where: { id: perfilAnterior.id }, data: datos })
-    : await db.voiceProfile.create({ data: datos })
-
-  const sonda = await sondaClonLocal()
-  return NextResponse.json({ ok: true, perfil, sonda })
-}
-
-export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const { id } = await ctx.params
-  const sesion = sesionDe(req)
-  if (!sesion) return noAutorizado()
-
-  const perfil = await db.voiceProfile.findFirst({ where: { characterId: id } })
-  if (!perfil) return NextResponse.json({ error: 'sin perfil de voz' }, { status: 404 })
-
-  if (perfil.sampleMediaId) {
-    const media = await db.media.findUnique({ where: { id: perfil.sampleMediaId } })
-    if (media?.filePath) borrarBinario(media.filePath.replace(/\.(enc|svg)$/, ''))
-    if (media) await db.media.delete({ where: { id: media.id } })
-  }
-  await db.voiceProfile.delete({ where: { id: perfil.id } })
-  await registrarEvento('acceso_privado', { tipo: 'voz_eliminada', characterId: id }, { characterId: id })
-
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({
+    media: {
+      id: media.id,
+      characterId: media.characterId,
+      kind: media.kind,
+      lane: media.lane,
+      prompt: media.prompt,
+      seed: media.seed,
+      checkpoint: media.checkpoint,
+      filePath: media.filePath,
+      pipelineStatus: media.pipelineStatus,
+      aiLabels: media.aiLabels,
+    },
+    duracionS: Number(r.duracionS.toFixed(2)),
+    bytes: r.bytes,
+    provedor: r.provedor,
+    nota: r.nota ?? null, // honestidad: piper declara tono fijo / voz sustituta
+    estado: 'OPERATIVO',
+  })
 }

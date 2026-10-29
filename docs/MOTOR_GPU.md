@@ -65,6 +65,26 @@ requiere proveedor de vídeo (Google Flow vía YOUTUBE-AUTOMATION o nodo de víd
 en ComfyUI) y está registrada como bloqueada por hardware/credenciales, no como
 implementada.
 
+## Raster de motores candidatos — open-weights y SaaS del nicho (mapeo 2026-10-29)
+
+Mapa de motores que el nicho está usando HOY — candidatos para el día del
+desbloqueo, NO integrados todavía. Ninguno cambia el estado honesto actual:
+sin GPU local o cuenta externa, el vídeo sigue BLOQUEADO EXTERNO.
+
+| Motor | Modalidad | Vía de entrada en CHAT-X |
+|---|---|---|
+| **Wan 2.2** (img→vídeo / texto→vídeo) | open weights, nodos ComfyUI de comunidad | Encaja en la escalera P2.4 (draft→max) como motor de render con GPU local — mismo contrato de workflow API del adaptador existente |
+| **LTX Video** | open weights, nodos ComfyUI | Igual que Wan: segundo candidato de render, útil para comparar calidad/coste por escalón |
+| **Z-Image Turbo** | open weights, pocos pasos | Candidato al escalón `preview` (composición barata rápida) del raster de imagen |
+| **Krea 2** | open/SaaS según versión | Candidato al escalón `final` (calidad publicable) |
+| **MiniMax H3** | SaaS cerrado (API de pago) | Solo vía cuenta externa del fundador — BLOQUEADO EXTERNO |
+| **Higgsfield / Genjutsu** | SaaS cerrado (vídeo viral, personajes) | Solo observación: vendor-lock + suscripción; sin integración planeada |
+| **RunningHub** | **ComfyUI ALOJADO en la nube** (workflows API) | La vía para desbloquear el render de vídeo SIN GPU local: el adaptador ComfyUI existente (contrato workflow API + sonda de nodos) aplicaría casi sin tocar código. Requiere cuenta de pago → BLOQUEADO EXTERNO (decisión del fundador) |
+
+Prioridad sugerida si se desbloquea hardware/dinero: (1) GPU local + Wan 2.2/LTX
+(ruta $0 recurrente ya documentada arriba), (2) RunningHub como alternativa sin GPU
+(costo mensual), (3) SaaS cerrados solo para comparar calidad, nunca como núcleo.
+
 ## Desbloqueo exacto (para el fundador)
 1. Tener GPU NVIDIA (RTX 3060 12GB o superior recomendado) con driver + CUDA.
 2. Instalar ComfyUI y exportar el workflow API.
@@ -101,3 +121,54 @@ pip install diffusers transformers safetensors accelerate   # ≈ 2.5 GB en disc
 echo 'ESTUDIO_PROVIDER=local-cpu' >> .env    # y reiniciar CHAT-X
 # opcional: LOCAL_CPU_PASOS=12 · LOCAL_CPU_TIMEOUT_MS=600000
 ```
+
+## Voz (TTS) — estados honestos tras el provider de voz (2026-10-29)
+
+P1.3 de CLONAKIT_BRECHAS implementado: contrato de voz por personaje +
+`GET/PUT/POST /api/characters/[id]/voz` con sondeo real de proveedores.
+
+| Proveedor | Estado en esta máquina | Cómo activarlo |
+|---|---|---|
+| espeak-local | **OPERATIVO** ($0, binario espeak-ng 1.52, calidad robótica funcional) | ya activo — sin pasos |
+| piper-local | **OPERATIVO** (P1.3 fase 2: síntesis CABLEADA, paquete piper + modelo `es_ES-carlfm-x_low` en `models/piper/`; E2E real 2026-10-29: 4.1 s de audio en 0.14 s de CPU — 29× tiempo real) | ya activo — sin pasos (receta de instalación abajo para una máquina nueva) |
+
+El sondeo (`sondearProveedoresVoz()`) usa sonda real de DOS capas: paquete
+python `import piper` **Y** modelo onnx presente — nunca reporta OPERATIVO por
+promesa, y si falta una capa el detalle dice exactamente cuál y cómo instalarla.
+
+### Instalación de piper en una máquina nueva (una sola vez)
+```bash
+pip install piper-tts
+mkdir -p models/piper
+curl -L -o models/piper/es_ES-carlfm-x_low.onnx \
+  "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/es/es_ES/carlfm/x_low/es_ES-carlfm-x_low.onnx"
+curl -L -o models/piper/es_ES-carlfm-x_low.onnx.json \
+  "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/es/es_ES/carlfm/x_low/es_ES-carlfm-x_low.onnx.json"
+# reiniciar CHAT-X — la sonda /api/characters/[id]/voz declara piper-local OPERATIVO
+```
+Overridables: `PIPER_PY` (python3), `PIPER_SCRIPT` (scripts/piper_sintetizar.py),
+`PIPER_MODELO_DIR` (models/piper). El `tono` del contrato NO es ajustable en
+piper y se declara ignorado en la respuesta (honestidad sobre límites reales).
+
+## Contrato img2img (Outfit Swap P2.6) — implementado, prueba hermética incluida
+
+El adaptador ComfyUI soporta try-on real: si el GenerationRequest trae
+`img2img = { mediaRefId, denoise, rutaReferencia }`:
+1. Detecta un nodo `LoadImage`/`LoadImageMask` en el workflow exportado (API format).
+2. Extrae el PNG embebido de la pieza de referencia (SVG contenedor) y la sube
+   a `POST /upload/image` (multipart, `overwrite=true`).
+3. Inyecta el filename devuelto en el nodo `LoadImage` y fija `denoise` BAJO
+   (0.2–0.9, defecto 0.55) en el `KSampler` — denoise bajo = respetar identidad.
+
+Errores honestos cubiertos por unitarias herméticas (stub de contrato API):
+- workflow SIN `LoadImage` → "el workflow no tiene nodo LoadImage — exporta un
+  workflow con LoadImage + KSampler(denoise) para try-on real".
+- referencia SVG pura (pieza del simulador, sin raster embebido) → "img2img:
+  la referencia no contiene PNG embebido... try-on real requiere pieza raster
+  de proveedor real".
+
+La ruta `POST /api/studio/outfit-swap` valida que la referencia sea del propio
+personaje, esté APROBADA por QA y esté en carril público (no cifrada); el
+worker la REVALIDA antes de generar. Con el simulador, el Outfit Swap funciona
+sin referencia: la identidad es determinista por baseSeed y la procedencia
+declara `img2img_declarado` (vs `img2img_aplicado` con ComfyUI).

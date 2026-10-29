@@ -80,5 +80,5 @@ dev.pid
 tool-results/
 backups/
 
-# Modelos de voz/IA locales (descarga única, GB, jamás en el repo)
+# Modelos locales de voz/IA (clon-local + piper TTS onnx; descarga única, GB, jamás en el repo)
 /models/
