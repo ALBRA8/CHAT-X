@@ -35,7 +35,14 @@ model Character {
   media        Media[]
   sets         Set[]
   kpis         KpiEntry[]
+  chatMessages ChatMessage[]
 }
+
+// Chat GFE "Modo Novia" (P1.1 brechas): conversación operador↔personaje con
+// media en contexto. El cerebro del personaje es HONESTO: respuestas de
+// plantilla desde el genoma (meta.modo='plantilla_genoma') hasta integrar un
+// motor LLM; las piezas pedidas por chat entran al pipeline real con QA +
+// compliance (job lote_fotos → media vinculada al mensaje).
 
 model LoraVersion {
   id          String   @id @default(cuid())
@@ -110,6 +117,24 @@ model Media {
   @@index([characterId])
   @@index([lane])
   @@index([pipelineStatus])
+}
+
+// ───────────────────────── Chat GFE (Modo Novia) ─────────────────────────────
+
+model ChatMessage {
+  id          String    @id @default(cuid())
+  characterId String
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  rol         String // operador | personaje
+  tipo        String    @default("texto") // texto | imagen | voz
+  texto       String    @default("")
+  mediaId     String? // pieza adjunta (imagen preview o nota de voz)
+  jobId       String? // trabajo en curso (tipo=imagen estado=generando)
+  estado      String    @default("entregado") // generando | entregado | fallido
+  meta        String    @default("{}") // JSON: {intencion, modo, brief, notas}
+  createdAt   DateTime  @default(now())
+
+  @@index([characterId, createdAt])
 }
 
 // ───────────────────────────── Sets ─────────────────────────────

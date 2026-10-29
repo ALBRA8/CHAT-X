@@ -72,6 +72,18 @@ export function miniaturaDe(svg: string): string {
   return svg.replace(/width="\d+" height="\d+"/, 'width="288" height="288"')
 }
 
+/** Binario cifrado del carril privado → bytes en claro con la clave de sesión. */
+export function leerBinarioCifrado(base: string, masterKey: Buffer): Buffer | null {
+  try {
+    const data = fs.readFileSync(base + '.enc')
+    const iv = fs.readFileSync(base + '.enc.iv', 'utf8').trim()
+    const tag = fs.readFileSync(base + '.enc.tag', 'utf8').trim()
+    return descifrarBuffer({ iv, tag, data }, masterKey)
+  } catch {
+    return null
+  }
+}
+
 export function borrarPieza(base: string): void {
   for (const suf of ['.svg', '.wav', '.enc', '.enc.iv', '.enc.tag']) {
     try {

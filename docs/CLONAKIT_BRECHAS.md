@@ -25,7 +25,9 @@ Fecha: 2026-10-28 — INTEL COMPLETA: 23/23 referentes documentados. CONFIDENCIA
 |---|---|---|
 | Calendario de publicación exportable | "IA Influencer" (gated por plan) / APATERO InstaDump | `GET /api/publicacion/calendario` ICS+CSV desde Sets reales, botones en UGC — gratis, sin gate |
 | Orquestador E2E con aprobación humana | OneManArmy / GramGenies / SuperAgentsAI (pipelines auto) | Módulo Automatización + lib/flujos.ts + 6 rutas API, probado E2E |
-| **Voice notes GFE — contrato de voz por personaje** (P1.3) | Fanvue AI Voice Notes (2026: paridad obligatoria, no gap) | `src/lib/provider/voz.ts` (espeak-local OPERATIVO $0, piper-local NO_DISPONIBLE documentado) + `voiceContract` por Character + `GET/PUT/POST /api/characters/[id]/voz` (muestra WAV real, Media kind=voz, cifrado carril privado, etiqueta IA, compliance `voz_generada`, filtro de edad duro también en texto de voz) — 12 unitarias + 7 checks API (40/40) |
+| **Voice notes GFE — contrato de voz por personaje** (P1.3) | Fanvue AI Voice Notes (2026: paridad obligatoria, no gap) | `src/lib/provider/voz.ts` (espeak-local OPERATIVO $0, piper-local NO_DISPONIBLE documentado) + `voiceContract` por Character + `GET/PUT/POST /api/characters/[id]/voz` (muestra WAV real, Media kind=voz, cifrado carril privado, etiqueta IA, compliance `voz_generada`, filtro de edad duro también en texto de voz) — 12 unitarias + 7 checks API |
+| **Motor GFE "Modo Novia" — chat con media en contexto** (P1.1) | LovLab #1 del nicho (imágenes dentro del chat) | modelo `ChatMessage` + `POST/GET /api/chat`: intención foto → job REAL del Estudio (brief determinista desde genoma, carril público, QA + compliance del worker, reembolso por fallo heredado); intención voz → nota de voz del contrato P1.3 al vuelo; texto → plantillas del genoma (honesto: `modo=plantilla_genoma`, sin LLM fingido); módulo Chat en el Panel + WAV servido por `/api/media/[id]/archivo` (público claro / privado descifrado con sesión) |
+| **Character card desde el genoma** (P1.2) | LovLab (tarjeta exportable) | `GET /api/characters/[id]/tarjeta`: JSON completo (genoma, signKit, seed, cara canónica, contrato de voz con estado real) + system prompt del companion + cara en `?formato=svg`; bloqueada por compliance si el genoma no declara adulta verificada; evento `exportacion` |
 | Infra GPU real plugable | Todos los referentes dependen de créditos cloud | Provider ComfyUI real + /api/sistema + docs/MOTOR_GPU.md (ruta $0/mes) |
 | Estado de GPU/sistema medible | (transversal) | /api/sistema (nvidia-smi, cola, proveedor) + scripts/detectar_gpu.sh |
 | Registro de motores ampliado | AGENTE-GENERAL y CAZADOR añadidos como motores 7 y 8 con contratos reales | motores.ts + sondas + UI |
@@ -33,9 +35,9 @@ Fecha: 2026-10-28 — INTEL COMPLETA: 23/23 referentes documentados. CONFIDENCIA
 ## Brechas PRIORIZADAS pendientes (roadmap con criterio de aceptación)
 
 **P1 — directo a ingresos Fanvue:**
-1. Motor GFE "Modo Novia" con **imágenes generadas dentro del chat** (LovLab #1, top-1 de toda la investigación). Aceptación: desde el chat, pedir foto a la modelo y recibir pieza del carril correcto con QA + compliance.
-2. **Character card auto desde el genoma** (LovLab): export JSON/imagen de la tarjeta + prompt de sistema del companion en 1 clic desde el Panel. Aceptación: descargar tarjeta de Valentina.
-3. ~~**Voice notes GFE** (Fanvue tiene AI Voice Notes; Kinku/Mage bindean voz): integrar TTS cuando exista proveedor; contrato de voz guardada por personaje.~~ **CERRADA 2026-10-29** (contrato por personaje + espeak-local $0; consumidor final = chat GFE P1.1; voz natural = instalar piper, ver MOTOR_GPU.md).
+1. ~~Motor GFE "Modo Novia" con **imágenes generadas dentro del chat**~~ **CERRADA 2026-10-29** (chat con intención foto → pipeline real; cerebro plantilla del genoma — la upgrade a LLM es un paso futuro honesto, no prometido).
+2. ~~**Character card auto desde el genoma**~~ **CERRADA 2026-10-29** (JSON + system prompt + cara SVG en 1 clic; probado con Valentina).
+3. ~~**Voice notes GFE**~~ **CERRADA 2026-10-29** (contrato por personaje + espeak-local $0 + notas de voz DENTRO del chat; voz natural = instalar piper, ver MOTOR_GPU.md).
 
 **P2 — fábrica más barata y rápida:**
 4. **Escalera de calidad de vídeo draft→max** (Apatero): coste por escalón antes de gastar. Requiere proveedor de vídeo (Google Flow del motor YT o nodos de vídeo ComfyUI).

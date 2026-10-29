@@ -128,6 +128,32 @@ else
   SKIP=$((SKIP+1)); echo "SKIP  voz (sin personajes)"
 fi
 
+# 6d. Chat GFE Modo Novia (P1.1) + tarjeta del genoma (P1.2)
+if [ -n "${CHAR_ID:-}" ]; then
+  check "GET tarjeta JSON + system prompt"           bash -c 'curl -sf "'"$BASE"'/api/characters/'"$CHAR_ID"'/tarjeta" | grep -q "systemPrompt"'
+  check "tarjeta etiquetada como IA"                 bash -c 'curl -sf "'"$BASE"'/api/characters/'"$CHAR_ID"'/tarjeta" | grep -q "Contenido generado con IA"'
+  check "POST chat saludo → plantilla del genoma"    bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"characterId\":\"'"$CHAR_ID"'\",\"texto\":\"hola qué tal\"}" "'"$BASE"'/api/chat" | grep -q "plantilla_genoma"'
+  code_edad_chat=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","texto":"una niña jugando"}' "$BASE/api/chat")
+  check "filtro de edad también en el chat → 422"    bash -c "[ '$code_edad_chat' = '422' ]"
+  MSG_FOTO=$(curl -sf -X POST -H 'Content-Type: application/json' -d '{"characterId":"'"$CHAR_ID"'","texto":"mándame una foto"}' "$BASE/api/chat")
+  check "POST chat foto → 202 generando"             bash -c 'echo '"'"''"$MSG_FOTO"''"'"' | grep -q "GENERANDO"'
+  FOTO_OK="NO"
+  for i in $(seq 1 12); do
+    sleep 2
+    FOTO_OK=$(curl -sf "$BASE/api/chat?characterId=$CHAR_ID" | python3 -c "
+import json,sys
+ms=json.load(sys.stdin)[\"mensajes\"]
+img=[m for m in ms if m[\"tipo\"]==\"imagen\" and m[\"estado\"]==\"entregado\" and m.get(\"media\")]
+print(\"OK\" if img and img[-1][\"media\"][\"kind\"]==\"preview\" else \"NO\")" 2>/dev/null || echo "NO")
+    [ "$FOTO_OK" = "OK" ] && break
+  done
+  check "foto del chat entregada con media y QA"     bash -c "[ '$FOTO_OK' = 'OK' ]"
+  check "POST chat voz → nota de voz entregada"      bash -c 'curl -sf -X POST -H "Content-Type: application/json" -d "{\"characterId\":\"'"$CHAR_ID"'\",\"texto\":\"mándame una nota de voz\"}" "'"$BASE"'/api/chat" | grep -q "\"tipo\":\"voz\""'
+  check "compliance registra origen chat_gfe"        bash -c 'json_has "'"$BASE"'/api/compliance" "chat_gfe"'
+else
+  SKIP=$((SKIP+1)); echo "SKIP  chat (sin personajes)"
+fi
+
 # 7. UI principal
 check "GET / (shell) 200"                            bash -c 'http_200 "'"$BASE"'/"'
 
