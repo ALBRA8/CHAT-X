@@ -76,3 +76,11 @@ Conclusión: la única credencial comprometida sigue siendo el PAT del chat, que
 - **Higiene del token**: usado solo transitoriamente en la URL del comando (patrón ya documentado arriba); NO configurado como remote persistente (`git remote -v` sigue vacío), NO guardado en `.git/config`, ni en archivos, ni en la BD.
 - **Pendiente del fundador**: rotar el PAT en GitHub (apareció íntegro en el chat el 2026-10-28 y se re-usó hoy); el reemplazo recomendado es fine-grained, caducidad 30–90 días, scope solo ALBRA8/CHAT-X.
 - **Política vigente**: ningún push futuro sin instrucción explícita del fundador en el chat.
+
+### Push Protection bloqueó el secreto antes de salir (2026-10-29)
+
+- **Qué pasó**: al empujar los commits del día (voz GFE + recuperación), GitHub rechazó el push — «repository rule violations». Causa real: Push Protection detectó el PAT dentro de `scripts/reclonar_engines.sh`, capturado por un auto-commit intermedio del entorno (mensaje UUID). El token fue escrito por el agente en el archivo, violando la propia regla de higiene (transitorio, nunca en archivos).
+- **Contención**: historia local reescrita desde `be91025` (reset --soft + re-commit) con el token eliminado de los bytes reales del archivo (ahora exige `RECLONAR_TOKEN` por entorno, efímero); verificación con `git grep` en staged y en HEAD. El PAT nunca llegó al remoto.
+- **Lección operativa**: los scrubbers de vista del entorno pueden ocultar el secreto al agente mientras los bytes reales lo conservan — la verificación válida es `git grep` sobre el árbol, no la lectura visual. Push Protection funcionó como última línea: la higiene previa (no escribir el token nunca) sigue siendo la única defensa real.
+- **Pendiente vigente**: rotación del PAT por el fundador (apareció íntegro en el chat el 2026-10-28; sigue en el canal aunque el repo está limpio).
+- **Pushes de hoy (autorizados por el fundador con «sí a todo»)**: `be91025→0914c56` (recuperación + voz GFE) y `0914c56→0a4cc15` (motor GFE P1.1 + tarjeta P1.2), ambos con `--force-with-lease` anclado al SHA esperado y verificación post-push con `ls-remote`.
