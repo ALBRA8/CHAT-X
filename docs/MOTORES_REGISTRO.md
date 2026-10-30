@@ -6,7 +6,7 @@ archivo es el registro verificable de su procedencia. Fecha de clonación: **202
 
 | Motor | URL de origen | Commit de origen | Rol en CHAT-X | Modulo | Veredicto auditoría |
 |---|---|---|---|---|---|
-| YOUTUBE-AUTOMATION | github.com/ALBRA8/YOUTUBE-AUTOMATION | 2589e4e (upstream avanzó desde fef6682; verificado con `git ls-remote` 2026-10-28, sin push nuestro) | Producción audiovisual (arnés m2m + Production JSON + Flow MCP) | 2 | integrado |
+| YOUTUBE-AUTOMATION | github.com/ALBRA8/YOUTUBE-AUTOMATION | 7709007 (upstream avanzó: fef6682→2589e4e el 2026-10-28 y 2589e4e→7709007 verificado en re-clon 2026-10-30; sin push nuestro) | Producción audiovisual (arnés m2m + Production JSON + Flow MCP) | 2 | integrado |
 | CRM-ALBRA | github.com/ALBRA8/CRM-ALBRA | ea87cc2 | Récord comercial + chaleco crm-actions + wa-daemon | 3 | integrado |
 | WHATSPOWER | github.com/ALBRA8/WHATSPOWER | f4f7fc9 | Flujos conversacionales ManyChat-like | 3 | integrado |
 | WHATSPOWER-ULTRA | github.com/ALBRA8/WHATSPOWER-ULTRA | e6ef56d | Difusión masiva anti-ban step-driven | 3 | integrado |
@@ -14,7 +14,7 @@ archivo es el registro verificable de su procedencia. Fecha de clonación: **202
 | AGENTE-LEADS | github.com/ALBRA8/AGENTE-LEADS | f54226b | Prospección B2B + webhooks tipados | 6 | integrado |
 | AGENTE-GENERAL | github.com/ALBRA8/AGENTE-GENERAL | 69c79da | Runtime agéntico (seed v1) + HITL approvals | 6 | integrado (estado honesto: PRODUCTION_NOT_VERIFIED autodeclarado) |
 | Extension-CAZADOR | github.com/ALBRA8/Extension-CAZADOR | 4fc7de5 | Backend de scraping IA (Hotmart/JVZoo/Muncheye/Dropi) | 5 | integrado solo backend (la extensión Chrome queda fuera) |
-| COMUNITI-MANAGER | github.com/ALBRA8/COMUNITI-MANAGER | 4bbdc7b | Harness de community management multi-marca | 5 | registrado como motor 10 (sonda + contratos reales); carriles de negocio NO conectados aún: panel sin auth m2m, re-evaluar tras endurecimiento |
+| COMUNITI-MANAGER | github.com/ALBRA8/COMUNITI-MANAGER | 30564d0 (upstream avanzó desde 4bbdc7b; verificado en re-clon 2026-10-30, sin push nuestro) | Harness de community management multi-marca | 5 | registrado como motor 10 (sonda + contratos reales); carriles de negocio NO conectados aún: panel sin auth m2m, re-evaluar tras endurecimiento |
 | AGENTE-KREA | github.com/ALBRA8/AGENTE-KREA | 460605e | Estudio creativo (/api/generate image/text/voice/subtitle/ebook/prompt) | 2 | registrado como motor 9 (sonda + contratos reales); carriles de generación NO conectados aún: sin token m2m (solo sesión de usuario), solo localhost |
 
 ## Reglas aplicadas
@@ -28,7 +28,9 @@ archivo es el registro verificable de su procedencia. Fecha de clonación: **202
 
 CHAT-X :3000 · CRM-ALBRA :3000 (fijar PORT distinto si conviven) · YOUTUBE-AUTOMATION :8000 · WHATSPOWER :3003 · ULTRA :3004 · NEX-SCOPE :81 (Caddy) · AGENTE-GENERAL :9000 (API) + :3000 dashboard + :3002 wa-daemon · CAZADOR :8787 · KREA :3000 · COMUNITI :3000 + worker FB :8765.
 
-> Re-verificación de commits origen: **2026-10-28 (validación profunda d131124)**: YOUTUBE-AUTOMATION avanzó upstream a 2589e4e (clon actualizado por re-fetch shallow); NEX-SCOPE avanzó a d818f3e (fix del propio autor de 15 errores TS); el resto idéntico (CRM ea87cc2, ULTRA e6ef56d, LEADS f54226b, GENERAL 69c79da, CAZADOR 4fc7de5, KREA 460605e, COMUNITI 4bbdc7b). Nunca hay push nuestro: los avances son del upstream.
+> Re-verificación de commits origen: **2026-10-30 (re-clon completo de engines/ tras reciclaje de sandbox)**: 8/10 exactos en su pin (CRM ea87cc2, WHATSPOWER f4f7fc9, ULTRA e6ef56d, NEX-SCOPE d818f3e, LEADS f54226b, GENERAL 69c79da, KREA 460605e, CAZADOR 4fc7de5); 2 avanzaron upstream — YOUTUBE-AUTOMATION 2589e4e→7709007 y COMUNITI-MANAGER 4bbdc7b→30564d0 — pins actualizados, sin push nuestro jamás.
+>
+> Re-verificación previa **2026-10-28 (validación profunda d131124)**: YOUTUBE-AUTOMATION avanzó upstream a 2589e4e (clon actualizado por re-fetch shallow); NEX-SCOPE avanzó a d818f3e (fix del propio autor de 15 errores TS); el resto idéntico (CRM ea87cc2, ULTRA e6ef56d, LEADS f54226b, GENERAL 69c79da, CAZADOR 4fc7de5, KREA 460605e, COMUNITI 4bbdc7b). Nunca hay push nuestro: los avances son del upstream.
 
 ## Aislamiento de BD (incidente 2026-10-28 y regla permanente)
 

@@ -8,7 +8,7 @@ BASE="/home/z/my-project/engines"
 mkdir -p "$BASE"
 
 declare -A COMMITS=(
-  [YOUTUBE-AUTOMATION]="2589e4e"
+  [YOUTUBE-AUTOMATION]="7709007"
   [CRM-ALBRA]="ea87cc2"
   [WHATSPOWER]="f4f7fc9"
   [WHATSPOWER-ULTRA]="e6ef56d"
@@ -16,7 +16,7 @@ declare -A COMMITS=(
   [AGENTE-LEADS]="f54226b"
   [AGENTE-GENERAL]="69c79da"
   [AGENTE-KREA]="460605e"
-  [COMUNITI-MANAGER]="4bbdc7b"
+  [COMUNITI-MANAGER]="30564d0"
   [Extension-CAZADOR]="4fc7de5"
 )
 
