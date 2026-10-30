@@ -4,6 +4,32 @@ Una plataforma · una interfaz central · múltiples motores independientes · c
 
 CHAT-X opera como **host central** del ecosistema: en su interfaz conviven el Estudio de modelos virtuales IA (construido en sala limpia) y los módulos que gobiernan los motores independientes del ecosistema (producción audiovisual, CRM/WhatsApp, investigación, agentes, scraping) por sus contratos HTTP reales — con estados por sonda, orquestador de flujos con aprobación humana e infraestructura de GPU conectable.
 
+## Mapa del ecosistema — cada repo en su carpeta (modular)
+
+**CHAT-X (este repo) es el CUERPO; los motores son los BRAZOS.** Ningún repositorio
+hermano se mezcla jamás con este código: cada uno vive en SU PROPIA carpeta bajo
+`engines/`, clonado a un commit fijado, solo lectura, con su propia base de datos
+y su propio puerto. La conexión entre ellos NO es código compartido: son
+**contratos HTTP entre procesos independientes**. Si un brazo se daña, se repara
+o re-clona SOLO ese brazo — el resto del cuerpo no se entera.
+
+```
+/home/z/my-project/                 ← CHAT-X (este repo · github.com/ALBRA8/CHAT-X)
+├── src/  prisma/  docs/  scripts/  ← el CUERPO: código propio de CHAT-X
+└── engines/                        ← los BRAZOS (NUNCA se versionan en CHAT-X)
+    ├── CRM-ALBRA/          ← github.com/ALBRA8/CRM-ALBRA          (:3100 · db/crm.db)
+    ├── WHATSPOWER/         ← github.com/ALBRA8/WHATSPOWER         (:3003 · db/operational.db)
+    ├── WHATSPOWER-ULTRA/   ← github.com/ALBRA8/WHATSPOWER-ULTRA   (:3004 · db/broadcast.db)
+    ├── YOUTUBE-AUTOMATION/ ← (:8000)
+    ├── NEX-SCOPE/  AGENTE-LEADS/  AGENTE-GENERAL/  AGENTE-KREA/
+    └── COMUNITI-MANAGER/  Extension-CAZADOR/
+```
+
+- **Cada carpeta = un repo git completo e independiente**: su propio `.git`, su commit fijado (`docs/MOTORES_REGISTRO.md`), sus propias licencias (`docs/CLONES_LICENCIAS.md`).
+- **Aislamiento de BD por diseño**: cada motor arranca con SU `DATABASE_URL` absoluta propia (regla permanente tras el incidente 2026-10-28) — jamás comparten fichero de datos.
+- **Reparar un brazo sin estallar el cuerpo**: `export RECLONAR_TOKEN=<PAT> bash scripts/reclonar_engines.sh` re-clona cualquier carpeta dañada a su commit fijado — el resto no se toca.
+- **En GitHub de CHAT-X no verás los motores**: `engines/` está en `.gitignore` por diseño. Aquí solo vive el cuerpo; los brazos son repos hermanos en la misma organización.
+
 ## Ecosistema de motores (originales en github.com/ALBRA8 — solo lectura; ver docs/MOTORES_REGISTRO.md)
 
 Aplicación web para operar un estudio de modelos virtuales IA de forma profesional y auditable: creación de personajes con identidad consistente, fábrica de fotos con control de calidad, carril privado con cifrado fuerte, exportación a plataformas de fans (Fanvue) y panel de gestión con registro de cumplimiento.
@@ -80,7 +106,7 @@ bash scripts/benchmark_gpu.sh  # benchmark real SDXL (necesita ComfyUI; si no: S
 
 Variables de entorno: ver `.env.example`. Proveedores: `ESTUDIO_PROVIDER=simulador|comfyui` (misma interfaz; docs/MOTOR_GPU.md y docs/EVALUACION_GPU.md).
 
-## Estructura
+## Estructura interna de CHAT-X (el cuerpo)
 
 ```
 src/
