@@ -132,3 +132,49 @@ contrato rompería la auditoría — por eso la casa propia no es un capricho: e
 - F3 (Telegram) y F4 (Meta) se construyen directos como cuartos propios.
 - Los motores hermanos siguen vivos para lo suyo: YouTube products, CRM general,
   cualquier línea SFW futura del ecosistema. Cada casa con su norte.
+
+## §8 MUDANZA A LA CASA NUEVA — musestudio8 (decisión 30-oct-2026)
+
+El fundador decidió: **la casa propia no va empaquetada dentro de CHAT-X**; vive
+en una cuenta GitHub nueva aparte. Esa cuenta ya existe.
+
+### Estado verificado de musestudio8 (31-oct-2026, solo lectura, $0)
+
+- Es una **cuenta de usuario** (no organización). Funciona igual para repos; si
+  algún día se quiere forma de organización, GitHub permite transferir sin
+  perder historia.
+- Contiene 1 repo público: **`borrador`** (creado 30-oct). Comprobado con
+  `git ls-remote`: **completamente vacío** (sin commits ni ramas). El fundador
+  decide si lo borra o lo deja; la mudanza no lo toca.
+
+### Mapa de mudanza (5 repos, copia espejo completa con historia)
+
+| Repo nuevo en musestudio8 | Origen ALBRA8 (solo lectura) | Rol |
+| --- | --- | --- |
+| `wa-novia` | WHATSPOWER (`f4f7fc9`) | daemon WhatsApp modo novia |
+| `broadcast-novia` | WHATSPOWER-ULTRA (`e6ef56d`) | difusión anti-ban |
+| `crm-novia` | CRM-ALBRA (`ea87cc2`) | CRM del negocio |
+| `video-studio` | YOUTUBE-AUTOMATION (`7709007`) | vídeo SFW / YouTube |
+| `chat-x` | CHAT-X | torre del negocio |
+
+Las copias se hacen con `git clone --mirror` → **historia completa preservada
+como procedencia**; después divergen a propósito al adaptarse a modo novia.
+Nada se pierde y nada se toca en ALBRA8.
+
+### Procedimiento
+
+1. El fundador crea a mano en musestudio8 los 5 repos **vacíos** (sin README,
+   sin licencia) — así el token de escritura no necesita permiso de creación.
+2. Con tokens por variable de entorno (jamás en disco ni en chat):
+   `export RECLONAR_TOKEN=<lectura ALBRA8>` y `export MUSE_TOKEN=<escritura
+   musestudio8>` → `bash scripts/mudar_casa_nueva.sh`.
+3. El script es idempotente y sin `--force`: verifica SHA a SHA cada rama y
+   etiqueta tras el push; si algo difiere, aborta ese repo y no toca el resto.
+4. Desde ese momento se trabaja clonando de musestudio8. ALBRA8 queda como
+   biblioteca de referencia inalterada.
+
+### Regla permanente
+
+**Push solo con orden explícita del fundador.** El script está listo pero no se
+ejecuta hasta que el fundador lo ordene y entregue los dos tokens por variable
+de entorno. Si algún PAT llegó a pegarse en el chat, se rota antes de usarlo.
