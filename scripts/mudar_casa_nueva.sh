@@ -11,12 +11,17 @@
 #   bash scripts/mudar_casa_nueva.sh
 #
 # Prerrequisitos — el fundador crea a mano en github.com/musestudio8 estos
-# repos VACÍOS (sin README, sin .gitignore, sin licencia):
-#   musestudio8/wa-novia          ← ALBRA8/WHATSPOWER        (daemon WhatsApp novia)
-#   musestudio8/broadcast-novia   ← ALBRA8/WHATSPOWER-ULTRA  (difusión anti-ban)
-#   musestudio8/crm-novia         ← ALBRA8/CRM-ALBRA         (CRM del negocio)
-#   musestudio8/video-studio      ← ALBRA8/YOUTUBE-AUTOMATION (vídeo SFW/YouTube)
-#   musestudio8/chat-x            ← ALBRA8/CHAT-X            (torre del negocio)
+# repos VACÍOS (sin README, sin .gitignore, sin licencia). NOMBRES REALES
+# elegidos por el fundador (mantiene los nombres originales, cambia el dueño):
+#   musestudio8/WHATSPOWER        ← ALBRA8/WHATSPOWER        (daemon WhatsApp novia)  [creado 31-oct]
+#   musestudio8/WHATSPOWER-ULTRA  ← ALBRA8/WHATSPOWER-ULTRA  (difusión anti-ban)      [creado 31-oct]
+#   musestudio8/CRM               ← ALBRA8/CRM-ALBRA         (CRM del negocio)        [creado 31-oct]
+#   musestudio8/video-studio      ← ALBRA8/YOUTUBE-AUTOMATION (vídeo SFW/YouTube)     [pendiente]
+#   musestudio8/chat-x            ← ALBRA8/CHAT-X            (torre del negocio)      [pendiente]
+#
+# Selección: pasar como argumentos los nombres de musestudio8 a mudar.
+#   bash scripts/mudar_casa_nueva.sh WHATSPOWER WHATSPOWER-ULTRA CRM
+#   (sin argumentos intenta los 5)
 #
 # Garantías (patrón SEGURIDAD.md):
 #   - Tokens SOLO por variable de entorno; jamás en disco, .git/config ni URLs
@@ -35,18 +40,27 @@ H_ALBRA='!f(){ echo "username=x-access-token"; echo "password=${RECLONAR_TOKEN}"
 H_MUSE='!f(){ echo "username=x-access-token"; echo "password=${MUSE_TOKEN}"; }; f'
 
 declare -A MAPA=(
-  [wa-novia]=WHATSPOWER
-  [broadcast-novia]=WHATSPOWER-ULTRA
-  [crm-novia]=CRM-ALBRA
+  [WHATSPOWER]=WHATSPOWER
+  [WHATSPOWER-ULTRA]=WHATSPOWER-ULTRA
+  [CRM]=CRM-ALBRA
   [video-studio]=YOUTUBE-AUTOMATION
   [chat-x]=CHAT-X
 )
+
+REPOS=("$@")
+if [ "${#REPOS[@]}" -eq 0 ]; then
+  REPOS=(WHATSPOWER WHATSPOWER-ULTRA CRM video-studio chat-x)
+fi
 
 TMP="/tmp/mudanza"
 rm -rf "$TMP"; mkdir -p "$TMP"
 FALLOS=0; OKS=0; OMITIDOS=0
 
-for NUEVO in wa-novia broadcast-novia crm-novia video-studio chat-x; do
+for NUEVO in "${REPOS[@]}"; do
+  if [ -z "${MAPA[$NUEVO]:-}" ]; then
+    echo "ABORTADO: repo desconocido '$NUEVO' (válidos: ${!MAPA[*]})"
+    exit 2
+  fi
   ORIGEN="${MAPA[$NUEVO]}"
   ORIG_URL="https://github.com/ALBRA8/${ORIGEN}.git"
   DEST_URL="https://github.com/musestudio8/${NUEVO}.git"
@@ -85,7 +99,7 @@ for NUEVO in wa-novia broadcast-novia crm-novia video-studio chat-x; do
   fi
 
   # 3) Push de ramas y etiquetas (sin --force; el destino estaba vacío)
-  if ! git -C "$TMP/$NUEVO.git" push --quiet "$DEST_URL" \
+  if ! git -c credential.helper="$H_MUSE" -C "$TMP/$NUEVO.git" push --quiet "$DEST_URL" \
         'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*' 2>"$TMP/err_push_$NUEVO"; then
     echo "   ERROR push: $(tail -1 "$TMP/err_push_$NUEVO")"
     FALLOS=$((FALLOS+1)); continue
@@ -121,4 +135,5 @@ echo "OK: $OKS | omitidos (ya mudados): $OMITIDOS | fallos: $FALLOS"
 if [ "$FALLOS" -eq 0 ]; then
   echo "Casa nueva poblada: historia completa preservada como procedencia."
   echo "Siguiente paso del fundador: clonar de musestudio8 para trabajar (allí divergen)."
+  echo "RECUERDA: el PAT pegado en el chat se REVOCa al confirmar la mudanza."
 fi
