@@ -149,17 +149,34 @@ en una cuenta GitHub nueva aparte. Esa cuenta ya existe.
 
 ### Mapa de mudanza (5 repos, copia espejo completa con historia)
 
-| Repo nuevo en musestudio8 | Origen ALBRA8 (solo lectura) | Rol |
+| Repo nuevo en musestudio8 | Origen | Rol |
 | --- | --- | --- |
-| `wa-novia` | WHATSPOWER (`f4f7fc9`) | daemon WhatsApp modo novia |
-| `broadcast-novia` | WHATSPOWER-ULTRA (`e6ef56d`) | difusión anti-ban |
-| `crm-novia` | CRM-ALBRA (`ea87cc2`) | CRM del negocio |
-| `video-studio` | YOUTUBE-AUTOMATION (`7709007`) | vídeo SFW / YouTube |
-| `chat-x` | CHAT-X | torre del negocio |
+| `WHATSPOWER` | ALBRA8/WHATSPOWER (`f4f7fc9`) | daemon WhatsApp modo novia |
+| `WHATSPOWER-ULTRA` | ALBRA8/WHATSPOWER-ULTRA (`e6ef56d`) | difusión anti-ban |
+| `CRM` | ALBRA8/CRM-ALBRA (`ea87cc2`) | CRM del negocio |
+| `CHAT-X` | copia local viva (`9dcfa08`) | torre del negocio |
+| `video-studio` | ALBRA8/YOUTUBE-AUTOMATION (`7709007`) | vídeo SFW / YouTube — PENDIENTE |
 
 Las copias se hacen con `git clone --mirror` → **historia completa preservada
 como procedencia**; después divergen a propósito al adaptarse a modo novia.
 Nada se pierde y nada se toca en ALBRA8.
+
+### Resultado de la mudanza (31-oct-2026, con orden explícita del fundador)
+
+- `WHATSPOWER` → espejo completo; ramas IDÉNTICAS al origen (verificado).
+- `WHATSPOWER-ULTRA` → espejo completo; ramas IDÉNTICAS al origen (verificado).
+- `CRM` → espejo completo; ramas IDÉNTICAS. Única diferencia en `ls-remote`:
+  `refs/pull/1/*` — refs internas de GitHub de un PR, no son contenido del repo;
+  los espejos no las traen por diseño.
+- `CHAT-X` → empujada desde la COPIA LOCAL VIVA, no desde ALBRA8: la local iba
+  2 commits adelante (`5c32c30`, `9dcfa08`, nunca subidos) y el espejo desde
+  ALBRA8 los habría perdido. Verificada SHA a SHA con historia completa.
+  ALBRA8/CHAT-X quedó en `34e5aa1` (2 atrás): **la torre viva ahora es
+  musestudio8/CHAT-X**.
+- `video-studio`: pendiente de que el fundador cree el repo destino.
+- **Seguridad**: el PAT usado llegó pegado en el chat → REVOCAR ya confirmada
+  la mudanza. Futuros push: `GITHUB_TOKEN=<nuevo PAT> bash scripts/subir_repo.sh
+  musestudio8/CHAT-X main` (token solo por variable de entorno).
 
 ### Procedimiento
 
@@ -175,6 +192,7 @@ Nada se pierde y nada se toca en ALBRA8.
 
 ### Regla permanente
 
-**Push solo con orden explícita del fundador.** El script está listo pero no se
-ejecuta hasta que el fundador lo ordene y entregue los dos tokens por variable
-de entorno. Si algún PAT llegó a pegarse en el chat, se rota antes de usarlo.
+**Push solo con orden explícita del fundador.** La mudanza del 31-oct se
+ ejecutó con orden explícita. Toda futura subida (CHAT-X, cuartos nuevos,
+video-studio) sigue la misma regla: orden primero, token después. Si un PAT
+llega pegado en el chat, se usa una vez y se revoca al confirmar el resultado.

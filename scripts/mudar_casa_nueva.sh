@@ -17,7 +17,7 @@
 #   musestudio8/WHATSPOWER-ULTRA  ← ALBRA8/WHATSPOWER-ULTRA  (difusión anti-ban)      [creado 31-oct]
 #   musestudio8/CRM               ← ALBRA8/CRM-ALBRA         (CRM del negocio)        [creado 31-oct]
 #   musestudio8/video-studio      ← ALBRA8/YOUTUBE-AUTOMATION (vídeo SFW/YouTube)     [pendiente]
-#   musestudio8/chat-x            ← ALBRA8/CHAT-X            (torre del negocio)      [pendiente]
+#   musestudio8/CHAT-X            ← copia local viva (NO por espejo; push directo)  [mudada 31-oct]
 #
 # Selección: pasar como argumentos los nombres de musestudio8 a mudar.
 #   bash scripts/mudar_casa_nueva.sh WHATSPOWER WHATSPOWER-ULTRA CRM
@@ -44,12 +44,13 @@ declare -A MAPA=(
   [WHATSPOWER-ULTRA]=WHATSPOWER-ULTRA
   [CRM]=CRM-ALBRA
   [video-studio]=YOUTUBE-AUTOMATION
-  [chat-x]=CHAT-X
 )
+# NOTA: CHAT-X no va en este mapa — su fuente de verdad es la copia local viva,
+# se empuja con: GITHUB_TOKEN=<PAT> bash scripts/subir_repo.sh musestudio8/CHAT-X main
 
 REPOS=("$@")
 if [ "${#REPOS[@]}" -eq 0 ]; then
-  REPOS=(WHATSPOWER WHATSPOWER-ULTRA CRM video-studio chat-x)
+  REPOS=(WHATSPOWER WHATSPOWER-ULTRA CRM video-studio)
 fi
 
 TMP="/tmp/mudanza"
