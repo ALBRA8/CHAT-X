@@ -88,3 +88,47 @@ META (FB/IG) · WHATSAPP · TELEGRAM
 Persona **100% sintética** desde el genoma (cero rostros/voz de personas
 reales — NCII jamás) y **etiqueta IA** donde el canal/plataforma la exige.
 Eso es lo que hace defendible todo el embudo.
+
+## 7. ENMIENDA del fundador (2026-10-30, misma sesión): CASA PROPIA
+
+> Palabra del fundador: CHAT-X es un proyecto completamente independiente que no
+> debe cruzarse con los repos originales. Si le pedimos a la casa del vecino
+> (YOUTUBE-AUTOMATION, WHATSPOWER, ULTRA, CRM-ALBRA) que produzca nuestro negocio,
+> se la dejamos vuelta un desorden. CHAT-X necesita CASA PROPIA con un cuarto para
+> cada agente.
+
+**Regla mandante:** los 10 clones quedan como **BIBLIOTECA DE REFERENCIA** (solo
+lectura) y para sus propósitos originales SFW. **Jamás procesan estado, datos,
+sesiones ni contenido del negocio 18+.** Ni flujos, ni campañas, ni registros de
+fans, ni nada.
+
+### Cuartos de la casa propia (nativos de CHAT-X)
+
+1. **Cerebro modo novia** — YA nativo: Chat GFE (`/api/chat`) + genoma + voz + compliance.
+2. **Canal WhatsApp** — daemon PROPIO del negocio (patrón Baileys espejado en sala
+   limpia desde lo aprendido de los clones: sesión propia, pacing anti-ban propio,
+   BD propia del carril adulto).
+3. **Canal Telegram** — bot PROPIO ($0, librería open-source) con cobro directo.
+4. **Memoria del embudo** — libro interno de CHAT-X (ChatMessage, LedgerMonetizacion,
+   que ya existen). CRM-ALBRA NO recibe jamás registros del negocio adulto.
+5. **Vídeo** — escalera + proveedores del Estudio (adaptadores propios en
+   `src/lib/provider/`). YOUTUBE-AUTOMATION solo para productos YouTube/SFW genuinos.
+
+### Cadena de auditoría en UN solo lugar
+
+Todo el compliance del negocio 18+ vive en CHAT-X (log append-only + cifrado de
+carril privado + gate humano). Repartir estado entre motores que no comparten ese
+contrato rompería la auditoría — por eso la casa propia no es un capricho: es la
+única forma de que la auditoría sea completa.
+
+### Efecto en las fases
+
+- **F1 reescrita**: el puente ya no es whatspower→CHAT-X; es el **daemon propio de
+  CHAT-X** escuchando WhatsApp. Los patrones de los clones (flujos conversacionales
+  ManyChat-like, difusión step-driven anti-ban) se usan como REFERENCIA de diseño
+  en sala limpia, no como runtime.
+- F2 (tono modo novia) ahora es trivial: el tono ya es nativo, no hay que adaptar
+  plantillas de nadie.
+- F3 (Telegram) y F4 (Meta) se construyen directos como cuartos propios.
+- Los motores hermanos siguen vivos para lo suyo: YouTube products, CRM general,
+  cualquier línea SFW futura del ecosistema. Cada casa con su norte.
