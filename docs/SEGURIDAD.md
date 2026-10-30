@@ -126,3 +126,20 @@ Conclusión: la única credencial comprometida sigue siendo el PAT del chat, que
 - **Pendiente URGENTE del fundador**: la PAT aportada hoy en el chat queda EXPUSTA en el
   historial del canal — ROTAR inmediatamente tras este push y revocar la anterior (2026-10-28,
   sigue pendiente). Regla reafirmada: los tokens al chat mueren; cada aparición = rotación.
+
+### Push de sincronización 6f0e54c→7a810b5 (2026-10-30) — registro diferido
+
+- **Contenido subido**: `bbee7d0` (registro de seguridad del push anterior), `905f402`
+  (chore ux: ocultar indicador dev de Next.js a petición del fundador) y `7a810b5`
+  (directriz del embudo multicanal: CRM-ALBRA + WHATSPOWER + ULTRA como una sola
+  máquina de calentamiento modo novia; matriz Meta/WA calientan SFW, Telegram/Fanvue cobran).
+- **Nueva PAT aportada en el chat** tras la anterior dejar de funcionar (rotate o revocación
+  del fundador — confirmado en operación: push con la PAT vieja → «Invalid username or token»,
+  ls-remote anónimo de repo público seguía funcionando; coherente con la rotación).
+- **Push**: fast-forward `6f0e54c..7a810b5` vía `scripts/subir_repo.sh` (sin remote persistente,
+  sin --force, token SOLO en variable de entorno del comando puntual); verificación `ls-remote`:
+  tip remoto `7a810b5` idéntico al HEAD local.
+- **Pendiente URGENTE del fundador**: esta segunda PAT TAMBIÉN quedó expuesta en el historial
+  del canal — ROTAR inmediatamente. Regla reafirmada: los tokens al chat mueren; cada
+  aparición = rotación. Futura alternativa: token por canal privado o fine-grained PAT de
+  vida corta solo para `contents:write` de ALBRA8/CHAT-X.
