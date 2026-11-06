@@ -19,14 +19,14 @@ Fecha: 2026-10-28 · Alcance: CHAT-X como plataforma central.
 | Rate limit | parcial | límites estructurales (concurrencia, reintentos); rate limit por IP pendiente si se expone a Internet |
 | Secretos fuera del repo | ✔ | .env, media/, db/, engines/, research/ en .gitignore; token de push one-off NO persistido en .git/config |
 | Logs sin credenciales | ✔ | registro de flujos/eventos guardan mensajes y payloads de negocio, nunca apiKey (la config devuelve '••••'+últimos 4) |
-| Originales intactos | ✔ | clones en engines/ sin modificaciones; cero push a originales (docs/MOTORES_REGISTRO.md) |
+| Originales intactos | ✔ | clones en engines/ sin modificaciones; cero push a originales (CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md) |
 
 ## Riesgos aceptados y documentados (no ocultos)
 
 1. **CHAT-X hoy no tiene login propio**: es una herramienta de operador único pensada para localhost/red privada del fundador. Si se expone a Internet hay que añadir delante un reverse proxy con auth (Caddy basic_auth) o login en la app. Queda registrado como tarea de despliegue, no como funcionalidad falsa.
 2. **Motores vecinos con superficie abierta**: WHATSPOWER (gestión sin auth por diseño), CAZADOR (CORS *, sin auth), COMUNITI (panel abierto). Regla operativa: mantenerlos SOLO en 127.0.0.1 y nunca redirigirlos con Caddy al exterior.
 3. **Baileys (sesión WhatsApp no oficial)**: riesgo de ban propio del daemon del CRM — decisión de producto, no técnica.
-4. **Sandbox sin GPU**: la generación real requiere la máquina del fundador (docs/MOTOR_GPU.md con el desbloqueo exacto).
+4. **Sandbox sin GPU**: la generación real requiere la máquina del fundador (CONTEXTO X/02_PROCESSES/MOTOR_GPU.md con el desbloqueo exacto).
 
 ## Pendientes explícitos
 

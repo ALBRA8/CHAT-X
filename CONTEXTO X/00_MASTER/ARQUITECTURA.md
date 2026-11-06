@@ -45,7 +45,7 @@ CHAT-X es el host: opera los motores por sus contratos HTTP reales y NO reimplem
 6. **Investigación** — NEX-SCOPE + AGENTE-LEADS (receptor webhook fail-closed) + AGENTE-GENERAL.
 7. **Automatización** — orquestador de flujos E2E con pasos reales, aprobación humana, reintentos y trazabilidad.
 
-## Contratos consumidos (fuente: docs/MOTORES_REGISTRO.md + src/lib/motores.ts)
+## Contratos consumidos (fuente: CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md + src/lib/motores.ts)
 
 - YOUTUBE-AUTOMATION: `/api/harness/v1/*`, `/api/production_json/validate|contrato`, `/api/projects`, `/mcp`, SSE jobs.
 - CRM-ALBRA: `/api/crm/actions` (catálogo crm-actions/v1), `/api/health`, MCP 16 tools, wa-daemon :3002.
@@ -68,4 +68,4 @@ Tipos de paso reales: `sondear_motor`, `registrar_evento`, `youtube_validar`, `y
 
 - Runtime: Node/Bun + Next.js 16 + Prisma/SQLite. Sin Redis, sin colas externas (cola propia en BD).
 - Generación: ComfyUI (local, $0) o proveedores cloud cuando haya ingresos.
-- Motores: ver puertos en docs/MOTORES_REGISTRO.md (conflicto :3000 documentado).
+- Motores: ver puertos en CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md (conflicto :3000 documentado).

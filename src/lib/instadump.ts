@@ -9,7 +9,7 @@
 // P2.6 — Outfit Swap: variación de vestuario SIN deriva facial. La identidad
 // visual del simulador sale de baseSeed (por construcción no cambia al cambiar
 // el outfit); con proveedor real el contrato img2img (denoise bajo + imagen de
-// referencia) va documentado en docs/MOTOR_GPU.md e implementado en el adaptador
+// referencia) va documentado en CONTEXTO X/02_PROCESSES/MOTOR_GPU.md e implementado en el adaptador
 // ComfyUI. Aquí solo se planifica: mismo ancla escena/encuadre/luz, cambia outfit.
 //
 // HONESTIDAD: los pools están curados y vacíos de términos prohibidos por

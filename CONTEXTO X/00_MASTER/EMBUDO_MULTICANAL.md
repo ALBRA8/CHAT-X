@@ -20,8 +20,8 @@ Canales objetivo a evolucionar: **Facebook, Instagram y Telegram**.
 
 ## 2. Los 3 motores = una sola máquina (estado real verificado)
 
-Fuente: `docs/MOTORES_REGISTRO.md` (commits fijados) + sonda profunda de 4 capas
-(`docs/ESTADO_ACTUAL.md` §1, `docs/evidencia/sonda_profunda.json`).
+Fuente: `CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md` (commits fijados) + sonda profunda de 4 capas
+(`CONTEXTO X/00_MASTER/ESTADO_ACTUAL.md` §1, `CONTEXTO X/04_AUDITS/evidencia/sonda_profunda.json`).
 
 | Motor | Commit fijado | Rol en la máquina | Puerto | Estado real |
 |---|---|---|---|---|
@@ -29,7 +29,7 @@ Fuente: `docs/MOTORES_REGISTRO.md` (commits fijados) + sonda profunda de 4 capas
 | WHATSPOWER-ULTRA | `e6ef56d` | **Difusión** — campañas anti-ban step-driven (re-contacto/retención a escala) | :3004 | OPERATIVO (`ALLOW_REAL_DISPATCH` apagado, 0 campañas) |
 | CRM-ALBRA | `ea87cc2` | **Memoria del embudo** — récord comercial, etapas, seguimiento, cuándo re-contactar | :3100 | DEGRADADO → solo falta la API key `albra_…` (genera en Settings → API keys del propio CRM) |
 
-Regla permanente de aislamiento de BD y puertos: ver `docs/MOTORES_REGISTRO.md`
+Regla permanente de aislamiento de BD y puertos: ver `CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md`
 (cada engine con su `DATABASE_URL` absoluta propia; re-clonado con
 `scripts/reclonar_engines.sh`, repos ALBRA8 jamás se modifican — solo lectura).
 
@@ -73,7 +73,7 @@ META (FB/IG) · WHATSAPP · TELEGRAM
 - **F1 — Puente conversacional WhatsApp**: whatspower webhook → `/api/chat`
   (modo novia) → gate → envío → registro CRM. Piezas que faltan: el pegamento
   webhook↔cerebro; QR de WhatsApp del fundador
-  (`docs/WHATSAPP_QR_ACTIVACION.md`); API key del CRM o, si no, libro interno
+  (`CONTEXTO X/02_PROCESSES/WHATSAPP_QR_ACTIVACION.md`); API key del CRM o, si no, libro interno
   de CHAT-X como memoria provisional.
 - **F2 — Modo novia en los flujos**: adaptar el "Flujo de Calificación" de
   WHATSPOWER y las campañas de ULTRA para que el tono/respuestas salgan del

@@ -20,7 +20,7 @@
 //
 // Seguridad: solo lecturas GET y operaciones sin efecto externo (simulate de flujo,
 // spintax determinista, scraping de example.com). NUNCA envía mensajes ni publica.
-// Evidencia: docs/evidencia/sonda_profunda.json (comiteado, reproducible).
+// Evidencia: CONTEXTO X/04_AUDITS/evidencia/sonda_profunda.json (comiteado, reproducible).
 
 export {}
 
@@ -34,7 +34,7 @@ interface SondaProfunda {
 }
 
 const RAIZ = new URL('../', import.meta.url).pathname // raíz del proyecto (scripts/ → ..)
-const SALIDA = RAIZ + 'docs/evidencia/sonda_profunda.json'
+const SALIDA = RAIZ + 'CONTEXTO X/04_AUDITS/evidencia/sonda_profunda.json'
 
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 
@@ -294,5 +294,5 @@ console.log(`  RAM disponible al terminar: ${memDisponibleMB()} MB (sonda secuen
 console.log(`  Evidencia JSON: ${SALIDA.replace(RAIZ, '')}`)
 
 const fs = await import('node:fs')
-fs.mkdirSync(RAIZ + 'docs/evidencia', { recursive: true })
+fs.mkdirSync(RAIZ + 'CONTEXTO X/04_AUDITS/evidencia', { recursive: true })
 fs.writeFileSync(SALIDA, JSON.stringify({ generadoEn: new Date().toISOString(), taxonomia: ['OPERATIVO', 'DEGRADADO', 'NO_CONFIGURADO', 'NO_DISPONIBLE', 'ERROR'], nota: 'Ningún estado se deriva solo de HTTP 200: cada capa queda evidenciada.', resultados: RESULTADOS }, null, 2))

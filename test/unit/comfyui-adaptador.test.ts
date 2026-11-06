@@ -5,7 +5,7 @@
 // descarga de bytes, envoltura SVG con dimensiones, determinismo de seed, manejo de
 // errores HTTP y de timeout sin outputs.
 // Qué NO demuestra: generación real de píxeles — eso requiere ComfyUI con modelo
-// instalado (GPU o CPU), ver docs/MOTOR_GPU.md y scripts/benchmark_gpu.sh.
+// instalado (GPU o CPU), ver CONTEXTO X/02_PROCESSES/MOTOR_GPU.md y scripts/benchmark_gpu.sh.
 import { describe, test, expect } from 'bun:test'
 import fs from 'fs'
 import os from 'os'

@@ -110,7 +110,7 @@ primero la alternativa de CPU"). Resultados medidos, no estimados:
 
 Extrapolación honesta (derivada, no medida): 512×768/20 pasos ≈ 4–5 min/imagen
 en estas 2 vCPU. La CPU sirve para previews, pruebas y volúmenes bajos;
-para producción real, ComfyUI+GPU (docs/EVALUACION_GPU.md) sigue siendo la vía.
+para producción real, ComfyUI+GPU (CONTEXTO X/04_AUDITS/EVALUACION_GPU.md) sigue siendo la vía.
 En una máquina doméstica de 8 vCPU el mismo flujo cae a ~25–40 s/imagen preview.
 
 ## Requisitos exactos del fallback CPU (para el operador)

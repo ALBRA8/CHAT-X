@@ -23,7 +23,7 @@ Orden del fundador: sondas ampliadas por motor, taxonomía estricta de 5 estados
 
 ## 1. Sonda profunda por capas (nueva herramienta: scripts/sonda_profunda.ts)
 
-Cada motor pasa SECUENCIALMENTE por: configuración → conectividad → **salud semántica** (parseo real del body) → dependencias + acceso real a BD → **operación representativa** (lectura o acción segura sin envío: simulate de flujo, spintax determinista, scraping de example.com). Resultados completos por motor: `docs/MOTORES_REGISTRO.md` §Taxonomía y `docs/evidencia/sonda_profunda.json`.
+Cada motor pasa SECUENCIALMENTE por: configuración → conectividad → **salud semántica** (parseo real del body) → dependencias + acceso real a BD → **operación representativa** (lectura o acción segura sin envío: simulate de flujo, spintax determinista, scraping de example.com). Resultados completos por motor: `CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md` §Taxonomía y `CONTEXTO X/04_AUDITS/evidencia/sonda_profunda.json`.
 
 | Estado | Motores |
 |---|---|
@@ -41,8 +41,8 @@ Estabilidad: 3 muestras de health por motor vivo (latencias 0-75ms, sin fallos);
 |---|---|---|---|---|
 | 1 | **NEX-SCOPE en ERROR tras el reinicio del sandbox**: el clon 43e2e4c traía un bug de sintaxis **upstream** (coma doble en `SettingsView.tsx:77`); la página raíz no compilaba y el dev server quedaba envenenado (health → 500 en cascada). El "OPERATIVO" previo solo miraba health 200 | `/tmp/nexscope_recuperacion2.log`: `Unexpected token ,` en SettingsView.tsx:77:27; `git show HEAD:` del clon confirma la coma doble ANTES del fix | Clon actualizado al upstream `d818f3e` (fix del propio autor, solo `git fetch` + checkout de SU commit; cero cambios nuestros en su código) | `GET /` → 200 · health 200 estable DESPUÉS de compilar la raíz · md5 `nexscope.db` idéntico antes/durante/después (`1d1b67…`) |
 | 2 | **`youtube_estado` sondeaba una ruta inexistente**: `GET /api/jobs/{id}` no existe en el motor (solo `/events` SSE y `/cancel`) — el paso habría hecho polling a 404 para siempre | grep en el clon YT 2589e4e: solo `@app.get("/api/jobs/{job_id}/events")` y `@app.post("/api/jobs/{job_id}/cancel")` | Paso re-cableado al contrato real `GET /api/projects/{pid}` (`status: pending\|paso\|ready\|failed` + `job.status`) con resolutor puro nuevo | 7 unit tests nuevas (`test/unit/youtube-estado.test.ts`) · suite completa 46 pass · tsc limpio |
-| 3 | **Upstream avanzó en 2 motores** (nunca por push nuestro): YT `fef6682→2589e4e` ("NotebookLM series pilot production gate"), NEX `43e2e4c→d818f3e` | `git ls-remote origin HEAD` (solo lectura) | Clon YT re-fetch shallow; registro de procedencia actualizado | `docs/MOTORES_REGISTRO.md` §Re-verificación |
-| 4 | **Recuperación de proceso**: el primer re-arranque de NEX-SCOPE murió silenciosamente al cerrarse el shell del sandbox (sin OOM: dmesg limpio) | log sin errores tras el 200 inicial | Procedimiento de doble fork `( … & )` documentado y validado | servidor estable en llamadas separadas + procedimiento en `docs/MOTORES_REGISTRO.md` |
+| 3 | **Upstream avanzó en 2 motores** (nunca por push nuestro): YT `fef6682→2589e4e` ("NotebookLM series pilot production gate"), NEX `43e2e4c→d818f3e` | `git ls-remote origin HEAD` (solo lectura) | Clon YT re-fetch shallow; registro de procedencia actualizado | `CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md` §Re-verificación |
+| 4 | **Recuperación de proceso**: el primer re-arranque de NEX-SCOPE murió silenciosamente al cerrarse el shell del sandbox (sin OOM: dmesg limpio) | log sin errores tras el 200 inicial | Procedimiento de doble fork `( … & )` documentado y validado | servidor estable en llamadas separadas + procedimiento en `CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md` |
 | 5 | **Escáner de secretos con bug de salida** (`grep -c` + `|| echo 0` producía "0\n0") | stderr del escaneo | Corregido (`\|\| true`) | escaneo limpio: 0 secretos en árbol e historial |
 
 ## 3. Re-pruebas de estabilidad (todas re-ejecutadas hoy, sin envíos reales)
@@ -77,8 +77,8 @@ Estabilidad: 3 muestras de health por motor vivo (latencias 0-75ms, sin fallos);
 
 ## 5. Bloqueos que requieren al fundador (sin cambios estructurales)
 
-1. **Revocar el PAT de GitHub** — procedimiento completo en `docs/SEGURIDAD.md` (5 min en su navegador; único secreto comprometido, vive solo en el canal de chat; nunca se mostró ni copió en esta fase).
-2. **QR de WhatsApp** + destinatario consentido (`docs/WHATSAPP_QR_ACTIVACION.md`).
+1. **Revocar el PAT de GitHub** — procedimiento completo en `CONTEXTO X/00_MASTER/SEGURIDAD.md` (5 min en su navegador; único secreto comprometido, vive solo en el canal de chat; nunca se mostró ni copió en esta fase).
+2. **QR de WhatsApp** + destinatario consentido (`CONTEXTO X/02_PROCESSES/WHATSAPP_QR_ACTIVACION.md`).
 3. **API key `albra_…` del CRM** — con ella, CRM pasa de DEGRADADO a OPERATIVO pleno (m2m de escritura).
 4. **Motor YT en su máquina** (FFmpeg + Chrome/CDP + flags) — con él, los 7 contratos pasan de "implementados" a invocables.
 5. **Sesión JWT de NEX-SCOPE o contrato API key en su repo** — pendiente del motor (no de CHAT-X).
@@ -130,8 +130,8 @@ Resultados ejecutados (2026-10-29): suite **33 PASS · 0 FAIL · 0 SKIP** (inclu
 
 ## 5. Bloqueos con intervención del fundador (sin cambios respecto a lo documentado)
 
-1. Revocar el PAT de GitHub (docs/SEGURIDAD.md — 5 min en su navegador; único secreto comprometido, vive solo en el chat).
-2. QR de WhatsApp + destinatario consentido (docs/WHATSAPP_QR_ACTIVACION.md).
+1. Revocar el PAT de GitHub (CONTEXTO X/00_MASTER/SEGURIDAD.md — 5 min en su navegador; único secreto comprometido, vive solo en el chat).
+2. QR de WhatsApp + destinatario consentido (CONTEXTO X/02_PROCESSES/WHATSAPP_QR_ACTIVACION.md).
 3. API key `albra_…` del CRM para que crm_accion pase de 401 a ejecutable.
 4. Motor YT en su máquina (FFmpeg + Chrome/CDP) para YouTube/Gemini/Flow reales.
 5. NVIDIA_API_KEY / TELEGRAM_BOT_TOKEN para LEADS y AGENTE-GENERAL.
@@ -150,7 +150,7 @@ Incidente operativo de la sesión (sin pérdida de datos): el sandbox tiene 4 GB
 6. ** Nuevos pasos del orquestador**: `programar_publicacion` (Set real → calendario ICS/CSV) y `ultra_step` (contrato real de ULTRA) — con whitelist actualizada y unit tests.
 7. **Unitarias bun:test (18)**: crypto (scrypt, wrap/deswrap clave maestra, AES-256-GCM roundtrip + clave errónea = null), filtro de edad aparente, composición de prompt con procedencia, whitelist del orquestador, determinismo de semillas.
 8. **Correcciones de calidad**: 5 errores de TypeScript en src/ (verde: `tsc --noEmit` sin errores en src/) · duplicado en pruebas_api.sh · tsconfig excluye clones/plantillas del entorno.
-9. **Benchmark GPU reproducible**: `scripts/benchmark_gpu.sh` (SDXL semilla fija, N corridas, $/imagen a tarifa dada). En sandbox sin ComfyUI → **SKIP honesto exit 2** (no simula números). Evaluación completa: docs/EVALUACION_GPU.md.
+9. **Benchmark GPU reproducible**: `scripts/benchmark_gpu.sh` (SDXL semilla fija, N corridas, $/imagen a tarifa dada). En sandbox sin ComfyUI → **SKIP honesto exit 2** (no simula números). Evaluación completa: CONTEXTO X/04_AUDITS/EVALUACION_GPU.md.
 
 
 ## Ejecutadas y aprobadas (27)
@@ -177,7 +177,7 @@ Incidente operativo de la sesión (sin pérdida de datos): el sandbox tiene 4 GB
 
 ## Bloqueadas (requieren intervención del fundador)
 
-- Producción audiovisual E2E real con GPU → máquina del fundador (docs/MOTOR_GPU.md).
+- Producción audiovisual E2E real con GPU → máquina del fundador (CONTEXTO X/02_PROCESSES/MOTOR_GPU.md).
 - Producción de video vía Google Flow → requiere Chrome con sesión Google + FFmpeg en la máquina del fundador (motor YT).
 - Envío real de WhatsApp/campañas → requiere daemon Baileys con sesión QR y piloto confirmado (ULTRA).
 - LLM de agentes (AGENTE-GENERAL ejecución real) → requiere API key del proveedor LLM y arranque del servicio.
@@ -196,7 +196,7 @@ Incidente operativo de la sesión (sin pérdida de datos): el sandbox tiene 4 GB
 
 - `fcb5010` verificado como HEAD, árbol limpio; remoto NO configurado (push imposible accidentalmente).
 - `git ls-files` auditado: **cero** `.env`/tokens/cookies/credenciales/binarios grandes en el commit; `.env*` en .gitignore (línea 34); `engines/` (repos de terceros) fuera del versionado; `git remote -v` vacío.
-- Escaneo de secretos hardcodeados (`ghp_`, `sk-`, `AIza`, `xoxb-`) en src/ scripts/ docs/: **0 resultados**.
+- Escaneo de secretos hardcodeados (`ghp_`, `sk-`, `AIza`, `xoxb-`) en src/ scripts/ CONTEXTO X/: **0 resultados**.
 - El `.env` del sandbox solo contiene `DATABASE_URL`.
 
 ## Producción audiovisual REAL (punto 2) — imagen, voz y video por separado
@@ -208,8 +208,8 @@ Incidente operativo de la sesión (sin pérdida de datos): el sandbox tiene 4 GB
 | Provider `local-cpu` integrado | **REAL Y PROBADA** | factory (`ESTUDIO_PROVIDER=local-cpu`) + worker.ts + test orquestación (script falso: éxito, ok:false, timeout) | 3/3 pass + E2E real 1/1 (98 s) |
 | Benchmark CPU reproducible | **REAL Y PROBADA** | `bash scripts/benchmark_cpu.sh` (2 corridas) | **50.8 s/imagen estado estable → 71 img/h → $0.0007/imagen a $0.02/h**; corrida fría 186.7 s (incluye carga de modelo) |
 | Voz REAL (TTS) por separado | **REAL Y PROBADA** | `scripts/voz_cpu_real.py` (Piper 1.8, es_ES-carlfm-x_low, onnxruntime CPU) | **5.3 s de audio en 0.21 s de CPU (20× tiempo real)**; WAV real en `download/voz_real_es.wav` (16 kHz, 1 canal) |
-| Adaptador ComfyUI contra ComfyUI REAL | PARCIAL | salud + generación requieren ComfyUI corriendo | BLOQUEADO en sandbox (no hay ComfyUI ni GPU); desbloqueo documentado en docs/MOTOR_GPU.md |
-| Video REAL (SVD/Wan/AnimateDiff) | **BLOQUEADA** | — | Requiere GPU (24 GB+ para Wan 2.1 14B); en CPU ≈ horas por clip. **No se declara activo.** Ver docs/EVALUACION_GPU.md §4 |
+| Adaptador ComfyUI contra ComfyUI REAL | PARCIAL | salud + generación requieren ComfyUI corriendo | BLOQUEADO en sandbox (no hay ComfyUI ni GPU); desbloqueo documentado en CONTEXTO X/02_PROCESSES/MOTOR_GPU.md |
+| Video REAL (SVD/Wan/AnimateDiff) | **BLOQUEADA** | — | Requiere GPU (24 GB+ para Wan 2.1 14B); en CPU ≈ horas por clip. **No se declara activo.** Ver CONTEXTO X/04_AUDITS/EVALUACION_GPU.md §4 |
 | QA visual automático de identidad | PARCIAL (declarado) | — | Requiere modelo de visión; hoy: identidad determinista por seed + revisión humana en Biblioteca (mismo criterio que ComfyUI, sin fingir QA) |
 
 ## WhatsApp seguro (punto 3)
@@ -221,7 +221,7 @@ Incidente operativo de la sesión (sin pérdida de datos): el sandbox tiene 4 GB
 | Cerrojo HMAC + anti-replay | **REAL Y PROBADA** | firma inválida → **HTTP 401**; timestamp expirado → **HTTP 401** "replay protection" (en vivo) | fail-closed verificado |
 | WHATSPOWER-ULTRA 2B (difusión) | **REAL Y PROBADA (arranque + cerrojos)** | suite propia 1/1 pass; arranque :3004; módulos anti-abuso auditados (suppression.ts, lock-checker.ts, throttler.ts, broadcast-worker.ts) | `{"status":"ok","service":"whatspower-ultra"}`; despacho real no ejecutado (regla: nada a personas sin autorización) |
 | Daemon Baileys (:3002) | PARCIAL (código auditado) | Lectura completa daemon.mjs (846 líneas): fail-closed sin `INTERNAL_API_SECRET` (≥24 chars), QR base64+terminal, sesión en `.wa-auth/`, `/send` autenticado, logout | Arranque real requiere instalar CRM-ALBRA completo + escanear QR con dispositivo → **BLOQUEADO (intervención del fundador)** |
-| Vinculación QR documentada | **REAL Y PROBADA (doc)** | `docs/WHATSAPP_QR_ACTIVACION.md` — procedimiento paso a paso desde el código real, prueba con destinatario consentido, logout/rotación de secretos | Documento reproducible |
+| Vinculación QR documentada | **REAL Y PROBADA (doc)** | `CONTEXTO X/02_PROCESSES/WHATSAPP_QR_ACTIVACION.md` — procedimiento paso a paso desde el código real, prueba con destinatario consentido, logout/rotación de secretos | Documento reproducible |
 | Envío real a destinatario consentido | **BLOQUEADA** | — | Requiere teléfono del fundador (escanear QR) |
 
 ## Integraciones (punto 4) — sondeo EN VIVO con `sondearMotor` de CHAT-X
@@ -253,16 +253,16 @@ Incidente operativo de la sesión (sin pérdida de datos): el sandbox tiene 4 GB
 
 - `scripts/benchmark_cpu.sh` → **medido**: 50.8 s/imagen estable (384×384, 12 pasos, SD 1.5 fp16), 71 img/h, RAM pico 1.9 GB, **$0.0007/imagen** a $0.02/h.
 - `scripts/benchmark_gpu.sh` → SKIP honesto (exit 2) sin ComfyUI: "el benchmark solo tiene sentido con generación REAL". Dependencia exacta que falta: ComfyUI instalado + GPU (o el modelo en su host).
-- Comparación completa con datos: docs/EVALUACION_GPU.md §4 (CPU medido vs GPU local vs RunPod vs API — API cerrada descartada para 18+ por ToS).
+- Comparación completa con datos: CONTEXTO X/04_AUDITS/EVALUACION_GPU.md §4 (CPU medido vs GPU local vs RunPod vs API — API cerrada descartada para 18+ por ToS).
 - **Criterio de decisión**: para FOTO a escala, GPU local RTX 3060 12GB (~$250 usada) se paga con ~2 meses de nube a 5 creadoras; para VIDEO, 4090/A6000 por hora solo cuando hay encargo (facturación por segundo). Ninguna compra sin autorización del fundador.
 
 ## Bloqueos concretos restantes (todos de intervención del fundador)
 
-1. **ComfyUI/GPU real** → instalar en tu máquina (docs/MOTOR_GPU.md §Desbloqueo exacto); mientras tanto `ESTUDIO_PROVIDER=local-cpu` ya genera de verdad (lento).
-2. **QR de WhatsApp** → escanear con el dispositivo autorizado (docs/WHATSAPP_QR_ACTIVACION.md §3) y probar con destinatario consentido (§4).
+1. **ComfyUI/GPU real** → instalar en tu máquina (CONTEXTO X/02_PROCESSES/MOTOR_GPU.md §Desbloqueo exacto); mientras tanto `ESTUDIO_PROVIDER=local-cpu` ya genera de verdad (lento).
+2. **QR de WhatsApp** → escanear con el dispositivo autorizado (CONTEXTO X/02_PROCESSES/WHATSAPP_QR_ACTIVACION.md §3) y probar con destinatario consentido (§4).
 3. **Credenciales de motores** → NVIDIA_API_KEY / TELEGRAM_BOT_TOKEN (AGENTE-LEADS, AGENTE-GENERAL) en tu `.env`; no se pegan en chat.
 4. **Video real** → GPU 24 GB+ (RunPod por horas o RTX local); el flujo ya está preparado para cambiar de provider con una variable.
-5. **Rotación del PAT de GitHub** → procedimiento en docs/SEGURIDAD.md (revocar en github.com/settings/tokens desde tu navegador; el token nunca viaja por el chat).
+5. **Rotación del PAT de GitHub** → procedimiento en CONTEXTO X/00_MASTER/SEGURIDAD.md (revocar en github.com/settings/tokens desde tu navegador; el token nunca viaja por el chat).
 
 ---
 

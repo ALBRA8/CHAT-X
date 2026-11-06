@@ -86,7 +86,7 @@ Y los 4 NO operativos, con su causa exacta: **youtube** :8000 INALCANZABLE (corr
 
 ## Taxonomía de 5 estados y SONDA PROFUNDA (validación d131124, 2026-10-28)
 
-Regla del fundador: **no se marca un motor como operativo por un simple HTTP 200**. Nueva sonda: `bun scripts/sonda_profunda.ts` (secuencial, sin OOM; evidencia JSON en `docs/evidencia/sonda_profunda.json`). Cada motor pasa por capas reales: configuración → conectividad → **salud semántica** (el body dice lo que debe decir) → dependencias + BD real → **operación representativa** (lectura o acción segura sin envío a nadie).
+Regla del fundador: **no se marca un motor como operativo por un simple HTTP 200**. Nueva sonda: `bun scripts/sonda_profunda.ts` (secuencial, sin OOM; evidencia JSON en `CONTEXTO X/04_AUDITS/evidencia/sonda_profunda.json`). Cada motor pasa por capas reales: configuración → conectividad → **salud semántica** (el body dice lo que debe decir) → dependencias + BD real → **operación representativa** (lectura o acción segura sin envío a nadie).
 
 | Estado | Definición exacta |
 |---|---|

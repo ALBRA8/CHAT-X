@@ -3,7 +3,7 @@
 # (Decisión del fundador 30-oct-2026: casa nueva en cuenta GitHub aparte.
 #  Copias espejo COMPLETAS con historia como procedencia; divergen después
 #  a propósito al adaptarse a modo novia. Documentado en
-#  docs/EMBUDO_MULTICANAL.md §8.)
+#  CONTEXTO X/00_MASTER/EMBUDO_MULTICANAL.md §8.)
 #
 # Uso:
 #   export RECLONAR_TOKEN=<PAT con LECTURA a ALBRA8>

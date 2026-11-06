@@ -4,7 +4,7 @@
 // Adecuado para: previews, pruebas y volúmenes bajos. Producción en serio: ComfyUI+GPU.
 //
 // Requisitos (máquina del operador): python3 + pip install torch(diffusores) según
-// docs/MOTOR_GPU.md §CPU; ESTUDIO_PROVIDER=local-cpu. El modelo se descarga una vez
+// CONTEXTO X/02_PROCESSES/MOTOR_GPU.md §CPU; ESTUDIO_PROVIDER=local-cpu. El modelo se descarga una vez
 // (~2.2 GB) a ~/.cache/huggingface.
 import { execFile } from 'child_process'
 import fs from 'fs'

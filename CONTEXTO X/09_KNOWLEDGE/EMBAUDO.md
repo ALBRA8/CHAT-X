@@ -31,7 +31,7 @@ medias, aquí es auditable.
 | 4 | Trend-finder UGC (tendencias → briefs) | $67 | `/api/trends` + sugerencias por personaje | OPERATIVO (manual+internas+RSS opt-in) |
 | 5 | Voice notes naturales (piper-local $0) | $47 | `voiceContract` + piper/espeak locales | OPERATIVO $0/mes |
 | 6 | Orquestador de flujos con aprobación humana | $97 | módulo Automatización + `url_video_brief` + calendario ICS/CSV | OPERATIVO |
-| 7 | Motor GPU casero (guía + contratos ComfyUI) | $47 | `docs/MOTOR_GPU.md` + adaptador real + sondas honestas | OPERATIVO (ruta $0/mes) |
+| 7 | Motor GPU casero (guía + contratos ComfyUI) | $47 | `CONTEXTO X/02_PROCESSES/MOTOR_GPU.md` + adaptador real + sondas honestas | OPERATIVO (ruta $0/mes) |
 | 8 | Monetización white-label (planes+rollover+packs+split) | $197/año | `/api/monetizacion` (MODO_INTERNO→REAL cuando el comprador conecte su procesador) | OPERATIVO en simulación; cobros reales los pone el comprador |
 
 Notas de honestidad para la página de ventas (OBLIGATORIAS, no negociables):

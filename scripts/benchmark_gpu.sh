@@ -11,7 +11,7 @@
 #   BENCHMARK_TARIFA_HORA=0.34 \      # $/h del hardware que evalúas (RunPod 4090 community = 0.34)
 #   bash scripts/benchmark_gpu.sh
 #
-# Criterios de decisión: ver docs/EVALUACION_GPU.md §7.
+# Criterios de decisión: ver CONTEXTO X/04_AUDITS/EVALUACION_GPU.md §7.
 set -u
 URL="${BENCHMARK_URL:-${COMFYUI_URL:-http://127.0.0.1:8188}}"
 CHECKPOINT="${BENCHMARK_CHECKPOINT:-sd_xl_base_1.0.safetensors}"
@@ -27,7 +27,7 @@ echo "   checkpoint=$CHECKPOINT pasos=$PASOS ${W}x${H} corridas=$RUNS tarifa_ref
 # 1) Salud de ComfyUI
 if ! curl -sf --max-time 5 "$URL/system_stats" > /tmp/bench_stats.json 2>/dev/null; then
   echo "SKIP  No hay ComfyUI en $URL — el benchmark solo tiene sentido con generación REAL."
-  echo "      Arranca ComfyUI (docs/MOTOR_GPU.md) y reintenta. Nada se simula aquí."
+  echo "      Arranca ComfyUI (CONTEXTO X/02_PROCESSES/MOTOR_GPU.md) y reintenta. Nada se simula aquí."
   exit 2
 fi
 python3 - << 'EOF'

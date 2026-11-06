@@ -3,7 +3,7 @@
 //  - simulador: la identidad visual sale de baseSeed (el outfit no la toca);
 //  - ComfyUI (real): contrato img2img — imagen de referencia (pieza aprobada
 //    del personaje) + denoise bajo; el adaptador inyecta LoadImage/denoise
-//    (docs/MOTOR_GPU.md §img2img). Con el simulador el ancla visual es la
+//    (CONTEXTO X/02_PROCESSES/MOTOR_GPU.md §img2img). Con el simulador el ancla visual es la
 //    semilla base y la referencia se declara en provenance igualmente.
 // El filtro de edad se aplica al outfit y al ancla ANTES de gastar créditos.
 import { NextRequest } from 'next/server'

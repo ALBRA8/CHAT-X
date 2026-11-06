@@ -4,7 +4,7 @@
 // escalera completa (draft/standard/max con créditos por segundo) y el brief
 // desde una URL pública, ANTES de gastar un solo crédito. El render solo se
 // encola si la sonda del proveedor de vídeo da OPERATIVO; si no, responde con
-// el estado honesto y cómo activarlo (docs/MOTOR_GPU.md).
+// el estado honesto y cómo activarlo (CONTEXTO X/02_PROCESSES/MOTOR_GPU.md).
 //
 // El filtro de edad se aplica al texto del brief (regla constitucional) y el
 // blindaje SSRF vive en src/lib/video.ts (validarURLPublica).

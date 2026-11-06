@@ -14,8 +14,8 @@ y su propio puerto. La conexión entre ellos NO es código compartido: son
 o re-clona SOLO ese brazo — el resto del cuerpo no se entera.
 
 ```
-/home/z/my-project/                 ← CHAT-X (este repo · github.com/ALBRA8/CHAT-X)
-├── src/  prisma/  docs/  scripts/  ← el CUERPO: código propio de CHAT-X
+/home/z/my-project/                 ← CHAT-X (este repo · TORRE VIVA: github.com/musestudio8/CHAT-X)
+├── src/  prisma/  CONTEXTO X/  scripts/  ← el CUERPO: código propio de CHAT-X
 └── engines/                        ← los BRAZOS (NUNCA se versionan en CHAT-X)
     ├── CRM-ALBRA/          ← github.com/ALBRA8/CRM-ALBRA          (:3100 · db/crm.db)
     ├── WHATSPOWER/         ← github.com/ALBRA8/WHATSPOWER         (:3003 · db/operational.db)
@@ -25,16 +25,27 @@ o re-clona SOLO ese brazo — el resto del cuerpo no se entera.
     └── COMUNITI-MANAGER/  Extension-CAZADOR/
 ```
 
-- **Cada carpeta = un repo git completo e independiente**: su propio `.git`, su commit fijado (`docs/MOTORES_REGISTRO.md`), sus propias licencias (`docs/CLONES_LICENCIAS.md`).
+- **Cada carpeta = un repo git completo e independiente**: su propio `.git`, su commit fijado (`CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md`), sus propias licencias (`CONTEXTO X/09_KNOWLEDGE/CLONES_LICENCIAS.md`).
 - **Aislamiento de BD por diseño**: cada motor arranca con SU `DATABASE_URL` absoluta propia (regla permanente tras el incidente 2026-10-28) — jamás comparten fichero de datos.
 - **Reparar un brazo sin estallar el cuerpo**: `export RECLONAR_TOKEN=<PAT> bash scripts/reclonar_engines.sh` re-clona cualquier carpeta dañada a su commit fijado — el resto no se toca.
-- **En GitHub de CHAT-X no verás los motores**: `engines/` está en `.gitignore` por diseño. Aquí solo vive el cuerpo; los brazos son repos hermanos en la misma organización.
+- **En GitHub de CHAT-X no verás los motores**: `engines/` está en `.gitignore` por diseño. Aquí solo vive el cuerpo; los brazos son repos hermanos — los ORIGINALES viven congelados en ALBRA8 (biblioteca, solo lectura) y las COPIAS DE NEGOCIO ya están mudadas a la casa nueva **musestudio8** (31-oct: WHATSPOWER, WHATSPOWER-ULTRA, CRM + esta torre; verificación SHA a SHA).
 
-## Ecosistema de motores (originales en github.com/ALBRA8 — solo lectura; ver docs/MOTORES_REGISTRO.md)
+## CONTEXTO X — la memoria del proyecto (la puerta única)
+
+**Toda la documentación vive dentro de `CONTEXTO X/`**, con el mismo principio de orden de CONTEXTO YOUTUBE: 10 áreas numeradas por tipo de conocimiento, cada documento con estado y propósito. Para no perdernos:
+
+- **¿En qué vamos y qué sigue?** → `CONTEXTO X/00_MASTER/PROJECT_STATE.md` (estado vivo)
+- **¿Qué decidió el fundador y qué está vigente?** → `CONTEXTO X/01_DECISIONS/DECISION_LOG.md`
+- **¿Qué significa cada palabra de la casa?** → `CONTEXTO X/00_MASTER/GLOSSARY.md`
+- **Índice maestro de TODO** → `CONTEXTO X/INDEX.md`
+
+Regla de la casa: todo documento nuevo nace dentro de una carpeta numerada de CONTEXTO X y se registra en su índice el mismo día. Después de cada sesión se actualiza PROJECT_STATE y SESSIONS.
+
+## Ecosistema de motores (originales en github.com/ALBRA8 — solo lectura; ver CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md)
 
 Aplicación web para operar un estudio de modelos virtuales IA de forma profesional y auditable: creación de personajes con identidad consistente, fábrica de fotos con control de calidad, carril privado con cifrado fuerte, exportación a plataformas de fans (Fanvue) y panel de gestión con registro de cumplimiento.
 
-Construida con el método de sala limpia (clean room): toda la especificación vivió en `docs/FICHA_Estudio_v1.md` y el código se escribió exclusivamente a partir de ella.
+Construida con el método de sala limpia (clean room): toda la especificación vivió en `CONTEXTO X/00_MASTER/FICHA_Estudio_v1.md` y el código se escribió exclusivamente a partir de ella.
 
 ## Módulos
 
@@ -68,15 +79,15 @@ Construida con el método de sala limpia (clean room): toda la especificación v
 
 ## Documentación
 
-- `docs/ARQUITECTURA.md` — diagrama, módulos, contratos, orquestador, GPU
-- `docs/MOTOR_GPU.md` — GPU local con ComfyUI ($0/mes): instalación y desbloqueo exacto
-- `docs/MOTORES_REGISTRO.md` — procedencia de los clones de motores (URL, commit, fecha, veredicto)
-- `docs/SEGURIDAD.md` — informe de seguridad honesto (implementado / riesgos aceptados / pendientes)
-- `docs/CLONAKIT_BRECHAS.md` — análisis de brechas vs referentes y roadmap priorizado
-- `docs/FICHA_Estudio_v1.md` — especificación de sala limpia del Estudio
-- `docs/INFORME_PRUEBAS.md` — resultados de pruebas ejecutadas (33 API + 18 unitarias + E2E navegador)
-- `docs/EVALUACION_GPU.md` — evaluación GPU con datos: modelos, VRAM, costos por imagen/clip, licencias, criterio de compra
-- `docs/CLONES_LICENCIAS.md` — licencias, dependencias y puertos de los 10 clones
+- `CONTEXTO X/00_MASTER/ARQUITECTURA.md` — diagrama, módulos, contratos, orquestador, GPU
+- `CONTEXTO X/02_PROCESSES/MOTOR_GPU.md` — GPU local con ComfyUI ($0/mes): instalación y desbloqueo exacto
+- `CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md` — procedencia de los clones de motores (URL, commit, fecha, veredicto)
+- `CONTEXTO X/00_MASTER/SEGURIDAD.md` — informe de seguridad honesto (implementado / riesgos aceptados / pendientes)
+- `CONTEXTO X/03_FINDINGS/CLONAKIT_BRECHAS.md` — análisis de brechas vs referentes y roadmap priorizado
+- `CONTEXTO X/00_MASTER/FICHA_Estudio_v1.md` — especificación de sala limpia del Estudio
+- `CONTEXTO X/05_TESTS/INFORME_PRUEBAS.md` — resultados de pruebas ejecutadas (33 API + 46 unitarias + E2E, fase b5b210c)
+- `CONTEXTO X/04_AUDITS/EVALUACION_GPU.md` — evaluación GPU con datos: modelos, VRAM, costos por imagen/clip, licencias, criterio de compra
+- `CONTEXTO X/09_KNOWLEDGE/CLONES_LICENCIAS.md` — licencias, dependencias y puertos de los 10 clones
 
 ## Seguridad y cumplimiento
 
@@ -99,12 +110,12 @@ bun run dev            # http://localhost:3000
 
 **Pruebas** (reproducir todo):
 ```bash
-bun test test/unit/          # 18 unitarias del núcleo (crypto, compliance, flujos)
+bun test test/unit/          # 46 unitarias del núcleo (crypto, compliance, flujos, proveedores, QA…)
 bash scripts/pruebas_api.sh  # 33 checks de API contra el servidor en marcha
 bash scripts/benchmark_gpu.sh  # benchmark real SDXL (necesita ComfyUI; si no: SKIP honesto)
 ```
 
-Variables de entorno: ver `.env.example`. Proveedores: `ESTUDIO_PROVIDER=simulador|comfyui` (misma interfaz; docs/MOTOR_GPU.md y docs/EVALUACION_GPU.md).
+Variables de entorno: ver `.env.example`. Proveedores: `ESTUDIO_PROVIDER=simulador|comfyui` (misma interfaz; CONTEXTO X/02_PROCESSES/MOTOR_GPU.md y CONTEXTO X/04_AUDITS/EVALUACION_GPU.md).
 
 ## Estructura interna de CHAT-X (el cuerpo)
 
@@ -120,7 +131,7 @@ src/
     compliance.ts   # log append-only + filtro de edad aparente
     worker.ts       # cola de trabajos
 prisma/schema.prisma
-docs/FICHA_Estudio_v1.md   # especificación (fuente única de la sala limpia)
+CONTEXTO X/00_MASTER/FICHA_Estudio_v1.md   # especificación (fuente única de la sala limpia)
 ```
 
 ## Reglas del repositorio

@@ -4,7 +4,7 @@
 // entregan envueltas en un contenedor SVG (data: URL) para reutilizar todo el
 // pipeline de almacenamiento/cifrado existente sin tocar media.ts.
 //
-// Requisitos (documentados en docs/MOTOR_GPU.md):
+// Requisitos (documentados en CONTEXTO X/02_PROCESSES/MOTOR_GPU.md):
 //   - ComfyUI corriendo con --listen y API disponible (por defecto http://127.0.0.1:8188)
 //   - ESTUDIO_PROVIDER=comfyui
 //   - COMFYUI_URL, COMFYUI_WORKFLOW_JSON (ruta a workflow en formato API con
@@ -108,7 +108,7 @@ async function generarEnComfy(req: GenerationRequest): Promise<{ base64: string;
   if (req.img2img) {
     if (!wf.nodoImagen) {
       throw new Error(
-        'img2img: el workflow no tiene nodo LoadImage — exporta un workflow con LoadImage + KSampler(denoise) para try-on real (docs/MOTOR_GPU.md §img2img).',
+        'img2img: el workflow no tiene nodo LoadImage — exporta un workflow con LoadImage + KSampler(denoise) para try-on real (CONTEXTO X/02_PROCESSES/MOTOR_GPU.md §img2img).',
       )
     }
     const fs = await import('fs')

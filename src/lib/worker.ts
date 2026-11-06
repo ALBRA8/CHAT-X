@@ -307,7 +307,7 @@ async function producirPieza(op: OpcionesPieza): Promise<ResultadoPieza> {
 
   // ── Imagen ──
   // Con proveedor real (ComfyUI): prepara la generación asíncrona primero y
-  // luego generateImage la consume de cache por semilla (ver docs/MOTOR_GPU.md).
+  // luego generateImage la consume de cache por semilla (ver CONTEXTO X/02_PROCESSES/MOTOR_GPU.md).
   const req: GenerationRequest = {
     kind: op.kind === 'examen' ? 'examen' : op.kind === 'preview' ? 'preview' : 'final',
     seed: op.seed,

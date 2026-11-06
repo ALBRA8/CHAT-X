@@ -1,5 +1,5 @@
 #!/bin/bash
-# Re-clonado de engines según docs/CLONES_LICENCIAS.md (versión be91025, 2026-10-29)
+# Re-clonado de engines según CONTEXTO X/09_KNOWLEDGE/CLONES_LICENCIAS.md (versión be91025, 2026-10-29)
 # Token transitorio SOLO en URLs de comando; nunca en config ni archivos.
 # Regla inviolable: repos ALBRA8 jamás se modifican (solo clone --depth 1, lectura).
 set -u

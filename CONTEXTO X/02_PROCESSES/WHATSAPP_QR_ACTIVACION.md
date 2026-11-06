@@ -53,7 +53,7 @@ curl -X POST http://127.0.0.1:3002/send \
 ```
 
 4. Confirmar recepción en el teléfono y aparición en `GET /conversations` del daemon.
-5. Registrar el resultado en `docs/INFORME_PRUEBAS.md` (fecha, destinatario consentido, messageId).
+5. Registrar el resultado en `CONTEXTO X/05_TESTS/INFORME_PRUEBAS.md` (fecha, destinatario consentido, messageId).
 
 **Estado actual: BLOQUEADO en sandbox** — requiere el teléfono del operador para escanear el QR (intervención humana). Ningún envío real fue ejecutado ni debe ejecutarse sin este procedimiento.
 

@@ -1,16 +1,18 @@
 # ESTADO ACTUAL — CHAT-X al cierre de la fase de validación profunda
 
 > **Referencia:** commit `b5b210c` · 2026-10-29 · fase de validación profunda **CERRADA** (aceptada por el fundador como resultado reportado, sujeta a su revisión).
+
+> **ⓘ Documento congelado:** esta es la foto de la fase b5b210c (2026-10-29). El estado VIVO del proyecto está en `PROJECT_STATE.md` (esta misma carpeta).
 >
 > **Reglas vigentes hasta nueva autorización del fundador:** no agregar funcionalidades ni rehacer módulos; sin gastos ni GPU; sin envíos o publicaciones reales; sin solicitar o incorporar credenciales nuevas; repositorios de terceros intactos; sin cambios de código hasta revisión.
 
-Este documento es la foto única del estado. Separa explícitamente **lo que ya está implementado** de **lo que todavía requiere ejecución local en la máquina del fundador**. Evidencia detallada y reproducible: `docs/INFORME_PRUEBAS.md` (fase b5b210c), `docs/MOTORES_REGISTRO.md`, `docs/evidencia/sonda_profunda.json`, `docs/SEGURIDAD.md`.
+Este documento es la foto única del estado. Separa explícitamente **lo que ya está implementado** de **lo que todavía requiere ejecución local en la máquina del fundador**. Evidencia detallada y reproducible: `CONTEXTO X/05_TESTS/INFORME_PRUEBAS.md` (fase b5b210c), `CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md`, `CONTEXTO X/04_AUDITS/evidencia/sonda_profunda.json`, `CONTEXTO X/00_MASTER/SEGURIDAD.md`.
 
 ---
 
 ## 1. Estado por motor (taxonomía de 5 niveles, sonda por capas)
 
-Ningún estado se derivó de un simple HTTP 200: cada capa (conectividad, salud semántica, BD real, dependencias, operación representativa) quedó evidenciada en `docs/evidencia/sonda_profunda.json`.
+Ningún estado se derivó de un simple HTTP 200: cada capa (conectividad, salud semántica, BD real, dependencias, operación representativa) quedó evidenciada en `CONTEXTO X/04_AUDITS/evidencia/sonda_profunda.json`.
 
 | Motor | Estado | Causa exacta |
 |---|---|---|
@@ -33,7 +35,7 @@ Corrección honesta respecto a la fase anterior: los 6 "operativos" de `d131124`
 
 | Capacidad | Evidencia |
 |---|---|
-| Registro de 10 motores con sus 7 contratos reales de YT y commits origin verificados | `src/lib/motores.ts`, `docs/MOTORES_REGISTRO.md` (ls-remote 2026-10-28, sin push nuestro) |
+| Registro de 10 motores con sus 7 contratos reales de YT y commits origin verificados | `src/lib/motores.ts`, `CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md` (ls-remote 2026-10-28, sin push nuestro) |
 | Pasos de orquestador `youtube_validar` / `youtube_submit` / `youtube_estado` que invocan los contratos por HTTP (estado corregido al contrato real `GET /api/projects/{pid}`) | 7 unitarias nuevas; suite 46 PASS |
 | Suite API 33 PASS · 0 FAIL; unitarias 46 PASS | `bash scripts/validacion_consolidacion.sh`; `bun test test/unit/` |
 | Idempotencia E2E: re-encolado del mismo job → 0 duplicados (batchId determinista, índice único characterId+seed con backup previo) | `scripts/validacion_consolidacion.sh` §2 |
@@ -41,7 +43,7 @@ Corrección honesta respecto a la fase anterior: los 6 "operativos" de `d131124`
 | Recuperación de ejecuciones zombis tras reinicio real (4 servidores rearrancados → 0 huérfanas) | consulta SQL readonly |
 | Aislamiento de BD: md5 de `nexscope.db`, `krea.db`, `crm.db` idénticos antes/después; cerrojo `12 tablas, 0 intrusas` | `bun scripts/verificar_bd.ts` |
 | Cerrojos WhatsApp en vivo: firma inválida 401 · replay 401 · webhook sin credencial 503 fail-closed | curl reales :3003/:3000 |
-| Sondeo por capas con taxonomía de 5 estados | `bun scripts/sondeo_motores.ts` → `docs/evidencia/sonda_profunda.json` |
+| Sondeo por capas con taxonomía de 5 estados | `bun scripts/sondeo_motores.ts` → `CONTEXTO X/04_AUDITS/evidencia/sonda_profunda.json` |
 | Escaneo de secretos: 0 secretos en árbol versionado e historial completo; sin remotos git | `bash scripts/escaneo_secretos.sh` |
 
 ---
@@ -68,10 +70,10 @@ Además: `GET /api/harness/v1/executions/{id}`; QA gate del render; publicación
 
 | # | Acción del fundador | Efecto al completar | Documento |
 |---|---|---|---|
-| 1 | **Poner en marcha el motor YT en su máquina** (FFmpeg + Chrome/CDP si luego quiere Flow) | Los 7 contratos pasan de "implementados" a invocables; sondeo marcará youtube alcanzable | `docs/YOUTUBE_AUTOMATION_ARRANQUE_LOCAL.md` (nuevo, modo seguro sin publicar) |
-| 2 | **Revocar el PAT de GitHub** (5 min, solo en su navegador) | Cierra la única exposición de credencial conocida | `docs/SEGURIDAD.md` § Revocación |
+| 1 | **Poner en marcha el motor YT en su máquina** (FFmpeg + Chrome/CDP si luego quiere Flow) | Los 7 contratos pasan de "implementados" a invocables; sondeo marcará youtube alcanzable | `CONTEXTO X/06_INTEGRATIONS/YOUTUBE_AUTOMATION_ARRANQUE_LOCAL.md` (nuevo, modo seguro sin publicar) |
+| 2 | **Revocar el PAT de GitHub** (5 min, solo en su navegador) | Cierra la única exposición de credencial conocida | `CONTEXTO X/00_MASTER/SEGURIDAD.md` § Revocación |
 | 3 | **API key `albra_…` del CRM** (solo si decide conectarla) | crm: DEGRADADO → OPERATIVO pleno (m2m de escritura) | — |
-| 4 | **QR de WhatsApp** + destinatario consentido (solo si decide activar envíos) | WHATSPOWER/ULTRA en modo envío real | `docs/WHATSAPP_QR_ACTIVACION.md` |
+| 4 | **QR de WhatsApp** + destinatario consentido (solo si decide activar envíos) | WHATSPOWER/ULTRA en modo envío real | `CONTEXTO X/02_PROCESSES/WHATSAPP_QR_ACTIVACION.md` |
 | 5 | **Sesión JWT de NEX-SCOPE** (o API key m2m en su repo — pendiente del motor, no de CHAT-X) | nexscope: DEGRADADO → OPERATIVO | — |
 | 6 | **NVIDIA_API_KEY / TELEGRAM_BOT_TOKEN** (solo si decide) | LEADS y AGENTE-GENERAL plenos | — |
 
@@ -91,7 +93,7 @@ Nada de lo anterior está bloqueando código de CHAT-X: son decisiones y ejecuci
 
 ## 6. Seguridad al cierre de la fase
 
-- **PAT de GitHub**: único secreto comprometido conocido (vivió solo en el canal de chat). Protocolo de revocación documentado paso a paso en `docs/SEGURIDAD.md`; el token nunca más se mostró ni copió; la revocación la ejecuta el fundador personalmente.
+- **PAT de GitHub**: único secreto comprometido conocido (vivió solo en el canal de chat). Protocolo de revocación documentado paso a paso en `CONTEXTO X/00_MASTER/SEGURIDAD.md`; el token nunca más se mostró ni copió; la revocación la ejecuta el fundador personalmente.
 - Árbol versionado e historial completo: **0 secretos** (escáner reproducible sin revelar valores).
 - `.env` de engines en disco: solo `DATABASE_URL` (rutas de fichero); **ninguna API key guardada**.
 - Remotos git: **ninguno** (push imposible desde este entorno); clones `engines/` intactos, solo-lectura; avances de upstream verificados con `git ls-remote` (fef6682→2589e4e YT, 43e2e4c→d818f3e NEX-SCOPE).

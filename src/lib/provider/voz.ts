@@ -110,12 +110,12 @@ export function sondearProveedoresVoz(): SondaVoz[] {
   if (paquete.estado !== 'OPERATIVO') {
     piper = {
       estado: 'NO_DISPONIBLE',
-      detalle: `sin paquete piper (${paquete.detalle}) — pip install piper-tts + modelo es_ES según docs/MOTOR_GPU.md (voz natural, 20× tiempo real)`,
+      detalle: `sin paquete piper (${paquete.detalle}) — pip install piper-tts + modelo es_ES según CONTEXTO X/02_PROCESSES/MOTOR_GPU.md (voz natural, 20× tiempo real)`,
     }
   } else if (!modelo) {
     piper = {
       estado: 'NO_DISPONIBLE',
-      detalle: `paquete piper presente pero sin modelo onnx en ${dirModelosPiper()} — descargar voz de rhasspy/piper-voices (es_ES) según docs/MOTOR_GPU.md`,
+      detalle: `paquete piper presente pero sin modelo onnx en ${dirModelosPiper()} — descargar voz de rhasspy/piper-voices (es_ES) según CONTEXTO X/02_PROCESSES/MOTOR_GPU.md`,
     }
   } else {
     piper = { estado: 'OPERATIVO', detalle: `piper + modelo ${path.basename(modelo.onnx)} listos en ${dirModelosPiper()}` }
@@ -192,7 +192,7 @@ function generarVozPiper(texto: string, contrato: ContratoVoz): ResultadoVoz {
     return {
       ok: false,
       estado: 'NO_DISPONIBLE',
-      detalle: `sin modelo onnx de piper en ${dirModelosPiper()} — descargar voz de rhasspy/piper-voices según docs/MOTOR_GPU.md`,
+      detalle: `sin modelo onnx de piper en ${dirModelosPiper()} — descargar voz de rhasspy/piper-voices según CONTEXTO X/02_PROCESSES/MOTOR_GPU.md`,
       provedor: 'piper-local',
     }
   }

@@ -3,7 +3,7 @@
 //  1) Orquestación del provider contra un script Python FALSO (rápido, siempre corre):
 //     invocación, lectura de resultado JSON, envoltura SVG, errores y timeout.
 //  2) Generación REAL con diffusers (opt-in: PRUEBAS_GENERACION_REAL=1; requiere
-//     torch+diffusers instalados y el modelo en caché HF — ver docs/MOTOR_GPU.md).
+//     torch+diffusers instalados y el modelo en caché HF — ver CONTEXTO X/02_PROCESSES/MOTOR_GPU.md).
 import { describe, test, expect, afterAll } from 'bun:test'
 import fs from 'fs'
 import os from 'os'

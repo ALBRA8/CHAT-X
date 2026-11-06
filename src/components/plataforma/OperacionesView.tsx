@@ -252,7 +252,7 @@ export default function OperacionesView({ onAbrirModulo }: { onAbrirModulo: (m: 
             <p className="text-xs text-muted-foreground">Midiendo sistema…</p>
           )}
           <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
-            La GPU de producción vive en tu máquina: corre <code className="text-[10px]">bash scripts/detectar_gpu.sh</code> allí y activa ComfyUI según docs/MOTOR_GPU.md.
+            La GPU de producción vive en tu máquina: corre <code className="text-[10px]">bash scripts/detectar_gpu.sh</code> allí y activa ComfyUI según CONTEXTO X/02_PROCESSES/MOTOR_GPU.md.
           </p>
         </div>
       </details>

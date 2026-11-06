@@ -7,7 +7,7 @@
 #   BENCHMARK_RUNS=2 BENCHMARK_TARIFA_HORA=0.02 bash scripts/benchmark_cpu.sh
 #   (0.02 $/h ≈ un VPS de 4 vCPU; para tu propio PC usa su coste eléctrico/hora)
 #
-# Requisitos: pip install torch (cpu) diffusers transformers — docs/MOTOR_GPU.md §CPU.
+# Requisitos: pip install torch (cpu) diffusers transformers — CONTEXTO X/02_PROCESSES/MOTOR_GPU.md §CPU.
 # Sin dependencias: SKIP honesto (no inventa números).
 set -u
 RUNS="${BENCHMARK_RUNS:-2}"
@@ -48,5 +48,5 @@ print("== RESULTADO CPU (medido, no estimado) ==")
 print(f"   media {media:.1f}s/imagen (${ANCHO}x${ALTO}, ${PASOS} pasos) → {por_hora:.1f} imágenes/hora")
 print(f"   a \$${TARIFA}/h de cómputo → \${coste_img:.4f}/imagen ({1000*coste_img:.2f} \$ por mil imágenes)")
 print(f"   memoria pico del proceso: ver ram_pico_mb en $DIR/bench_1.json")
-print("   Comparación GPU: bash scripts/benchmark_gpu.sh (requiere ComfyUI) — criterios en docs/EVALUACION_GPU.md §7")
+print("   Comparación GPU: bash scripts/benchmark_gpu.sh (requiere ComfyUI) — criterios en CONTEXTO X/04_AUDITS/EVALUACION_GPU.md §7")
 EOF

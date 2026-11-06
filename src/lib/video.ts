@@ -132,7 +132,7 @@ export async function sondearVideo(): Promise<SondaVideo> {
     return {
       estado: 'NO_CONFIGURADO',
       detalle: 'Sin COMFYUI_URL: no hay proveedor de vídeo configurado en esta máquina.',
-      comoActivar: 'docs/MOTOR_GPU.md §vídeo — levanta ComfyUI con nodos de vídeo y exporta COMFYUI_URL + COMFYUI_WORKFLOW_JSON.',
+      comoActivar: 'CONTEXTO X/02_PROCESSES/MOTOR_GPU.md §vídeo — levanta ComfyUI con nodos de vídeo y exporta COMFYUI_URL + COMFYUI_WORKFLOW_JSON.',
     }
   }
   const salud = await saludComfy()
