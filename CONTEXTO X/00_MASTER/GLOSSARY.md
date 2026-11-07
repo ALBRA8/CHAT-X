@@ -9,6 +9,7 @@ Términos de la casa. Si un documento usa una palabra de esta lista, significa E
 | **CASA PROPIA** | Enmienda del fundador (D-007): los clones jamás procesan el negocio 18+; el negocio vive en cuartos nativos de CHAT-X. |
 | **Casa nueva** | La cuenta GitHub `musestudio8`: donde vive la torre viva y las copias espejo de los motores del negocio. BLOQUEADA por GitHub desde el 2026-11-07 — durante el exilio la torre viva es `ALBRA8/CHAT-X` (D-012). |
 | **Biblioteca de referencia** | Los repos de ALBRA8: solo lectura, congelados, para consulta y líneas SFW propias. |
+| **Subcontrato** | Servicio SFW que queda en ALBRA8 y CHAT-X consume por HTTP o el fundador usa a mano (ej.: ABOGADO-BASE, CONTADOR-PÚBLICO — D-013). Jamás ve contenido adulto ni datos de fans; el original no se copia ni se modifica. |
 | **Copia espejo / mudanza** | `git clone --mirror` + push completo: historia entera preservada como procedencia; después diverge a propósito. |
 | **Commit fijado (pin)** | Cada clon `engines/` se ancla a un SHA documentado; verificarlo es parte de la procedencia. |
 | **engines/** | Carpeta local (gitignoreada) donde vive cada brazo como repo completo e independiente. No sobrevive al reciclaje del sandbox: `scripts/reclonar_engines.sh` la reconstruye. |

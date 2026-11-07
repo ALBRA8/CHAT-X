@@ -43,8 +43,9 @@ Estudio (E1-E7): genoma 7 pasos + rasgos firmantes, fábrica de fotos con QA, ca
 
 ## 4. Directrices vigentes del fundador
 
-Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-011). Las que gobiernan HOY:
+Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-013). Las que gobiernan HOY:
 - **CASA PROPIA (D-007/D-008):** los 10 clones jamás procesan el negocio 18+; cuartos nativos en CHAT-X.
+- **PORTABILIDAD (D-013):** triage de los 24 repos de ALBRA8 — qué se lleva a musestudio8, qué se subcontrata, qué no aplica (`00_MASTER/PORTABILIDAD_REPOS.md`); norte del proyecto: `00_MASTER/NORTE_PROYECTO.md`.
 - **Vídeo (D-002):** vestido → carril YT-AUTOMATION/Flow (SFW); desnudos → GPU local (sin filtro) o RunningHub (técnicamente sí, ToS sin verificar — probar barato antes de pagar).
 - **Embudo multicanal (D-004):** WhatsApp/Meta calientan (SFW); **Telegram y Fanvue cobran**.
 - **$0 y push solo con orden explícita** (reglas permanentes).
@@ -54,7 +55,7 @@ Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-011). Las que gobiernan HOY:
 | # | Hito | Dueño | Estado |
 |---|---|---|---|
 | 1 | **REVOCAR los 2 PAT expuestos en chat**: `ghp_pMCQ…` (31-oct, musestudio8) y `ghp_mbYK…` (07-nov, exilio ALBRA8) | Fundador | **PENDIENTE** — 5 min en github.com/settings/tokens |
-| 2 | Esperar desbloqueo de musestudio8 → **portar lo que sirva** desde ALBRA8 (CHAT-X exiliada + lo útil de la evolución del ecosistema) y dejar el resto en ALBRA8 (D-012) | Fundador desbloquea; agente porta | **BLOQUEADO POR GITHUB** |
+| 2 | Esperar desbloqueo de musestudio8 → **LA VUELTA** según el plan de `00_MASTER/PORTABILIDAD_REPOS.md` (D-012/D-013): acta del estado real, re-sincronizar CHAT-X, verificar las 3 copias del fundador (leads/chismoso/nexscope), portar el carril LLEVAR, subcontratos quedan en ALBRA8 | Fundador desbloquea; agente ejecuta el plan | **BLOQUEADO POR GITHUB** |
 | 2b | Crear `video-studio` en musestudio8 y mudarlo | Fundador crea; agente muda | BLOQUEADO POR GITHUB (antes: PENDIENTE) |
 | 3 | **F1 reescrita**: daemon WhatsApp PROPIO del negocio (carril adulto) — sesión propia, pacing anti-ban propio, BD propia; patrones de los clones como referencia de sala limpia | Agente (código) | SIGUIENTE |
 | 4 | F2 tono modo novia nativo (ya lo es: Chat GFE) — cablear el daemon F1 al cerebro `/api/chat` | Agente | COLA |

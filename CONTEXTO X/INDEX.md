@@ -8,7 +8,9 @@
 |---|---|---|---|
 | Master | `00_MASTER/PROJECT_STATE.md` | IN_PROGRESS | estado vivo: fase actual, bloqueadores, próximo hito |
 | Master | `00_MASTER/ARQUITECTURA.md` | VERIFIED | torre de control, contratos HTTP, aislamiento de motores |
-| Master | `00_MASTER/EMBUDO_MULTICANAL.md` | VIGENTE | directriz del fundador: embudo multicanal + CASA PROPIA (§7) + mudanza musestudio8 (§8) |
+| Master | `00_MASTER/NORTE_PROYECTO.md` | VIGENTE | qué es CHAT-X, qué queremos lograr, qué NO es — la brújula (D-013) |
+| Master | `00_MASTER/PORTABILIDAD_REPOS.md` | VIGENTE | triage de los 24 repos de ALBRA8 (llevar/subcontratar/no aplica) + plan de la vuelta (D-013) |
+| Master | `00_MASTER/EMBUDO_MULTICANAL.md` | VIGENTE | directriz del fundador: embudo multicanal + CASA PROPIA (§7) + mudanza musestudio8 (§8) + exilio (07-nov) |
 | Master | `00_MASTER/ESTADO_ACTUAL.md` | SNAPSHOT fase b5b210c | foto congelada 2026-10-29: motores por sonda, implementado vs pendiente |
 | Master | `00_MASTER/MOTORES_REGISTRO.md` | POPULATED | registro de los 10 motores: commits fijados, puertos, BD, contratos |
 | Master | `00_MASTER/SEGURIDAD.md` | VIGENTE | higiene de tokens, push solo fast-forward, protocolo de revocación |
