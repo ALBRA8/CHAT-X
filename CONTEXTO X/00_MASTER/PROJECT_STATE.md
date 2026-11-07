@@ -1,5 +1,6 @@
 # PROJECT_STATE — estado vivo de CHAT-X
 **Última actualización:** 2026-11-07
+**Identidad del negocio:** `00_MASTER/MUSE_BRIEF_MAESTRO.md` (MUSE = negocio; CHAT-X = plataforma que lo opera, D-014)
 **Fase:** EXILIO TEMPORAL (musestudio8 BLOQUEADA por GitHub el 2026-11-07) · F1 sigue en cola; el código avanza en la torre de respaldo
 **Torre viva (temporal):** `github.com/ALBRA8/CHAT-X` (main) — push de exilio con orden explícita del fundador, ver D-012
 **Torre de destino al desbloqueo:** `github.com/musestudio8/CHAT-X` @ `9dcfa08` (congelada) + portar lo empujado desde el exilio
@@ -43,7 +44,8 @@ Estudio (E1-E7): genoma 7 pasos + rasgos firmantes, fábrica de fotos con QA, ca
 
 ## 4. Directrices vigentes del fundador
 
-Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-013). Las que gobiernan HOY:
+Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-014). Las que gobiernan HOY:
+- **IDENTIDAD (D-014):** MUSE es el negocio; CHAT-X es su plataforma. Brief maestro + cartera de 5 proyectos gestionados (documentar ≠ migrar).
 - **CASA PROPIA (D-007/D-008):** los 10 clones jamás procesan el negocio 18+; cuartos nativos en CHAT-X.
 - **PORTABILIDAD (D-013):** triage de los 24 repos de ALBRA8 — qué se lleva a musestudio8, qué se subcontrata, qué no aplica (`00_MASTER/PORTABILIDAD_REPOS.md`); norte del proyecto: `00_MASTER/NORTE_PROYECTO.md`.
 - **Vídeo (D-002):** vestido → carril YT-AUTOMATION/Flow (SFW); desnudos → GPU local (sin filtro) o RunningHub (técnicamente sí, ToS sin verificar — probar barato antes de pagar).

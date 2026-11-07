@@ -50,6 +50,8 @@ ALBRA8 tiene 24 repos. **No todo se lleva.** La casa nueva es del negocio; lleva
 
 **Resumen:** LLEVAR = 7 (4 verificadas + 3 POR_VERIFICAR) · SUBCONTRATAR = 6 · BRAZOS ACTUALES = 2 · NO APLICA = 7 · POR_DEFINIR = 2.
 
+> **Cruce con la cartera documental (D-014):** CRM-ALBRA, YOUTUBE-AUTOMATION, AGENTE-LEADS, AGENTE-CHISMOSO y NEX-SCOPE son además **proyectos gestionados** por CONTEXTO X (`00_MASTER/REGISTRO_PROYECTOS_GESTIONADOS.md`). Gestionar = documentar y dar seguimiento; **no autoriza migrar, desplegar ni ejecutar**. El carril de esta tabla define dónde vive el código; el registro de cartera define qué debe conocer la memoria. YT-AUTOMATION sigue documentado aunque su carril sea SUBCONTRATAR "por ahora".
+
 ## 4. LA VUELTA — plan de retorno al desbloqueo de musestudio8
 
 ### Precondiciones (todas del fundador)
