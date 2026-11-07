@@ -11,13 +11,15 @@ CONTEXTO X es la memoria documental del proyecto. La identidad del negocio está
 2. 00_MASTER/NORTE_PROYECTO.md — brújula resumida.
 3. 01_DECISIONS/DECISION_LOG.md — decisiones explícitas del fundador.
 4. 00_MASTER/PROJECT_STATE.md — estado y bloqueadores con fecha de evidencia.
-5. Arquitectura, ficha funcional, procesos, integraciones, auditorías y pruebas según la tarea.
+5. 00_MASTER/REGISTRO_PROYECTOS_GESTIONADOS.md — cartera inicial de proyectos bajo seguimiento documental.
+6. Arquitectura, ficha funcional, procesos, integraciones, auditorías y pruebas según la tarea.
 
 ## Tabla maestra
 
 | Área | Archivo | Estado | Propósito |
 |---|---|---|---|
 | Master | 00_MASTER/MUSE_BRIEF_MAESTRO.md | VIGENTE · BASE CONCEPTUAL | fuente central: negocio MUSE, producto CHAT-X, ciclo operativo y límites |
+| Master | 00_MASTER/REGISTRO_PROYECTOS_GESTIONADOS.md | VIGENTE · ALCANCE INICIAL | cartera documental: CRM, YouTube Automation, Agente Leads, Agente Chismoso y Nexscope; no implica migración |
 | Master | 00_MASTER/PROJECT_STATE.md | IN_PROGRESS | estado vivo, fase, bloqueadores y próximo hito |
 | Master | 00_MASTER/ARQUITECTURA.md | VERIFIED (según evidencia fechada) | diseño técnico, contratos HTTP y aislamiento |
 | Master | 00_MASTER/NORTE_PROYECTO.md | VIGENTE | brújula resumida de MUSE y CHAT-X |
