@@ -14,7 +14,7 @@ y su propio puerto. La conexión entre ellos NO es código compartido: son
 o re-clona SOLO ese brazo — el resto del cuerpo no se entera.
 
 ```
-/home/z/my-project/                 ← CHAT-X (este repo · TORRE VIVA: github.com/musestudio8/CHAT-X)
+/home/z/my-project/                 ← CHAT-X (este repo · TORRE VIVA TEMPORAL: github.com/ALBRA8/CHAT-X — musestudio8 bloqueada 07-nov, D-012)
 ├── src/  prisma/  CONTEXTO X/  scripts/  ← el CUERPO: código propio de CHAT-X
 └── engines/                        ← los BRAZOS (NUNCA se versionan en CHAT-X)
     ├── CRM-ALBRA/          ← github.com/ALBRA8/CRM-ALBRA          (:3100 · db/crm.db)
@@ -28,7 +28,7 @@ o re-clona SOLO ese brazo — el resto del cuerpo no se entera.
 - **Cada carpeta = un repo git completo e independiente**: su propio `.git`, su commit fijado (`CONTEXTO X/00_MASTER/MOTORES_REGISTRO.md`), sus propias licencias (`CONTEXTO X/09_KNOWLEDGE/CLONES_LICENCIAS.md`).
 - **Aislamiento de BD por diseño**: cada motor arranca con SU `DATABASE_URL` absoluta propia (regla permanente tras el incidente 2026-10-28) — jamás comparten fichero de datos.
 - **Reparar un brazo sin estallar el cuerpo**: `export RECLONAR_TOKEN=<PAT> bash scripts/reclonar_engines.sh` re-clona cualquier carpeta dañada a su commit fijado — el resto no se toca.
-- **En GitHub de CHAT-X no verás los motores**: `engines/` está en `.gitignore` por diseño. Aquí solo vive el cuerpo; los brazos son repos hermanos — los ORIGINALES viven congelados en ALBRA8 (biblioteca, solo lectura) y las COPIAS DE NEGOCIO ya están mudadas a la casa nueva **musestudio8** (31-oct: WHATSPOWER, WHATSPOWER-ULTRA, CRM + esta torre; verificación SHA a SHA).
+- **En GitHub de CHAT-X no verás los motores**: `engines/` está en `.gitignore` por diseño. Aquí solo vive el cuerpo; los brazos son repos hermanos — los ORIGINALES viven congelados en ALBRA8 (biblioteca, solo lectura) y las COPIAS DE NEGOCIO ya están mudadas a la casa nueva **musestudio8** (31-oct: WHATSPOWER, WHATSPOWER-ULTRA, CRM + esta torre; verificación SHA a SHA). **07-nov: musestudio8 fue bloqueada por GitHub** — esta torre vive temporalmente en ALBRA8/CHAT-X por orden del fundador (D-012), hasta el desbloqueo.
 
 ## CONTEXTO X — la memoria del proyecto (la puerta única)
 

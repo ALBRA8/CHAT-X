@@ -1,7 +1,8 @@
 # PROJECT_STATE — estado vivo de CHAT-X
 **Última actualización:** 2026-11-07
-**Fase:** POST-MUDANZA · preparación F1 (daemon WhatsApp modo novia en casa nueva)
-**Torre viva:** `github.com/musestudio8/CHAT-X` @ `9dcfa08` (main)
+**Fase:** EXILIO TEMPORAL (musestudio8 BLOQUEADA por GitHub el 2026-11-07) · F1 sigue en cola; el código avanza en la torre de respaldo
+**Torre viva (temporal):** `github.com/ALBRA8/CHAT-X` (main) — push de exilio con orden explícita del fundador, ver D-012
+**Torre de destino al desbloqueo:** `github.com/musestudio8/CHAT-X` @ `9dcfa08` (congelada) + portar lo empujado desde el exilio
 **Foto congelada de la fase anterior:** `00_MASTER/ESTADO_ACTUAL.md` (b5b210c, 2026-10-29)
 
 ---
@@ -10,9 +11,9 @@
 
 | Casa | Qué vive ahí | Regla |
 |---|---|---|
-| **musestudio8** (CASA PROPIA, 31-oct) | `CHAT-X` (torre), `WHATSPOWER`, `WHATSPOWER-ULTRA`, `CRM` (copias espejo con historia completa) | aquí se trabaja y aquí se adapta a modo novia; las copias divergen a propósito |
-| **ALBRA8** (biblioteca, congelada) | los 10 repos originales + `CHAT-X` @ `34e5aa1` (2 commits atrás, histórico) | SOLO LECTURA para siempre; jamás procesa el negocio 18+ (D-007) |
-| Pendiente | `video-studio` ← ALBRA8/YOUTUBE-AUTOMATION | el fundador crea el repo destino; mudanza con `scripts/mudar_casa_nueva.sh video-studio` |
+| **musestudio8** (CASA PROPIA, 31-oct) | `CHAT-X` (torre @ `9dcfa08`, congelada), `WHATSPOWER`, `WHATSPOWER-ULTRA`, `CRM` (copias espejo con historia completa) | **BLOQUEADA por GitHub el 2026-11-07** por actividad masiva en cuenta nueva (F-007); intocable hasta el desbloqueo |
+| **ALBRA8** (biblioteca + torre temporal) | los repos originales + `CHAT-X` como torre de respaldo del exilio (D-012) | SOLO LECTURA en suspenso SOLO para CHAT-X y SOLO durante el exilio; jamás procesa el negocio 18+ (D-007) |
+| Pendiente (requiere desbloqueo) | `video-studio` ← ALBRA8/YOUTUBE-AUTOMATION; re-portar a musestudio8 lo que sirva (D-012) | el fundador crea el repo destino; mudanza con `scripts/mudar_casa_nueva.sh video-studio` |
 
 Verificación de la mudanza: SHA a SHA, sin `--force` — detalle en `00_MASTER/EMBUDO_MULTICANAL.md` §8.
 
@@ -52,8 +53,9 @@ Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-011). Las que gobiernan HOY:
 
 | # | Hito | Dueño | Estado |
 |---|---|---|---|
-| 1 | **REVOCAR el PAT `ghp_pMCQ…`** (viajó por chat el 31-oct; tras la mudanza ya no es necesario) | Fundador | **PENDIENTE** — 5 min en github.com/settings/tokens |
-| 2 | Crear `video-studio` en musestudio8 y mudarlo | Fundador crea; agente muda | PENDIENTE |
+| 1 | **REVOCAR los 2 PAT expuestos en chat**: `ghp_pMCQ…` (31-oct, musestudio8) y `ghp_mbYK…` (07-nov, exilio ALBRA8) | Fundador | **PENDIENTE** — 5 min en github.com/settings/tokens |
+| 2 | Esperar desbloqueo de musestudio8 → **portar lo que sirva** desde ALBRA8 (CHAT-X exiliada + lo útil de la evolución del ecosistema) y dejar el resto en ALBRA8 (D-012) | Fundador desbloquea; agente porta | **BLOQUEADO POR GITHUB** |
+| 2b | Crear `video-studio` en musestudio8 y mudarlo | Fundador crea; agente muda | BLOQUEADO POR GITHUB (antes: PENDIENTE) |
 | 3 | **F1 reescrita**: daemon WhatsApp PROPIO del negocio (carril adulto) — sesión propia, pacing anti-ban propio, BD propia; patrones de los clones como referencia de sala limpia | Agente (código) | SIGUIENTE |
 | 4 | F2 tono modo novia nativo (ya lo es: Chat GFE) — cablear el daemon F1 al cerebro `/api/chat` | Agente | COLA |
 | 5 | Decidir destino del repo `borrador` de musestudio8 (borrar o dejar) | Fundador | PENDIENTE |
@@ -66,3 +68,5 @@ Nada de lo anterior bloquea código de CHAT-X.
 - El PAT del 31-oct sigue vivo hasta que el fundador lo revoque (F-001 en `07_FAILURES/`).
 - `engines/` no sobrevive al reciclaje del sandbox: se reconstruye con `scripts/reclonar_engines.sh` (F-003).
 - Los estados de motores de la §2 son del 29-oct: re-ejecutar `bun scripts/sonda_profunda.ts` antes de declarar cualquier cambio de estado.
+- **musestudio8 bloqueada (2026-11-07)**: GitHub frenó la casa nueva por recibir demasiada actividad de golpe. Solo el fundador puede apelar el desbloqueo; mientras tanto la torre vive en ALBRA8/CHAT-X (D-012) y no se perdió ni un commit (lección F-006 aplicada).
+- El PAT del exilio (`ghp_mbYK…`) viajó por el chat el 07-nov: usado una vez por variable de entorno y **a revocar ya** (F-001).

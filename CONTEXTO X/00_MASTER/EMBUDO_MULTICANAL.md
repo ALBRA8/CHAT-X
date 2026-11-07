@@ -171,8 +171,8 @@ Nada se pierde y nada se toca en ALBRA8.
 - `CHAT-X` → empujada desde la COPIA LOCAL VIVA, no desde ALBRA8: la local iba
   2 commits adelante (`5c32c30`, `9dcfa08`, nunca subidos) y el espejo desde
   ALBRA8 los habría perdido. Verificada SHA a SHA con historia completa.
-  ALBRA8/CHAT-X quedó en `34e5aa1` (2 atrás): **la torre viva ahora es
-  musestudio8/CHAT-X**.
+  ALBRA8/CHAT-X quedó en `34e5aa1` (2 atrás): **la torre viva pasó a ser
+  musestudio8/CHAT-X** (hasta el bloqueo del 07-nov — ver más abajo).
 - `video-studio`: pendiente de que el fundador cree el repo destino.
 - **Seguridad**: el PAT usado llegó pegado en el chat → REVOCAR ya confirmada
   la mudanza. Futuros push: `GITHUB_TOKEN=<nuevo PAT> bash scripts/subir_repo.sh
@@ -196,3 +196,20 @@ Nada se pierde y nada se toca en ALBRA8.
  ejecutó con orden explícita. Toda futura subida (CHAT-X, cuartos nuevos,
 video-studio) sigue la misma regla: orden primero, token después. Si un PAT
 llega pegado en el chat, se usa una vez y se revoca al confirmar el resultado.
+
+### 2026-11-07 — musestudio8 BLOQUEADA → exilio temporal de CHAT-X a ALBRA8 (D-012)
+
+GitHub suspendió la cuenta musestudio8 por recibir demasiada actividad de
+golpe en una cuenta recién creada ("mucha información de trancazo", palabras
+del fundador). La casa propia queda inaccesible hasta el desbloqueo. Con orden
+explícita del fundador de ese día:
+
+- **Torre temporal**: `ALBRA8/CHAT-X` vuelve a recibir push — excepción puntual
+  a D-006, SOLO CHAT-X y SOLO durante el exilio; los demás repos originales
+  siguen intocables. Se empuja en fast-forward y sin `--force` todo lo
+  acumulado desde `34e5aa1`, con token solo por variable de entorno.
+- **Al desbloquear**: portar a musestudio8 lo que nos sirva (CHAT-X avanzada +
+  lo útil de la evolución de ALBRA8) y dejar el resto en ALBRA8. El espejo
+  musestudio8/CHAT-X @ `9dcfa08` queda congelado como punto de retoma.
+- El PAT del exilio viajó por el chat → usado una vez y a revocar al confirmar
+  el push (junto con el del 31-oct, que sigue pendiente).

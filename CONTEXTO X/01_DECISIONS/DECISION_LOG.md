@@ -15,8 +15,9 @@ Formato: fecha · directriz · consecuencia · estado.
 | D-009 | 2026-10-31 | "INICIEMOS CON ESOS 3 CLONES ESPEJO": WHATSPOWER, WHATSPOWER-ULTRA, CRM (mantiene nombres originales, cambia el dueño) + token entregado | Mudanza espejo ejecutada y verificada SHA a SHA ese día | EJECUTADA |
 | D-010 | 2026-10-31 | "CLONEMOS ESTE PROYECTO TAMBIÉN DE UNA VEZ" → musestudio8/CHAT-X | CHAT-X empujada desde la copia LOCAL VIVA (`9dcfa08`, 2 commits que solo existían localmente — el espejo desde ALBRA8 los habría perdido). Verificada SHA a SHA | EJECUTADA |
 | D-011 | 2026-11-07 | Memoria documental con el principio de orden de CONTEXTO YOUTUBE, en carpeta llamada **CONTEXTO X** | Esta carpeta existe: 10 áreas numeradas + INDEX + reglas de mantenimiento; docs/ dejó de existir como carpeta suelta | EJECUTADA |
+| D-012 | 2026-11-07 | GitHub BLOQUEÓ musestudio8 por meter "mucha información de trancazo" de golpe. "Por el momento sube lo que necesites en ALBRA8/CHAT-X"; al desbloquear, "portamos lo que nos sirva y lo demás lo dejamos en ALBRA8" | Excepción TEMPORAL y acotada a D-006/D-008: SOLO CHAT-X recibe push en ALBRA8 durante el exilio (fast-forward, sin `--force`, token por env); los demás originales siguen intocables. Al desbloquear: portar lo útil a musestudio8, el resto queda en ALBRA8 | VIGENTE (hasta desbloqueo) |
 
 ## Pendientes de decisión del fundador (no son directrices aún)
-- Borrar o dejar el repo `borrador` de musestudio8.
-- Crear `video-studio` (destino de YOUTUBE-AUTOMATION) para completar la casa.
+- Borrar o dejar el repo `borrador` de musestudio8 (cuenta bloqueada: en espera).
+- Crear `video-studio` (destino de YOUTUBE-AUTOMATION) para completar la casa (requiere musestudio8 desbloqueada).
 - API key del CRM, QR de WhatsApp, JWT de NEX-SCOPE: activaciones opcionales con procedimiento documentado.

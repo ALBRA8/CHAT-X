@@ -46,6 +46,15 @@ Un token clásico (`ghp_…`) quedó expuesto en el chat en una sesión anterior
 4. Usarlo solo en el comando puntual (`git push https://<TOKEN>@github.com/ALBRA8/CHAT-X.git main`) sin guardarlo en .git/config ni en el chat; o mejor, `git credential` del sistema operativo.
 5. GitHub escanea secretos filtrados automáticamente (push protection): si el token viejo se usara, llegaría alerta por email.
 
+### 2026-11-07 — segundo PAT expuesto en chat (exilio a ALBRA8, D-012)
+
+Con musestudio8 bloqueada, el fundador entregó un PAT nuevo por el canal de
+chat (`ghp_mbYK…`, alcance cuenta ALBRA8) para el push de exilio. Mismo
+protocolo: usado UNA vez por variable de entorno con credential helper
+efímero (jamás en disco, ni en `.git/config`, ni en URLs), y se revoca en el
+navegador del fundador al confirmar el push. Saldo de tokens por revocar: DOS
+(`ghp_pMCQ…` del 31-oct y `ghp_mbYK…` del 07-nov).
+
 ### Evaluación del riesgo (2026-10-29)
 
 - **Por qué es grave**: el token apareció íntegro en el historial del chat. Cualquiera que lea esa sesión podría usarlo. No depende de que el repo lo contenga: el secreto viajó por el canal de conversación, no por git.

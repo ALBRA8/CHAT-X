@@ -7,7 +7,7 @@ Términos de la casa. Si un documento usa una palabra de esta lista, significa E
 | **Torre de control** | Arquitectura: CHAT-X gobierna motores independientes por contratos HTTP; no hay código ni BD compartidos. |
 | **Motores / brazos** | Los 10 repos hermanos (WHATSPOWER, ULTRA, CRM-ALBRA, YOUTUBE-AUTOMATION, NEX-SCOPE, AGENTE-LEADS, AGENTE-GENERAL, AGENTE-KREA, COMUNITI-MANAGER, Extension-CAZADOR). |
 | **CASA PROPIA** | Enmienda del fundador (D-007): los clones jamás procesan el negocio 18+; el negocio vive en cuartos nativos de CHAT-X. |
-| **Casa nueva** | La cuenta GitHub `musestudio8`: donde vive la torre viva y las copias espejo de los motores del negocio. |
+| **Casa nueva** | La cuenta GitHub `musestudio8`: donde vive la torre viva y las copias espejo de los motores del negocio. BLOQUEADA por GitHub desde el 2026-11-07 — durante el exilio la torre viva es `ALBRA8/CHAT-X` (D-012). |
 | **Biblioteca de referencia** | Los repos de ALBRA8: solo lectura, congelados, para consulta y líneas SFW propias. |
 | **Copia espejo / mudanza** | `git clone --mirror` + push completo: historia entera preservada como procedencia; después diverge a propósito. |
 | **Commit fijado (pin)** | Cada clon `engines/` se ancla a un SHA documentado; verificarlo es parte de la procedencia. |

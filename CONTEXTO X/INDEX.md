@@ -1,5 +1,5 @@
 # INDEX — CONTEXTO X (CHAT-X)
-**Estado del proyecto:** OPERATIVO EN CASA NUEVA / IN_PROGRESS — torre viva `musestudio8/CHAT-X` @ `9dcfa08`
+**Estado del proyecto:** OPERATIVO EN EXILIO TEMPORAL / IN_PROGRESS — musestudio8 BLOQUEADA por GitHub (2026-11-07); torre viva de respaldo `ALBRA8/CHAT-X` (D-012)
 **Última actualización:** 2026-11-07
 
 ## Tabla maestra
