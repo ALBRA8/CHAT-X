@@ -48,7 +48,7 @@ ALBRA8 tiene 24 repos. **No todo se lleva.** La casa nueva es del negocio; lleva
 | 23 | **INSTALADOR** | App Next.js sin README | POR_DEFINIR | SIN_CARACTERIZAR: leer su código antes de decidir. Por defecto NO APLICA |
 | 24 | **MAXI-APP** | "Automatización avanzada y gestión de flujos" (descripción vaga) | POR_DEFINIR | Ídem |
 
-**Resumen:** LLEVAR = 7 (4 verificadas + 3 POR_VERIFICAR) · SUBCONTRATAR = 6 · BRAZOS ACTUALES = 2 · NO APLICA = 7 · POR_DEFINIR = 2.
+**Resumen (24/24):** LLEVAR = 7 (4 mudadas + 3 POR_VERIFICAR) · SUBCONTRATAR = 5 · BRAZOS ACTUALES = 2 · NO APLICA = 7 · POR_DEFINIR = 2 · REVISAR = 1 (BROWSER-FACTORY, espera decisión del fundador).
 
 > **Cruce con la cartera documental (D-014):** CRM-ALBRA, YOUTUBE-AUTOMATION, AGENTE-LEADS, AGENTE-CHISMOSO y NEX-SCOPE son además **proyectos gestionados** por CONTEXTO X (`00_MASTER/REGISTRO_PROYECTOS_GESTIONADOS.md`). Gestionar = documentar y dar seguimiento; **no autoriza migrar, desplegar ni ejecutar**. El carril de esta tabla define dónde vive el código; el registro de cartera define qué debe conocer la memoria. YT-AUTOMATION sigue documentado aunque su carril sea SUBCONTRATAR "por ahora".
 
