@@ -105,7 +105,11 @@ La visión del negocio no reemplaza los contratos técnicos. CHAT-X mantiene arq
 - PROJECT_STATE.md: estado operativo con fecha de evidencia.
 - DECISION_LOG.md: decisiones explícitas del fundador.
 
-## 9. Qué está hecho y qué es objetivo
+## 9. Cartera de proyectos bajo seguimiento de CONTEXTO X
+
+El alcance inicial definido por el fundador incluye cinco proyectos/repositorios que CONTEXTO X debe documentar y mantener relacionados: **CRM (CRM-ALBRA), YouTube Automation (YOUTUBE-AUTOMATION), Agente Leads (AGENTE-LEADS), Agente Chismoso (AGENTE-CHISMOSO) y Nexscope (NEX-SCOPE)**. CHAT-X es la plataforma central que aloja esta memoria. La inclusión en la cartera significa gobierno documental, trazabilidad y seguimiento; no significa que los repositorios deban fusionarse, migrarse, desplegarse o ejecutarse dentro de CHAT-X. La ubicación y portabilidad de cada código se rigen por PORTABILIDAD_REPOS.md y las decisiones vigentes. En particular, YouTube Automation permanece documentado aunque su carril de portabilidad actual sea SUBCONTRATAR por ahora. El detalle y las reglas de mantenimiento están en REGISTRO_PROYECTOS_GESTIONADOS.md.
+
+## 10. Qué está hecho y qué es objetivo
 
 Este documento define el norte; no certifica que todas las funciones estén terminadas.
 
@@ -116,7 +120,7 @@ Este documento define el norte; no certifica que todas las funciones estén term
 
 No asumir disponibilidad de Fanvue, Telegram, Meta, WhatsApp, proveedores generativos ni APIs sin revisar condiciones y verificar la integración concreta.
 
-## 10. Fuente de verdad y mantenimiento
+## 11. Fuente de verdad y mantenimiento
 
 Ante diferencias entre documentos, aplicar este orden:
 
@@ -128,7 +132,7 @@ Ante diferencias entre documentos, aplicar este orden:
 
 Una contradicción no se resuelve inventando: se registra y se consulta al fundador cuando cambie rumbo, alcance, gasto o riesgo. Todo documento debe indicar fecha, estado y fuente.
 
-## 11. Próximas etapas
+## 12. Próximas etapas
 
 1. Validar este mapa maestro y resolver decisiones comerciales abiertas.
 2. Alinear la ficha funcional del Estudio y el alcance real de CHAT-X.
