@@ -1,35 +1,31 @@
-# GLOSSARY — CHAT-X
-Términos de la casa. Si un documento usa una palabra de esta lista, significa EXACTAMENTE esto.
+# GLOSSARY — MUSE / CHAT-X
+Términos compartidos del negocio y de la plataforma. Cada documento debe conservar estos significados.
 
-| Término | Significado exacto |
+| Término | Significado |
 |---|---|
-| **CHAT-X** | La plataforma central (este repo): cerebro + interfaz + compliance. El CUERPO. |
-| **Torre de control** | Arquitectura: CHAT-X gobierna motores independientes por contratos HTTP; no hay código ni BD compartidos. |
-| **Motores / brazos** | Los 10 repos hermanos (WHATSPOWER, ULTRA, CRM-ALBRA, YOUTUBE-AUTOMATION, NEX-SCOPE, AGENTE-LEADS, AGENTE-GENERAL, AGENTE-KREA, COMUNITI-MANAGER, Extension-CAZADOR). |
-| **CASA PROPIA** | Enmienda del fundador (D-007): los clones jamás procesan el negocio 18+; el negocio vive en cuartos nativos de CHAT-X. |
-| **Casa nueva** | La cuenta GitHub `musestudio8`: donde vive la torre viva y las copias espejo de los motores del negocio. BLOQUEADA por GitHub desde el 2026-11-07 — durante el exilio la torre viva es `ALBRA8/CHAT-X` (D-012). |
-| **Biblioteca de referencia** | Los repos de ALBRA8: solo lectura, congelados, para consulta y líneas SFW propias. |
-| **Subcontrato** | Servicio SFW que queda en ALBRA8 y CHAT-X consume por HTTP o el fundador usa a mano (ej.: ABOGADO-BASE, CONTADOR-PÚBLICO — D-013). Jamás ve contenido adulto ni datos de fans; el original no se copia ni se modifica. |
-| **Copia espejo / mudanza** | `git clone --mirror` + push completo: historia entera preservada como procedencia; después diverge a propósito. |
-| **Commit fijado (pin)** | Cada clon `engines/` se ancla a un SHA documentado; verificarlo es parte de la procedencia. |
-| **engines/** | Carpeta local (gitignoreada) donde vive cada brazo como repo completo e independiente. No sobrevive al reciclaje del sandbox: `scripts/reclonar_engines.sh` la reconstruye. |
-| **Genoma** | Identidad del personaje: 7 pasos (audiencia → rasgos ancla → atributos+seed → lore → rasgos firmantes → dataset → cara canónica). |
-| **Rasgos firmantes** | Rasgos visuales con intensidad que definen la consistencia del personaje (A3). |
-| **Cara canónica** | Rostro de referencia del personaje; todo render se le compara (examen de identidad en 5 escenas). |
-| **LoRA** | Adaptador de modelo entrenado por personaje; versionada, con hash en la procedencia de cada export. |
-| **GFE / chat modo novia** | El carril conversacional nativo (`/api/chat`): personalidad por genoma + media en contexto + voz. El cerebro del embudo. |
-| **Carril privado** | Estudio 18+: age-gate real + cifrado AES-256-GCM + llave maestra doble. |
-| **QA forense** | Control de calidad de renders: identidad + anatomía, antes de aprobar pieza. |
-| **InstaDump** | Planificador determinista de lotes multi-escena (pools curados). |
-| **Escalera de vídeo** | draft → max: presupuesto de cómputo creciente por aprobaciones (vídeo). |
-| **Gate humano** | Paso obligatorio de aprobación del fundador antes de acciones con efecto real (envíos, publicaciones). |
-| **Sonda / taxonomía de 5 estados** | OPERATIVO · DEGRADADO · NO_CONFIGURADO · NO_DISPONIBLE · ERROR. Jamás se marca operativo por un simple HTTP 200. |
-| **Sala limpia** | Método: la especificación vive en FICHA/CONTEXTO y el código se escribe solo desde ella — sin copiar código ajeno. |
-| **Spintax** | Variación determinista de textos (motor ULTRA) para difusión anti-ban. |
-| **NCII** | Non-Consensual Intimate Imagery. Regra absoluta: jamás rostros ni voces de personas reales. Todo personaje es 100% sintético. |
-| **Etiqueta IA** | Marcado obligatorio de contenido generado (Fanvue/der.) — vendida como ventaja legal, no como traba. |
-| **$0** | Regla económica: no gastar en tokens/APIs salvo autorización expresa del fundador. |
-| **Embudo multicanal** | WhatsApp/Meta calientan (SFW) → Telegram y Fanvue cobran. Detalle: `00_MASTER/EMBUDO_MULTICANAL.md` §4. |
-| **Calentar (carril SFW)** | Conversación de noviazgo sin contenido adulto por canales que prohíben el 18+ (ToS de Meta/WhatsApp). |
-| **SHA a SHA** | Verificación de integridad: comparar el SHA local vs remoto de cada ref tras un push. |
-| **Fast-forward only** | Push que jamás reescribe historia remota; si divergió, se detiene y se investiga. Sin `--force`, siempre. |
+| **MUSE** | Marca y negocio: estudio de talento virtual creado con IA que desarrolla personajes ficticios adultos, produce contenido, construye audiencia y monetiza experiencias/contenido premium. |
+| **CHAT-X** | Plataforma privada que administra la operación de MUSE. No es la marca pública ni un SaaS genérico. |
+| **Talento virtual** | Personaje digital ficticio, adulto y generado con IA, con identidad, apariencia, personalidad e historia propias. |
+| **Genoma** | Ficha estructurada de identidad del personaje: audiencia, rasgos visuales, atributos, personalidad/lore y rasgos firmantes. |
+| **Rasgos firmantes** | Elementos visuales distintivos definidos para ayudar a mantener reconocible al personaje. |
+| **Cara canónica** | Imagen de referencia aprobada para evaluar consistencia visual; no representa a una persona real. |
+| **LoRA** | Adaptador entrenado para ayudar a reproducir la identidad visual de un personaje; su versión se registra cuando aplique. |
+| **GFE / chat modo novia** | Experiencia conversacional ficticia de entretenimiento basada en la personalidad del personaje. No debe hacer pasar al personaje por una persona humana real. |
+| **Carril SFW / público** | Activos y publicaciones aptos para público general y para los canales cuyas políticas lo permitan. |
+| **Carril privado / 18+** | Activos restringidos a adultos, separados en permisos, almacenamiento y distribución, y alojados solo en servicios que permitan ese contenido. |
+| **Biblioteca** | Inventario organizado de piezas, sets, versiones, personajes, metadatos y estados de aprobación. |
+| **QA** | Control de calidad antes de aprobar o publicar: identidad, anatomía, acabado, clasificación y cumplimiento. |
+| **Procedencia** | Metadatos que permiten conocer cómo se produjo una pieza: brief/prompt, semilla, proveedor/modelo, versión y aprobaciones disponibles. |
+| **CHAT-X nativo** | Función, datos o flujo que pertenece a CHAT-X y se opera bajo sus propios controles. |
+| **Motor / brazo externo** | Repositorio o servicio independiente conectado por contrato; no equivale a una función nativa ni recibe datos del carril adulto. |
+| **CASA PROPIA** | Directriz D-007: el negocio 18+ y sus datos, sesiones y contenido se gestionan en CHAT-X; los clones no los procesan. |
+| **Embudo multicanal** | Secuencia de descubrimiento, comunicación y conversión entre canales, respetando los términos de cada uno y subordinada a CASA PROPIA. |
+| **Fanvue** | Plataforma primaria prevista para monetización premium; cada función depende de sus reglas y capacidades vigentes. |
+| **Gate humano** | Aprobación explícita del operador antes de una acción sensible o con efecto externo. |
+| **NCII** | Imágenes íntimas no consentidas. Prohibidas; el proyecto además evita utilizar o imitar identidades reales. |
+| **Etiqueta / divulgación IA** | Identificación del contenido o personaje como generado por IA según lo exijan plataforma y ley aplicable. |
+| **$0 por defecto** | No incurrir en gastos ni activar servicios pagados sin autorización expresa del fundador. |
+| **Sonda** | Comprobación técnica de un servicio. Una respuesta HTTP aislada no basta para declararlo operativo. |
+| **Estado técnico** | Clasificación basada en evidencia fechada: OPERATIVO, DEGRADADO, NO_CONFIGURADO, NO_DISPONIBLE o ERROR. |
+| **Sala limpia** | Método de especificación y construcción basado en requisitos propios documentados, sin alterar repositorios originales ajenos. |
+| **Fast-forward only** | Regla de Git: no reescribir historia remota ni forzar pushes; si hay divergencia, detenerse e investigar. |
