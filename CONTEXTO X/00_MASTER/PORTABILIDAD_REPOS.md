@@ -45,12 +45,14 @@ ALBRA8 tiene 24 repos. **No todo se lleva.** La casa nueva es del negocio; lleva
 | 20 | **RADAR-SECOP2** | Oportunidades de contratación pública SECOP II (Colombia) | NO APLICA | Línea de negocio propia del ecosistema, ajena a CHAT-X |
 | 21 | **CONTEXT** | Memoria externa versionada de ALBRA | NO APLICA | Es la memoria de la casa vecina; la nuestra es CONTEXTO X (misma idea, casa propia) |
 | 22 | **PURO-PODER-CONOCIMIENTO** | Compendio de 5 cursos (Exponential Marketing Holding) | NO APLICA | Conocimiento, no software. Consulta manual si el fundador quiere |
-| 23 | **INSTALADOR** | App Next.js sin README | POR_DEFINIR | SIN_CARACTERIZAR: leer su código antes de decidir. Por defecto NO APLICA |
+| 23 | **INSTALADOR** | Instalador de despliegue del ecosistema ALBRA: Docker unificado (flujo 10 pasos), MSI WiX validado, EEC V1 durable (anti-replay, runs autenticados) — caracterizado por barrido 2026-11-20 (`03_FINDINGS/EVOLUCION_ALBRA8_2026-11-20.md`) | CARACTERIZADO → sugerencia NO APLICA | Es la caja de despliegue de la casa vecina; musestudio8 no la necesita (CHAT-X es la plataforma). Confirma el fundador |
 | 24 | **MAXI-APP** | "Automatización avanzada y gestión de flujos" (descripción vaga) | POR_DEFINIR | Ídem |
 
-**Resumen (24/24):** LLEVAR = 7 (4 mudadas + 3 POR_VERIFICAR) · SUBCONTRATAR = 5 · BRAZOS ACTUALES = 2 · NO APLICA = 7 · POR_DEFINIR = 2 · REVISAR = 1 (BROWSER-FACTORY, espera decisión del fundador).
+**Resumen (24/24):** LLEVAR = 7 (4 mudadas + 3 POR_VERIFICAR) · SUBCONTRATAR = 5 · BRAZOS ACTUALES = 2 · NO APLICA = 7 · POR_DEFINIR = 1 (MAXI-APP) · CARACTERIZADO pendiente de OK = 1 (INSTALADOR → sugerido NO APLICA) · REVISAR = 1 (BROWSER-FACTORY).
 
 > **Cruce con la cartera documental (D-014):** CRM-ALBRA, YOUTUBE-AUTOMATION, AGENTE-LEADS, AGENTE-CHISMOSO y NEX-SCOPE son además **proyectos gestionados** por CONTEXTO X (`00_MASTER/REGISTRO_PROYECTOS_GESTIONADOS.md`). Gestionar = documentar y dar seguimiento; **no autoriza migrar, desplegar ni ejecutar**. El carril de esta tabla define dónde vive el código; el registro de cartera define qué debe conocer la memoria. YT-AUTOMATION sigue documentado aunque su carril sea SUBCONTRATAR "por ahora".
+
+> **Evolución upstream (2026-11-20, D-015):** 12 repos movieron desde el corte 2026-11-07 (detalle: `../03_FINDINGS/EVOLUCION_ALBRA8_2026-11-20.md`). Los carriles de esta tabla NO cambian por eso. D-015: los clones se quedan en ALBRA8 hasta nueva orden del fundador — la vuelta (§4) espera ORDEN, no solo el desbloqueo de musestudio8.
 
 ## 4. LA VUELTA — plan de retorno al desbloqueo de musestudio8
 

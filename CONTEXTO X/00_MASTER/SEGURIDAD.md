@@ -152,3 +152,10 @@ Conclusión: la única credencial comprometida sigue siendo el PAT del chat, que
   del canal — ROTAR inmediatamente. Regla reafirmada: los tokens al chat mueren; cada
   aparición = rotación. Futura alternativa: token por canal privado o fine-grained PAT de
   vida corta solo para `contents:write` de ALBRA8/CHAT-X.
+
+### 2026-11-20 — PAT de exilio confirmada MUERTA (verificado)
+
+- Verificación con la PAT `ghp_mbYK…` contra la API de GitHub: **401 Bad credentials** — el fundador la revocó. Buena higiene.
+- Efecto operativo: sin vía de push a ALBRA8/CHAT-X hasta que se emita una PAT nueva fine-grained (repo único, solo `contents:write`). La LECTURA sigue OK por repos públicos (git anónimo; la API REST anónima comparte cuota de IP).
+- La PAT del 31-oct (`ghp_pMCQ…`) sigue SIN VERIFICAR: asumir comprometida hasta confirmar revocación.
+- Regla reafirmada: token SOLO por variable de entorno del comando puntual, usar una vez, revocar al confirmar. Nada de tokens en disco, remotos, URLs ni `.git/config`.

@@ -1,5 +1,5 @@
 # PROJECT_STATE — estado vivo de CHAT-X
-**Última actualización:** 2026-11-07
+**Última actualización:** 2026-11-20
 **Identidad del negocio:** `00_MASTER/MUSE_BRIEF_MAESTRO.md` (MUSE = negocio; CHAT-X = plataforma que lo opera, D-014)
 **Fase:** EXILIO TEMPORAL (musestudio8 BLOQUEADA por GitHub el 2026-11-07) · F1 sigue en cola; el código avanza en la torre de respaldo
 **Torre viva (temporal):** `github.com/ALBRA8/CHAT-X` (main) — push de exilio con orden explícita del fundador, ver D-012
@@ -44,7 +44,8 @@ Estudio (E1-E7): genoma 7 pasos + rasgos firmantes, fábrica de fotos con QA, ca
 
 ## 4. Directrices vigentes del fundador
 
-Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-014). Las que gobiernan HOY:
+Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-015). Las que gobiernan HOY:
+- **ADAPTACIÓN MIAFACTORY (D-015):** del destripe del fundador se adoptan SOLO patrones operativos (formularios como datos, jobs con coste real, storage propio, estados vacíos que enseñan); NO se construye su SaaS de créditos ni se copia su marca. Clones se quedan en ALBRA8: la vuelta espera ORDEN del fundador, no solo el desbloqueo.
 - **IDENTIDAD (D-014):** MUSE es el negocio; CHAT-X es su plataforma. Brief maestro + cartera de 5 proyectos gestionados (documentar ≠ migrar).
 - **CASA PROPIA (D-007/D-008):** los 10 clones jamás procesan el negocio 18+; cuartos nativos en CHAT-X.
 - **PORTABILIDAD (D-013):** triage de los 24 repos de ALBRA8 — qué se lleva a musestudio8, qué se subcontrata, qué no aplica (`00_MASTER/PORTABILIDAD_REPOS.md`); norte del proyecto: `00_MASTER/NORTE_PROYECTO.md`.
@@ -56,7 +57,7 @@ Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-014). Las que gobiernan HOY:
 
 | # | Hito | Dueño | Estado |
 |---|---|---|---|
-| 1 | **REVOCAR los 2 PAT expuestos en chat**: `ghp_pMCQ…` (31-oct, musestudio8) y `ghp_mbYK…` (07-nov, exilio ALBRA8) | Fundador | **PENDIENTE** — 5 min en github.com/settings/tokens |
+| 1 | **Higiene de PATs**: `ghp_mbYK…` (exilio) CONFIRMADA MUERTA (401, 20-nov) ✓ · verificar revocación de `ghp_pMCQ…` (31-oct) · emitir PAT nueva fine-grained (solo `contents:write` de ALBRA8/CHAT-X) para reanudar el push | Fundador | **PARCIAL** — falta PAT nueva: los registros de la sesión 20-nov quedan en local sin subir |
 | 2 | Esperar desbloqueo de musestudio8 → **LA VUELTA** según el plan de `00_MASTER/PORTABILIDAD_REPOS.md` (D-012/D-013): acta del estado real, re-sincronizar CHAT-X, verificar las 3 copias del fundador (leads/chismoso/nexscope), portar el carril LLEVAR, subcontratos quedan en ALBRA8 | Fundador desbloquea; agente ejecuta el plan | **BLOQUEADO POR GITHUB** |
 | 2b | Crear `video-studio` en musestudio8 y mudarlo | Fundador crea; agente muda | BLOQUEADO POR GITHUB (antes: PENDIENTE) |
 | 3 | **F1 reescrita**: daemon WhatsApp PROPIO del negocio (carril adulto) — sesión propia, pacing anti-ban propio, BD propia; patrones de los clones como referencia de sala limpia | Agente (código) | SIGUIENTE |
@@ -72,4 +73,5 @@ Nada de lo anterior bloquea código de CHAT-X.
 - `engines/` no sobrevive al reciclaje del sandbox: se reconstruye con `scripts/reclonar_engines.sh` (F-003).
 - Los estados de motores de la §2 son del 29-oct: re-ejecutar `bun scripts/sonda_profunda.ts` antes de declarar cualquier cambio de estado.
 - **musestudio8 bloqueada (2026-11-07)**: GitHub frenó la casa nueva por recibir demasiada actividad de golpe. Solo el fundador puede apelar el desbloqueo; mientras tanto la torre vive en ALBRA8/CHAT-X (D-012) y no se perdió ni un commit (lección F-006 aplicada).
-- El PAT del exilio (`ghp_mbYK…`) viajó por el chat el 07-nov: usado una vez por variable de entorno y **a revocar ya** (F-001).
+- El PAT del exilio (`ghp_mbYK…`) está CONFIRMADO MUERTO (401 Bad credentials, 2026-11-20) — buena higiene del fundador; la torre queda sin vía de push hasta PAT nueva (los commits de la sesión 20-nov esperan en local).
+- Los pins de `MOTORES_REGISTRO.md` quedaron viejos: 12 repos de ALBRA8 movieron desde el 07-nov (ver `../03_FINDINGS/EVOLUCION_ALBRA8_2026-11-20.md`); re-anclar exige reclon con orden del fundador.

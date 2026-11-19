@@ -3,7 +3,7 @@ Un fallo sin lección se repite. Ninguno de estos se esconde.
 
 | ID | Fallo | Qué pasó | Lección / cerrojo | Estado |
 |---|---|---|---|---|
-| F-001 | PAT de GitHub expuesto en chat | PATs viajados por el canal de chat: 29-oct, 31-oct (mudanza) y 07-nov (exilio a ALBRA8, D-012) | Revocación en el navegador del fundador (`../00_MASTER/SEGURIDAD.md` § Revocación); el token SOLO por variable de entorno; usar una vez y revocar al confirmar | **REVOCACIÓN PENDIENTE del fundador (2 tokens)** |
+| F-001 | PAT de GitHub expuesto en chat | PATs viajados por el canal de chat: 29-oct, 31-oct (mudanza) y 07-nov (exilio a ALBRA8, D-012) | Revocación en el navegador del fundador (`../00_MASTER/SEGURIDAD.md` § Revocación); el token SOLO por variable de entorno; usar una vez y revocar al confirmar | **PARCIAL: `ghp_mbYK…` (07-nov) CONFIRMADA MUERTA 2026-11-20 (401). Pendiente: confirmar `ghp_pMCQ…` (31-oct) y emitir PAT nueva fine-grained para reanudar push** |
 | F-002 | BD compartida entre motores (incidente 2026-10-28) | Un motor tocó datos que no eran suyos | Aislamiento absoluto: cada motor arranca con SU `DATABASE_URL` absoluta propia; verificación por md5 en la validación consolidada | CERROJO VIGENTE |
 | F-003 | `engines/` no sobrevive al reciclaje del sandbox | Los clones se pierden al reciclar el entorno | Por diseño está gitignoreado; se reconstruye brazo a brazo con `scripts/reclonar_engines.sh` | RESUELTO (procedimiento) |
 | F-004 | NEX-SCOPE murió en silencio al cerrarse el shell del sandbox | El primer re-arranque murió sin error visible (dmesg limpio) | Procedimiento de doble fork `( … & )` documentado y validado | RESUELTO |

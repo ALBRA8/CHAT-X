@@ -1,6 +1,6 @@
 # INDEX — CONTEXTO X (CHAT-X)
 **Estado del proyecto:** OPERATIVO EN EXILIO TEMPORAL / IN_PROGRESS — musestudio8 BLOQUEADA por GitHub (2026-11-07); torre viva de respaldo ALBRA8/CHAT-X (D-012)
-**Última actualización documental:** 2026-11-07
+**Última actualización documental:** 2026-11-20
 
 ## Cómo orientarse
 
@@ -30,15 +30,18 @@ CONTEXTO X es la memoria documental del proyecto. La identidad del negocio está
 | Master | 00_MASTER/SEGURIDAD.md | VIGENTE | seguridad, credenciales y protocolo de push |
 | Master | 00_MASTER/FICHA_Estudio_v1.md | VERIFIED · REQUIERE ALINEACIÓN | especificación funcional del Estudio; revisar contra el brief maestro |
 | Master | 00_MASTER/GLOSSARY.md | POPULATED | vocabulario común del proyecto |
+| Master | 00_MASTER/PLAN_ADAPTACION_MIAFACTORY.md | VIGENTE | patrones a adoptar del destripe MIAFACTORY (D-015): adaptar, no copiar |
 | Decisions | 01_DECISIONS/DECISION_LOG.md | POPULATED | decisiones explícitas del fundador |
 | Processes | 02_PROCESSES/ | VARIOS | procedimientos operativos |
 | Findings | 03_FINDINGS/ | VARIOS | hallazgos y brechas |
+| Findings | 03_FINDINGS/EVOLUCION_ALBRA8_2026-11-20.md | FOTO DE MOVIMIENTO | barrido de los 24 repos tras la evolución upstream (12 repos movieron desde el 07-nov) |
 | Audits | 04_AUDITS/ | VARIOS | auditorías y evidencia |
 | Tests | 05_TESTS/ | VARIOS | pruebas, alcance y resultados fechados |
 | Integrations | 06_INTEGRATIONS/ | VARIOS | contratos e integraciones reales |
 | Failures | 07_FAILURES/ | VARIOS | fallos y lecciones |
 | Sessions | 08_SESSIONS/ | VARIOS | bitácora de sesiones |
 | Knowledge | 09_KNOWLEDGE/ | VARIOS | conocimiento de referencia |
+| Knowledge | 09_KNOWLEDGE/MIAFACTORY_DESTRIPE_v1.5.md | FUENTE DE INTEL | destripe completo del competidor aportado por el fundador (NO construir literal, D-015) |
 
 ## Anclas
 

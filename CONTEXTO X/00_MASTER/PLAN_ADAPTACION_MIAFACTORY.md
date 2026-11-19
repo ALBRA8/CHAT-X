@@ -1,0 +1,65 @@
+# PLAN DE ADAPTACIÓN MIAFACTORY → MUSE/CHAT-X (D-015)
+**Creado:** 2026-11-20 · **Estado:** VIGENTE · **Origen:** destripe del fundador a https://miafactory.app (fuente completa: `../09_KNOWLEDGE/MIAFACTORY_DESTRIPE_v1.5.md`)
+**Orden del fundador (D-015):** "no lo tomes literal — adaptar únicamente lo que nos sirva para nuestro proyecto".
+**Contexto cruzado:** `../03_FINDINGS/CLONAKIT_BRECHAS.md` (30 referentes ya analizados) · `../09_KNOWLEDGE/EMBAUDO.md` (funnel FE+8 OTOs) · `FICHA_Estudio_v1.md` (spec del Estudio) · `../03_FINDINGS/EVOLUCION_ALBRA8_2026-11-20.md` (puesta al día de los repos).
+
+## 1. Qué es MIAFACTORY (5 líneas)
+
+SaaS multiusuario de generación con IA: 33 herramientas (11 imagen · 13 vídeo · 4 audio · 5 director premium), cobro por créditos en paquetes SIN auto-renovación, pago discreto por link de WhatsApp (Binance Pay, USDT, Skrill, tarjeta), login solo-Google, es/en, tema oscuro. Un interruptor +18 desbloquea 15 herramientas NSFW y quita el difuminado. La GPU NO es suya: la compran a RunningHub (visible en su CSP) y los archivos resultantes viven en el CDN del proveedor, caducando a los 14 días. Su propio destripe marca la regla que también es nuestra: copiar el CONCEPTO y el FLUJO, jamás marca, textos, colores ni código.
+
+## 2. Veredicto en una frase
+
+MIAFACTORY no es un competidor del negocio (MUSE vende talento virtual; ellos venden herramientas genéricas) — es un **catálogo de patrones de operación maduros** que valida decisiones que ya tomamos y nos ahorra errores de diseño en el panel y el motor de trabajos.
+
+## 3. Lo que ya tenemos y MIAFACTORY confirma (no tocar: mantener)
+
+| Nuestro activo | Su equivalente observado | Lectura |
+|---|---|---|
+| Reembolso por fallo + claim atómico + reintentos con tope en el worker (paridad ClonaKit 29-oct) | `retry_max=2`, reembolso, estados QUEUE/SUCCESS/ERROR | Ya estamos a su nivel o encima |
+| Sesión en cookie httpOnly (`privado.ts`) | SU token vive en localStorage (fallo documentado §10) | Nuestro patrón es el que ELLOS deberían copiar |
+| Carril 18+ estructural (permisos, almacenamiento, destinos) | Toggle visual "modo adulto" por herramienta | La nuestra es más fuerte: no basta etiqueta (MUSE_BRIEF §5) |
+| Separación calentar/cobrar (D-004) | FAQ: "los procesadores no aceptan NSFW de IA" → pagan por link discreto | Validación de mercado directa de la matriz del embudo |
+| Escalera de costes ANTES de gastar (P2.4) | `calculate-cost` previo a cada generación | Mismo principio, ya implementado |
+| Honestidad operativa | Aviso honesto de subida de costes (14-nov) compensando a los ya pagados | Práctica sana a imitar: la política, no el texto |
+
+## 4. ADOPCIONES priorizadas (adaptadas, no literales)
+
+| # | Patrón suyo | Adaptación a CHAT-X | Módulo MUSE_BRIEF §6 | Prioridad |
+|---|---|---|---|---|
+| A1 | **Formularios como datos** (§17.12): catálogo + campos + opciones en BD; un solo renderizador pinta todo | Las fichas del Estudio (E1-E7) y toda herramienta futura se declaran como esquema en BD: agregar herramienta = una fila, no código. Su `/api/workflows` (83 KB, `fields[]` con `options`, `show_when`) es el contrato de referencia | Producción · Biblioteca | **ALTA — la joya del destripe** |
+| A2 | **Jobs con coste real** (§19.3): `gpu_cost_time`, doble id (propio + proveedor), posición en cola visible, `media_expired` | Extender NUESTRO Job (ya con claim atómico y reembolso): posición en cola en la respuesta, coste presupuestado vs real por trabajo, caducidad de media declarada en casa | Producción · Ventas/métricas | **ALTA** |
+| A3 | **Almacenamiento propio de resultados** (§19.6, recomendación explícita para su propia nueva app) | Casa propia (D-007): jamás enlazar el CDN del proveedor; copiar el resultado a storage propio con caducidad propia | Biblioteca | **ALTA — doctrina ya vigente; su riesgo la confirma** |
+| A4 | **Estados vacíos que enseñan** (§17.8): 2-3 pasos numerados + botón que arranca el paso 1 + límite declarado ("hasta 20 imágenes") | Patrón UI oficial de TODAS las pantallas del panel del operador | Todas | **ALTA — barato y visible** |
+| A5 | **Catálogo de 4 niveles** (§17.9): grupo con frase → subgrupo en mayúsculas → tarjeta (imperativo + 1 línea de 60-140 chars + coste) → chapas (+18/PRO/BETA/GRATIS) | Estructura del catálogo del Estudio en el panel; frases en español neutro propio, nunca las suyas | Producción | MEDIA-ALTA |
+| A6 | **Saldo por proveedor + gastos** (AiBalances / AdminGastos) | Cuando haya proveedor de pago (D-002: RunningHub barato primero): saldo por proveedor, gasto por trabajo, tope por personaje/lote | Ventas y métricas · $0 | MEDIA (activa con proveedor de pago) |
+| A7 | **"Mejorar con IA" del prompt, cobrada o limitada** (§19.5) | El enhancer de prompt del motor GFE/Estudio se contabiliza (job propio con coste), nunca gratis ilimitado | Producción | MEDIA |
+| A8 | **Política de cambio de coste**: avisar y compensar a los ya pagados | Política operativa documentada si algún coste variable cambia tras producirse material | Cumplimiento/ops | BAJA (anotada) |
+| A9 | **Cobro discreto**: WhatsApp link + crypto + sin auto-renovación (su FAQ lo explica: los procesadores rechazan NSFW de IA) | Intel de mercado para el carril Fanvue/Telegram (D-004). No construimos cobro propio: Fanvue cobra; Telegram solo tras verificar términos | Canales | DOCUMENTAL |
+| A10 | **LoRA semimanual** (§20): solicitud + cola interna, entrenado por el equipo ($5), sin trainer automático | Para identidad de personajes: el patrón "solicitud → cola → activación en cuenta" sirve para peticiones del operador; nuestro pipeline de identidad es interno | Personajes | BAJA |
+
+## 5. Lo que NO adoptamos (y por qué)
+
+- **SaaS multiusuario con créditos vendibles**: CHAT-X es plataforma privada del estudio (MUSE_BRIEF §4: usuarios = fundador/operador; NORTE §6: no es SaaS genérico). El motor de VENTA de créditos no se construye; el libro de costes internos (A2) sí.
+- **Login Google-only**: operación privada con sesión propia httpOnly (ya mejor que la suya).
+- **33 herramientas genéricas**: nuestro catálogo es del ESTUDIO y de los personajes (persona-first, no tool-first). Sus 33 validan categorías (imagen/vídeo/audio/director), no el contenido.
+- **Panel de administración de 17 módulos**: operador único; admin ligero con auditoría append-only (ya la tenemos).
+- **Enlazar el CDN del proveedor**: riesgo demostrado por ellos mismos (miniaturas rotas si el proveedor limpia; "la función más importante del producto se cae" si el dominio deja de responder). Casa propia (A3).
+- **Sus 4 bugs** (§10): endpoint admin (`migration-info`) respondiendo 200 a cualquier cuenta, token en localStorage, claves de i18n sin traducir visibles, mezcla de idiomas por pantalla — **lista negra explícita** para nuestro panel.
+- **Marca/colores/textos/videos**: identidad MUSE propia; su paleta solo como referencia de contraste de tema oscuro.
+
+## 6. Cruce con la investigación IA Influencer (ClonaKit) — qué añade de NUEVO
+
+La investigación de referentes (30 fichas en `CLONAKIT_BRECHAS.md`, nacida del destripe "IA Influencer" y los batches A/B/C) ya cubrió el terreno: chat GFE con media (cerrada), voz por personaje (cerrada), escalera de vídeo (parcial, bloqueo GPU externo), trend-finder honesto (cerrada), monetización simulada (lista). MIAFACTORY añade TRES cosas que ninguno de los 30 trajo:
+
+1. **El esquema de formulario como contrato de datos completo** (§17.12) — patrón A1, con forma de campo verificada (`type`, `options[]` con badge/imagen/compare, `help_text`, `rules`).
+2. **La anatomía completa de un job con proveedor externo, ejecutada punta a punta** (§19.1-19.8): doble identificador, `gpu_cost_time`, cola con posición, archivo en CDN ajeno caducando — patrón A2/A3 con evidencia ejecutada, no promesa de landing.
+3. **La confirmación de mercado del cobro discreto** (§A9): el nicho paga por link/crypto porque los procesadores rechazan NSFW de IA — refuerza la matriz de D-004 (Meta/WhatsApp calientan SFW; Telegram/Fanvue cobran).
+
+Lo que el destripe NO resuelve: proveedor de GPU en esta máquina (sigue `../02_PROCESSES/MOTOR_GPU.md`), la identidad de marca (aplazada por el fundador, FICHA §8) y el carril de cobro real (Fanvue primero). Y una pérdida honesta: el archivo fuente de la investigación "IA Influencer" original (`research/ia-influencer/ANALISIS.md`) nunca se committeó y no sobrevive al reciclaje — su intel sobrevive destilada en CLONAKIT_BRECHAS; si el fundador conserva el original, vale archivarlo en 09_KNOWLEDGE.
+
+## 7. Condiciones de ejecución
+
+- Nada se construye sin orden explícita del fundador (regla permanente) ni se toca el carril adulto fuera de CASA PROPIA (D-007).
+- Primera pieza natural cuando se autorice: **A1 + A4** (esquema declarativo de fichas y estados vacíos) — no gastan, no arriesgan, no tocan canales.
+- A2/A3 se integran al worker existente, no como motor paralelo.
+- A6 solo si hay proveedor de pago autorizado (regla $0).
