@@ -223,3 +223,87 @@ export interface PiezaCalendario {
   etiquetaIA: string
   precio: number
 }
+
+// ───────────────── Panel de Configuración (configuración en caliente) ─────────────────
+// Contrato con la constitución: la fuente de cada valor se DECLARA (panel > .env >
+// defecto), los secretos viajan siempre enmascarados (la API jamás los devuelve
+// completos) y las sondas son reales contra los proveedores, nunca decorativas.
+
+export type FuenteConfigT = 'bd' | 'env' | 'defecto'
+
+export interface EntradaConfigT {
+  clave: string
+  etiqueta: string
+  descripcion: string
+  categoria: 'llm' | 'voz' | 'media' | 'general'
+  tipo: 'texto' | 'secreto' | 'numero'
+  envVar: string // respaldo declarado (.env del operador)
+  valor: string // ya enmascarado si tipo='secreto'
+  definido: boolean
+  fuente: FuenteConfigT
+  actualizadoEn: string | null // ISO de la fila en BD, null si no hay fila
+}
+
+export interface RespuestaConfigT {
+  entradas: EntradaConfigT[]
+  resumen: { total: number; desdePanel: number; desdeEnv: number }
+}
+
+export function useConfiguracion() {
+  return useQuery({
+    queryKey: ['configuracion'],
+    queryFn: () => api<RespuestaConfigT>('/api/configuracion'),
+  })
+}
+
+export function useGuardarConfiguracion() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (entradas: { clave: string; valor: string }[]) =>
+      api<{ ok: boolean; claves: string[] }>('/api/configuracion', {
+        method: 'PUT',
+        body: JSON.stringify({ entradas }),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['configuracion'] })
+      void qc.invalidateQueries({ queryKey: ['sistema'] }) // media.proveedor puede cambiar en caliente
+    },
+  })
+}
+
+export function useRestaurarConfiguracion() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (clave: string) =>
+      api<{ ok: boolean; clave: string }>(`/api/configuracion?clave=${encodeURIComponent(clave)}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['configuracion'] })
+      void qc.invalidateQueries({ queryKey: ['sistema'] })
+    },
+  })
+}
+
+// Sonda individual de un proveedor (misma forma en llm/imagen/voz/video).
+export interface SondaConfigT {
+  provedor: string
+  estado: string
+  detalle: string
+}
+
+export interface SondasConfigT {
+  llm: { provedor: string; estado: string; detalle: string; modelo: string; base: string } | null
+  voz: SondaConfigT[]
+  imagen: SondaConfigT | null
+  video: { estado: string; detalle: string; comoActivar: string } | null
+}
+
+// Sondas REALES «Probar todo ahora»: POST /api/configuracion/probar ejecuta las
+// sondas de verdad (GET {base}/models del LLM, binarios locales de voz, proveedor
+// de imagen activo, escalera de vídeo) con la config vigente.
+export function useSondasConfiguracion() {
+  return useQuery({
+    queryKey: ['configuracion-sondas'],
+    queryFn: () =>
+      api<SondasConfigT>('/api/configuracion/probar', { method: 'POST', body: JSON.stringify({ objetivo: 'todo' }) }),
+  })
+}

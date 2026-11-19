@@ -190,7 +190,7 @@ export function TarjetaMotor({
   )
 }
 
-function FormularioConexion({
+export function FormularioConexion({
   motor,
   estado,
   onGuardado,

@@ -264,6 +264,23 @@ model IntegracionEvent {
   @@index([createdAt])
 }
 
+// ─────────────── Configuración en caliente (panel de Configuración) ───────────────
+// Una fila por clave guardada desde el panel (PUT /api/configuracion). Las claves,
+// tipos y validaciones viven en src/lib/configuracion.ts (DEFINICIONES_CONFIG); aquí
+// solo vive el VALOR. Resolución declarada: fila en BD (fuente='bd') > variable de
+// entorno (fuente='env') > defecto del código (fuente='defecto'). Los secretos (API
+// keys) descansan SOLO en esta BD local (db/ fuera de git); la API los devuelve
+// enmascarados y un campo vacío en el panel jamás borra el valor actual (borrar es
+// explícito, con Restaurar → DELETE borra la fila y vuelve a mandar env/defecto).
+// Sin filas = el env manda: comportamiento idéntico al previo (tests herméticos OK).
+model Configuracion {
+  id        String   @id @default(cuid())
+  clave     String   @unique // clave estable de DEFINICIONES_CONFIG (ej. llm.api_key)
+  valor     String   @default("") // valor guardado desde el panel (max 500 por validación)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // ───────────────────────────── Orquestador de flujos (sección 8-9 del prompt maestro) ─────────────────────────────
 
 // Definición de un flujo de extremo a extremo: pasos encadenados con acciones
