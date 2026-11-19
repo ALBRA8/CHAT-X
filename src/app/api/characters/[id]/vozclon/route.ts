@@ -1,8 +1,16 @@
 // Clon de voz por personaje (P1.3 fase 3): perfiles de identidad vocal REAL
-// (OpenVoice v2 + MeloTTS-es, MIT, $0 local). La voz vive como VECTOR SE (~KB)
-// en la BD — nunca en terceros. La muestra original se guarda como Media
-// kind="voz" lane PRIVADO (AES-256-GCM). Consentimiento OBLIGATORIO: sin
-// declaración del operador no hay perfil (compliance).
+// (speaker embedding local, $0). La voz vive como VECTOR (KB) en la BD —
+// nunca en terceros. La muestra original se guarda como Media kind="voz"
+// lane PRIVADO (AES-256-GCM). Consentimiento OBLIGATORIO (regla dura):
+// PROPIO o AUTORIZADO con declaración ≥20 caracteres — sin eso no hay perfil.
+//
+// REPARACIÓN (S-010): esta ruta quedó A MEDIAS en f91a606 (sesión sin
+// registro): importaba `extraerEmbeddingClon` y una sonda 'clon-local' que
+// nunca existieron — el build llevaba roto desde ese commit. Hoy se conectó
+// a la capa REAL que sí existe: src/lib/voz.ts (sondaClonLocal +
+// extraerEmbedding vía scripts/voz_clon_{sonda,extraer}.py). Sin los scripts
+// ni paquetes instalados, el estado es honesto: NO_CONFIGURADO/ERROR con el
+// detalle exacto — jamás OPERATIVO falso.
 import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import fs from 'fs'
@@ -13,13 +21,11 @@ import { LANE, ETIQUETA_IA, detectarTerminosProhibidos } from '@/lib/constants'
 import { rutaPieza, guardarBinarioCifrado, guardarIvTag } from '@/lib/media'
 import { registrarEvento } from '@/lib/compliance'
 import { claveMaestraServidor } from '@/lib/clave-privada'
-import { extraerEmbeddingClon, sondearProveedoresVoz, parsearContratoGuardado } from '@/lib/provider/voz'
+import { parsearContratoGuardado } from '@/lib/provider/voz'
+import { extraerEmbedding, sondaClonLocal, validarMuestra, consentimientoValido } from '@/lib/voz'
 import { recargarConfig } from '@/lib/configuracion'
 
-const MAX_MUESTRA_BYTES = 30 * 1024 * 1024 // 30 MB — una muestra limpia cabe de sobra
-const EXTENSIONES_OK = ['.wav', '.wave', '.ogg', '.flac', '.mp3']
-
-/** GET: perfiles del personaje + estado honesto del proveedor clon-local. */
+/** GET: perfiles del personaje + estado honesto del subsistema clon-local. */
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params
   const c = await db.character.findUnique({
@@ -28,22 +34,21 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   })
   if (!c) return NextResponse.json({ error: 'Personaje no encontrado' }, { status: 404 })
 
-  const perfiles = await db.voiceProfile.findMany({
+  const [perfiles, sonda] = await Promise.all([db.voiceProfile.findMany({
     where: { characterId: id },
     orderBy: { createdAt: 'desc' },
-  })
+  }), sondaClonLocal()])
   const contrato = parsearContratoGuardado(c.voiceContract)
-  const sondaClon = sondearProveedoresVoz().find((s) => s.provedor === 'clon-local')!
   return NextResponse.json({
-    sonda: sondaClon,
+    sonda,
     contrato,
     perfiles: perfiles.map((p) => ({
       id: p.id,
       nombre: p.nombre,
-      modelo: p.modelo,
+      extractor: p.extractor,
       estado: p.estado,
-      duracionS: p.duracionS,
-      nota: p.nota,
+      duracionMuestrasS: p.duracionMuestrasS,
+      detalle: p.detalle,
       consentimiento: p.consentimiento,
       tieneMuestra: Boolean(p.sampleMediaId),
       enUso: contrato?.provedor === 'clon-local' && contrato.voz === p.id,
@@ -59,11 +64,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const c = await db.character.findUnique({ where: { id } })
   if (!c) return NextResponse.json({ error: 'Personaje no encontrado' }, { status: 404 })
 
-  // El proveedor debe estar REAL en esta máquina antes de aceptar muestras.
-  const sondaClon = sondearProveedoresVoz().find((s) => s.provedor === 'clon-local')!
-  if (sondaClon.estado !== 'OPERATIVO') {
+  // El subsistema debe estar REAL en esta máquina antes de aceptar muestras.
+  // Sin extractor/modelos instalados: NO_CONFIGURADO honesto, 503, cero simulación.
+  const sonda = await sondaClonLocal()
+  if (sonda.estado !== 'OPERATIVO') {
     return NextResponse.json(
-      { error: 'Clon de voz no disponible en esta máquina', estado: sondaClon.estado, detalle: sondaClon.detalle },
+      { error: 'Clon de voz no disponible en esta máquina', estado: sonda.estado, detalle: sonda.detalle },
       { status: 503 },
     )
   }
@@ -77,18 +83,25 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
   const nombre = String(form.get('nombre') ?? '').trim()
   const consentimiento = String(form.get('consentimiento') ?? '').trim()
+  const consentimientoNota = String(form.get('consentimientoNota') ?? '').trim()
   if (!nombre || nombre.length > 80) {
     return NextResponse.json({ error: 'nombre requerido (1–80 caracteres)' }, { status: 422 })
   }
-  if (consentimiento.length < 20) {
+  if (!consentimientoValido(consentimiento)) {
     return NextResponse.json(
-      { error: 'consentimiento obligatorio: declara la fuente de la voz y el permiso de uso (mínimo 20 caracteres)' },
+      { error: 'consentimiento debe ser PROPIO o AUTORIZADO (regla dura: solo voces propias o con permiso registrado)' },
+      { status: 422 },
+    )
+  }
+  if (consentimientoNota.length < 20) {
+    return NextResponse.json(
+      { error: 'declaración de consentimiento obligatoria: fuente de la voz y permiso de uso (mínimo 20 caracteres)' },
       { status: 422 },
     )
   }
   // La identidad vocal también pasa el filtro de edad: la declaración no puede
   // contener términos prohibidos (mismo estándar que el resto de contenido).
-  const prohibidos = detectarTerminosProhibidos(`${nombre} ${consentimiento}`)
+  const prohibidos = detectarTerminosProhibidos(`${nombre} ${consentimientoNota}`)
   if (prohibidos.length) {
     await registrarEvento(
       'rechazo_qa',
@@ -100,32 +113,31 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
   const muestra = form.get('muestra')
   if (!(muestra instanceof File) || muestra.size === 0) {
-    return NextResponse.json({ error: 'muestra de audio requerida (wav/ogg/flac/mp3)' }, { status: 422 })
+    return NextResponse.json({ error: 'muestra de audio requerida (wav/mp3/m4a/ogg/webm/flac/opus)' }, { status: 422 })
   }
-  if (muestra.size > MAX_MUESTRA_BYTES) {
-    return NextResponse.json({ error: `muestra demasiado grande (máx ${Math.round(MAX_MUESTRA_BYTES / 1024 / 1024)} MB)` }, { status: 422 })
-  }
-  const ext = path.extname(muestra.name || '').toLowerCase()
-  if (!EXTENSIONES_OK.includes(ext)) {
-    return NextResponse.json({ error: `formato no soportado "${ext || 'desconocido'}" — usa wav, ogg, flac o mp3` }, { status: 422 })
+  const validez = validarMuestra(muestra.name, muestra.type, muestra.size)
+  if (!validez.ok) {
+    return NextResponse.json({ error: validez.motivo ?? 'muestra inválida' }, { status: 422 })
   }
 
   // Muestra a archivo temporal PLANO (el script necesita leer bytes reales).
+  const ext = path.extname(muestra.name || '') || '.wav'
   const tmp = path.join(os.tmpdir(), `chatx-clon-muestra-${process.pid}-${Date.now()}${ext}`)
   fs.writeFileSync(tmp, Buffer.from(await muestra.arrayBuffer()))
-  let extraccion: Awaited<ReturnType<typeof extraerEmbeddingClon>>
-  try {
-    extraccion = await extraerEmbeddingClon(tmp)
-  } finally {
+  const extraccion = await (async () => {
     try {
-      fs.unlinkSync(tmp)
-    } catch {
-      /* ya no existía */
+      return await extraerEmbedding(tmp)
+    } finally {
+      try {
+        fs.unlinkSync(tmp)
+      } catch {
+        /* ya no existía */
+      }
     }
-  }
-  if (!extraccion.ok) {
+  })()
+  if (!extraccion.ok || !extraccion.embeddingB64) {
     return NextResponse.json(
-      { error: 'No se pudo extraer la identidad de la voz', detalle: extraccion.detalle, estado: 'ERROR' },
+      { error: 'No se pudo extraer la identidad de la voz', detalle: extraccion.bloqueo ?? 'motivo desconocido', estado: 'ERROR' },
       { status: 503 },
     )
   }
@@ -146,7 +158,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     encTag = enc.tag
   } else {
     // Sin contraseña privada NO se guarda la muestra: el perfil igual sirve
-    // (el embedding ya está extraído), se registra honesto en la nota.
+    // (el embedding ya está extraído), se registra honesto en el detalle.
     filePath = null
   }
 
@@ -154,15 +166,17 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     data: {
       characterId: id,
       nombre,
-      modelo: 'openvoice-v2',
       embeddingB64: extraccion.embeddingB64,
+      dim: extraccion.dim ?? 0,
+      extractor: extraccion.extractor ?? 'desconocido',
+      duracionMuestrasS: extraccion.duracionS ?? 0,
       sampleMediaId: filePath ? mediaId : null,
       consentimiento,
-      duracionS: extraccion.duracionS,
-      estado: 'LISTO',
-      nota: masterKey
-        ? `muestra ${muestra.name} cifrada (PRIVADO) · ${extraccion.trozos} trozo(s) · extracción ${extraccion.generacionS}s`
-        : `sin contraseña privada: la muestra NO se retuvo (solo el embedding) · ${extraccion.trozos} trozo(s)`,
+      consentimientoNota,
+      estado: 'OPERATIVO',
+      detalle: masterKey
+        ? `muestra ${muestra.name} cifrada (PRIVADO) · extracción ${extraccion.duracionS ?? 0}s`
+        : `sin contraseña privada: la muestra NO se retuvo (solo el embedding)`,
     },
   })
 
@@ -175,7 +189,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         lane: LANE.PRIVADO,
         prompt: `muestra de voz para clon "${nombre}"`,
         seed: `vozclon-muestra-${mediaId}`,
-        checkpoint: 'openvoice-v2',
+        checkpoint: perfil.extractor,
         qualityVerdict: 'APROBADO',
         filtersTriggered: JSON.stringify([]),
         aiLabels: JSON.stringify([ETIQUETA_IA]),
@@ -189,7 +203,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           modulo: 'voz_clon_muestra',
           perfilId: perfil.id,
           consentimiento,
-          duracionS: extraccion.duracionS,
+          duracionMuestrasS: perfil.duracionMuestrasS,
           bytes: muestra.size,
           carril: LANE.PRIVADO,
           coste: 0,
@@ -204,11 +218,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     {
       perfilId: perfil.id,
       nombre,
-      modelo: 'openvoice-v2',
-      duracionS: extraccion.duracionS,
-      trozos: extraccion.trozos,
+      extractor: perfil.extractor,
+      dim: perfil.dim,
+      duracionMuestrasS: perfil.duracionMuestrasS,
       muestraRetenida: Boolean(filePath),
-      consentimientoLen: consentimiento.length,
+      consentimiento,
+      consentimientoLen: consentimientoNota.length,
     },
     { characterId: id },
   )
@@ -218,10 +233,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       perfil: {
         id: perfil.id,
         nombre: perfil.nombre,
-        modelo: perfil.modelo,
+        extractor: perfil.extractor,
         estado: perfil.estado,
-        duracionS: perfil.duracionS,
-        nota: perfil.nota,
+        duracionMuestrasS: perfil.duracionMuestrasS,
+        detalle: perfil.detalle,
       },
       estado: 'OPERATIVO',
     },

@@ -1,5 +1,6 @@
 // Serializadores para la API (parsean los campos JSON guardados como texto)
 import type { Character, Job, Media, Set, KpiEntry, ComplianceEvent, LoraVersion } from '@prisma/client'
+import { duracionMs, estadoCaducidad } from '@/lib/cola'
 
 export interface Genome {
   atributos: Record<string, string>
@@ -80,6 +81,9 @@ export function jobDTO(j: Job) {
     progress: j.progress,
     costEstimate: j.costEstimate,
     costReal: j.costReal,
+    // A2/D-015 — duración real del trabajo (análogo honesto de gpu_cost_time:
+    // en el simulador F1 no hay proveedor externo; el tiempo medido en casa).
+    duracionMs: duracionMs(j.startedAt, j.finishedAt),
     payload: parseJson<Record<string, unknown>>(j.payload, {}),
     result: parseJson<Record<string, unknown>>(j.result, {}),
     error: j.error,
@@ -109,6 +113,10 @@ export function mediaDTO(m: Media) {
     pipelineStatus: m.pipelineStatus,
     cifrado: Boolean(m.encIv),
     provenance: parseJson<Record<string, unknown>>(m.provenance, {}),
+    // A2/D-015 — caducidad declarada en casa: la política por defecto es
+    // permanente (null); el estado derivado se calcula al serializar.
+    caducaEn: m.caducaEn,
+    caducidad: estadoCaducidad(m.caducaEn),
     setId: m.setId,
     createdAt: m.createdAt,
   }

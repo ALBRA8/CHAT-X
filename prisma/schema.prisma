@@ -107,6 +107,12 @@ model Media {
   encThumbIv     String? // IV hex de la miniatura cifrada
   encThumbTag    String? // authTag hex de la miniatura cifrada
   provenance     String   @default("{}") // JSON de procedencia completa
+  // A2/D-015 — caducidad DECLARADA en casa (lección MIAFACTORY §19.6: su media
+  // caducaba a 14 días en el CDN del proveedor, en silencio). Política propia:
+  // TODO lo producido es permanente (null = permanente). Solo artefactos
+  // efímeros que el operador declare llevan fecha; "caducada" NO borra nada —
+  // es un estado visible para que el operador decida (jamás purga automática).
+  caducaEn       DateTime?
   setId          String?
   set            Set?     @relation(fields: [setId], references: [id], onDelete: SetNull)
   createdAt      DateTime @default(now())
@@ -188,7 +194,7 @@ model KpiEntry {
 
 model ComplianceEvent {
   id          String   @id @default(cuid())
-  type        String // filtro_edad | rechazo_qa | etiqueta_ia | cifrado | exportacion | publicacion | acceso_privado | creacion
+  type        String // filtro_edad | rechazo_qa | etiqueta_ia | cifrado | caducidad | exportacion | publicacion | acceso_privado | creacion
   mediaId     String?
   characterId String?
   detail      String   @default("{}") // JSON con el detalle del evento

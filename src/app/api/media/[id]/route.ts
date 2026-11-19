@@ -74,5 +74,33 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     return NextResponse.json({ ok: true })
   }
 
+  // A2/D-015 — DECLARAR caducidad en casa (lección MIAFACTORY §19.6: su media
+  // caducaba en silencio en el CDN del proveedor). Aquí el OPERADOR declara la
+  // fecha (o la quita con null) y el evento queda en el registro append-only.
+  // "caducada" NUNCA borra la pieza: es un estado visible, decidir es del
+  // operador (la acción borrar sigue existiendo y también se audita).
+  if (accion === 'caducidad') {
+    const cruda = body.caducaEn
+    let caducaEn: Date | null = null
+    if (cruda !== null && cruda !== undefined) {
+      const d = new Date(String(cruda))
+      if (Number.isNaN(d.getTime())) {
+        return NextResponse.json({ error: 'caducaEn debe ser una fecha ISO válida o null' }, { status: 400 })
+      }
+      caducaEn = d
+    }
+    const updated = await db.media.update({ where: { id }, data: { caducaEn } })
+    await registrarEvento(
+      'caducidad',
+      {
+        accion: caducaEn ? 'caducidad_declarada' : 'caducidad_quitada',
+        caducaEn: caducaEn ? caducaEn.toISOString() : null,
+        seed: m.seed,
+      },
+      { mediaId: id, characterId: m.characterId },
+    )
+    return NextResponse.json({ media: mediaDTO(updated) })
+  }
+
   return NextResponse.json({ error: 'Acción desconocida' }, { status: 400 })
 }

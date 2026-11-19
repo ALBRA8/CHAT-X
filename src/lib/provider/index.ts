@@ -27,3 +27,12 @@ export function getProvider(): Provider {
       return cache
   }
 }
+
+// Regla del corte (f91a606 la llamó pero nunca la escribió — la sesión sin
+// registro dejó el import roto y el build caído): cuando el operador cambia
+// media.proveedor en Configuración, el cache debe soltarse para que la
+// próxima getProvider() lea de nuevo ESTUDIO_PROVIDER. Sin esto, cambiar de
+// proveedor en caliente no tendría efecto hasta reiniciar el proceso.
+export function resetearProveedor(): void {
+  cache = null
+}

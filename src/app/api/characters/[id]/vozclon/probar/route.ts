@@ -37,9 +37,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   if (!perfil || perfil.characterId !== id) {
     return NextResponse.json({ error: 'Perfil no encontrado para este personaje' }, { status: 404 })
   }
-  if (perfil.estado !== 'LISTO' || !perfil.embeddingB64) {
+  if (perfil.estado !== 'OPERATIVO' || !perfil.embeddingB64) {
     return NextResponse.json(
-      { error: 'El perfil no está LISTO o no tiene embedding — re-extraer la muestra', estado: perfil.estado },
+      { error: 'El perfil no está OPERATIVO o no tiene embedding — re-extraer la muestra', estado: perfil.estado },
       { status: 409 },
     )
   }
@@ -52,7 +52,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   })
   if (!contrato.ok) return NextResponse.json({ error: 'Contrato inválido', errores: contrato.errores }, { status: 422 })
 
-  const r = await generarVoz(texto, contrato.contrato, { embeddingB64: perfil.embeddingB64 })
+  // Sin tercer argumento: la síntesis con identidad aún no está cableada y
+  // generarVoz responde NO_DISPONIBLE honesto para clon-local (sin fallback
+  // silencioso a espeak). Cuando exista scripts/voz_clon_sintetizar.py, aquí
+  // viaja el embedding del perfil.
+  const r = await generarVoz(texto, contrato.contrato)
   if (!r.ok) {
     return NextResponse.json({ error: 'Generación de voz no disponible', estado: r.estado, detalle: r.detalle, provedor: r.provedor }, { status: 503 })
   }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Progress } from '@/components/ui/progress'
 import { ChevronDown, Clapperboard, PlayCircle } from 'lucide-react'
@@ -15,10 +16,12 @@ import {
   StatCard,
   VeredictoBadge,
   fmtDinero,
+  fmtDuracion,
   fmtFecha,
   jobLabel,
   JobBadge,
 } from './ui-bits'
+import { resumenCoste } from '@/lib/cola'
 import { EstadoVacio } from './EstadoVacio'
 
 export default function PanelView({
@@ -187,15 +190,23 @@ export default function PanelView({
 }
 
 function JobRow({ job, destacado = false }: { job: JobT; destacado?: boolean }) {
+  const coste = resumenCoste(job.costEstimate, job.costReal, job.status)
   return (
     <div className={destacado ? 'rounded-lg border border-primary/30 bg-card p-3' : 'rounded-lg border border-border bg-card/60 p-3'}>
       <div className="flex items-center gap-2 flex-wrap text-xs">
         <JobBadge status={job.status} />
         <span className="font-medium">{jobLabel(job.type)}</span>
         {job.characterName ? <span className="text-muted-foreground">· {job.characterName}</span> : null}
-        <span className="ml-auto tabular-nums text-muted-foreground">
-          {Math.round(job.costReal || job.costEstimate)} cr. · {fmtFecha(job.createdAt)}
-        </span>
+        {job.status === 'en_cola' && job.posicionCola !== null && (
+          <Badge variant="secondary" className="text-[10px] tabular-nums" title="puesto en la cola completa, mismo orden que lee el worker">
+            puesto #{job.posicionCola}
+          </Badge>
+        )}
+        <span className="ml-auto tabular-nums text-muted-foreground">{fmtFecha(job.createdAt)}</span>
+      </div>
+      <div className="mt-1 flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
+        <CosteTexto coste={coste} />
+        {job.duracionMs !== null && <span className="tabular-nums">· duró {fmtDuracion(job.duracionMs)}</span>}
       </div>
       {(job.status === 'procesando' || job.status === 'en_cola') && (
         <div className="mt-2">
@@ -205,4 +216,31 @@ function JobRow({ job, destacado = false }: { job: JobT; destacado?: boolean }) 
       {job.error ? <p className="mt-1.5 text-[11px] text-rose-300">{job.error}</p> : null}
     </div>
   )
+}
+
+// A2/D-015 — coste presupuestado vs real POR TRABAJO, con veredicto honesto:
+// lo que volvió al saldo se dice; lo que costó de más también.
+function CosteTexto({ coste }: { coste: ReturnType<typeof resumenCoste> }) {
+  const c = (n: number) => `${Math.round(n * 10) / 10} cr.`
+  switch (coste.veredicto) {
+    case 'pendiente':
+      return <span>presupuestado {c(coste.presupuestado)} · el real lo dice el servidor al reclamar</span>
+    case 'reembolsado':
+      return <span className="text-amber-300">{c(coste.presupuestado)} presupuestados devueltos al saldo</span>
+    case 'ajustado_bajo':
+      return (
+        <span>
+          presupuestado {c(coste.presupuestado)} · real {c(coste.real)} · <span className="text-emerald-300">{c(coste.delta)} devueltos</span>
+        </span>
+      )
+    case 'ajustado_alto':
+      return (
+        <span>
+          presupuestado {c(coste.presupuestado)} · real {c(coste.real)} ·{' '}
+          <span className="text-rose-300">{c(-coste.delta)} de más</span>
+        </span>
+      )
+    default:
+      return <span>{c(coste.real)} (real = presupuesto)</span>
+  }
 }

@@ -66,6 +66,9 @@ export interface JobT {
   progress: number
   costEstimate: number
   costReal: number
+  // A2/D-015 — derivados honestos del job (calculados por la API, no por el cliente)
+  duracionMs: number | null
+  posicionCola: number | null
   payload: Record<string, unknown>
   result: Record<string, unknown>
   error: string | null
@@ -92,6 +95,9 @@ export interface MediaT {
   pipelineStatus: 'borrador' | 'qa' | 'aprobado' | 'cifrado' | 'publicado'
   cifrado: boolean
   provenance: Record<string, unknown>
+  // A2/D-015 — caducidad declarada en casa (null = permanente por política)
+  caducaEn: string | null
+  caducidad: 'permanente' | 'vigente' | 'caducada'
   setId: string | null
   createdAt: string
   set?: { id: string; name: string; publishStatus: string } | null

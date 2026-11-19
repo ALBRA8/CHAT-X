@@ -392,8 +392,18 @@ export default function EstudioView({
                 <Shirt className="mr-1.5 h-4 w-4" aria-hidden /> Outfit Swap
               </Button>
             </div>
-            {loteJob && <p className="text-xs text-amber-300">Lote en curso: {loteJob.status.replace('_', ' ')}…</p>}
-            {renderJob && <p className="text-xs text-amber-300">Render en curso: {renderJob.status.replace('_', ' ')}…</p>}
+            {loteJob && (
+              <p className="text-xs text-amber-300">
+                Lote en curso: {loteJob.status.replace('_', ' ')}
+                {loteJob.status === 'en_cola' && loteJob.posicionCola !== null ? ` (puesto #${loteJob.posicionCola} en la cola)` : ''}…
+              </p>
+            )}
+            {renderJob && (
+              <p className="text-xs text-amber-300">
+                Render en curso: {renderJob.status.replace('_', ' ')}
+                {renderJob.status === 'en_cola' && renderJob.posicionCola !== null ? ` (puesto #${renderJob.posicionCola} en la cola)` : ''}…
+              </p>
+            )}
             {modoPrivado && (
               <p className="text-[11px] text-rose-300">
                 CARRIL PRIVADO: las piezas aprobadas se cifran al instante; solo se ven aquí y con sesión abierta.

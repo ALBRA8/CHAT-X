@@ -20,12 +20,15 @@ import { qaForense } from '@/lib/qa-forense'
 
 export type EstadoVoz = 'OPERATIVO' | 'NO_DISPONIBLE' | 'ERROR'
 
-export const PROVEEDORES_VOZ = ['espeak-local', 'piper-local'] as const
+// Tres capas de voz (misma enumeración en toda la torre): espeak (emergencia),
+// piper (natural genérica) y clon-local (identidad real — la capa 3 de
+// src/lib/voz.ts). El contrato de un personaje puede apuntar a cualquiera.
+export const PROVEEDORES_VOZ = ['espeak-local', 'piper-local', 'clon-local'] as const
 export type ProveedorVoz = (typeof PROVEEDORES_VOZ)[number]
 
 export interface ContratoVoz {
   provedor: ProveedorVoz
-  voz: string // identificador de voz del proveedor (espeak: 'es', 'es-419', 'en'…)
+  voz: string // espeak/piper: código de voz ('es', 'es-419'…) · clon-local: id del VoiceProfile
   velocidad: number // palabras por minuto (80–400)
   tono: number // ajuste de tono espeak 0–99 (50 = neutro)
   actualizado: string // ISO timestamp del último cambio del contrato
@@ -131,9 +134,15 @@ export function sondearProveedoresVoz(): SondaVoz[] {
   ]
 }
 
-/** Estado de un proveedor concreto (para la ruta: decidir antes de generar). */
+/** Estado de un proveedor concreto (para la ruta: decidir antes de generar).
+ *  clon-local NO se sondea aquí: tiene sonda propia async (sondaClonLocal en
+ *  @/lib/voz) — se devuelve ERROR honesto con la instrucción, sin crash. */
 export function estadoProveedor(p: ProveedorVoz): SondaVoz {
-  return sondearProveedoresVoz().find((s) => s.provedor === p)!
+  const sonda = sondearProveedoresVoz().find((s) => s.provedor === p)
+  if (!sonda) {
+    return { provedor: p, estado: 'ERROR', detalle: 'este proveedor no se sondea aquí — usa su sonda específica (p.ej. sondaClonLocal)' }
+  }
+  return sonda
 }
 
 /** Valida y normaliza un contrato de voz entrante (PUT de la API). */
@@ -145,7 +154,11 @@ export function validarContratoVoz(input: unknown): { ok: true; contrato: Contra
     errores.push(`provedor debe ser uno de: ${PROVEEDORES_VOZ.join(', ')}`)
   }
   const voz = typeof b.voz === 'string' && b.voz.trim() ? b.voz.trim() : 'es'
-  if (!/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/i.test(voz)) errores.push('voz debe ser un código BCP-47 corto (p.ej. es, es-419, en)')
+  if (provedor === 'clon-local') {
+    // clon-local: la "voz" es el id del VoiceProfile del personaje (cuid),
+    // no un idioma — validar como identificador, no como BCP-47.
+    if (!/^[a-zA-Z0-9_-]{8,40}$/.test(voz)) errores.push('voz debe ser el id del perfil de voz clonada (clon-local)')
+  } else if (!/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/i.test(voz)) errores.push('voz debe ser un código BCP-47 corto (p.ej. es, es-419, en)')
   const velocidad = typeof b.velocidad === 'number' ? b.velocidad : 170
   if (!Number.isFinite(velocidad) || velocidad < 80 || velocidad > 400) errores.push('velocidad fuera de rango (80–400 palabras/min)')
   const tono = typeof b.tono === 'number' ? b.tono : 50
@@ -267,6 +280,19 @@ function generarVozPiper(texto: string, contrato: ContratoVoz): ResultadoVoz {
  * estado honesto (la ruta responde 503 con el detalle).
  */
 export async function generarVoz(texto: string, contrato: ContratoVoz): Promise<ResultadoVoz> {
+  // clon-local: la síntesis con identidad aún NO está cableada (la capa 3 de
+  // src/lib/voz.ts tiene sonda + extracción; falta el sintetizador). Regla
+  // dura de honestidad: NUNCA caer a espeak/piper en silencio — la voz
+  // "clonada" que suena robótica es una mentira al operador. Estado honesto:
+  if (contrato.provedor === 'clon-local') {
+    return {
+      ok: false,
+      estado: 'NO_DISPONIBLE',
+      detalle: 'síntesis con identidad clon-local aún no cableada en esta torre (falta scripts/voz_clon_sintetizar.py y su conexión) — sin fallback silencioso a espeak',
+      provedor: 'clon-local',
+    }
+  }
+
   if (contrato.provedor === 'piper-local') {
     const s = estadoProveedor('piper-local')
     if (s.estado !== 'OPERATIVO') {

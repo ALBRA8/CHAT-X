@@ -15,6 +15,18 @@ export function fmtFecha(iso: string | Date | null | undefined): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+// A2/D-015 — duración de un trabajo terminado, leída en casa (análogo honesto
+// de gpu_cost_time del destripe §19.3: aquí el proveedor es el simulador local,
+// así que el tiempo que importa es el medido de startedAt → finishedAt).
+export function fmtDuracion(ms: number | null | undefined): string {
+  if (ms === null || ms === undefined) return '—'
+  if (ms < 1000) return `${ms} ms`
+  if (ms < 60_000) return `${(Math.round(ms / 100) / 10).toLocaleString('es-MX')} s`
+  const min = Math.floor(ms / 60_000)
+  const seg = Math.round((ms % 60_000) / 1000)
+  return `${min} min ${seg} s`
+}
+
 const ESTADO_STYLES: Record<string, string> = {
   BORRADOR: 'bg-zinc-500/15 text-zinc-300 border-zinc-500/30',
   ENTRENANDO: 'bg-amber-500/15 text-amber-300 border-amber-500/30',

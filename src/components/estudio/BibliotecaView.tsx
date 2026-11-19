@@ -76,6 +76,12 @@ function Piezas({ onAbrirEstudio }: { onAbrirEstudio?: () => void }) {
     (v: { id: string }) => api(`/api/media/${v.id}`, { method: 'PATCH', body: JSON.stringify({ accion: 'borrar' }) }),
     ['media', 'compliance'],
   )
+  // A2/D-015 — declarar/quitar caducidad en casa (auditable en compliance)
+  const caducidad = useAccion(
+    (v: { id: string; fecha: string | null }) =>
+      api(`/api/media/${v.id}`, { method: 'PATCH', body: JSON.stringify({ accion: 'caducidad', caducaEn: v.fecha }) }),
+    ['media', 'compliance'],
+  )
   const crearSet = useAccion(
     () =>
       api('/api/sets', {
@@ -170,7 +176,15 @@ function Piezas({ onAbrirEstudio }: { onAbrirEstudio?: () => void }) {
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           {(media?.media ?? []).map((m) => (
-            <PiezaCard key={m.id} m={m} sel={sel.has(m.id)} onToggle={() => setSel((s) => { const n = new Set(s); if (n.has(m.id)) n.delete(m.id); else n.add(m.id); return n })} onAccion={accion.mutate} onBorrar={() => borrar.mutate({ id: m.id })} />
+            <PiezaCard
+              key={m.id}
+              m={m}
+              sel={sel.has(m.id)}
+              onToggle={() => setSel((s) => { const n = new Set(s); if (n.has(m.id)) n.delete(m.id); else n.add(m.id); return n })}
+              onAccion={accion.mutate}
+              onBorrar={() => borrar.mutate({ id: m.id })}
+              onCaducidad={(fecha) => caducidad.mutate({ id: m.id, fecha })}
+            />
           ))}
         </div>
       )}
@@ -214,14 +228,17 @@ function PiezaCard({
   onToggle,
   onAccion,
   onBorrar,
+  onCaducidad,
 }: {
   m: MediaT
   sel: boolean
   onToggle: () => void
   onAccion: (v: { id: string; accion: string }) => void
   onBorrar: () => void
+  onCaducidad: (fecha: string | null) => void
 }) {
   const [abierta, setAbierta] = useState(false)
+  const [fechaNueva, setFechaNueva] = useState('')
   return (
     <div className={`rounded-lg border p-1.5 space-y-1.5 ${sel ? 'border-primary ring-2 ring-primary/40' : 'border-border'}`}>
       <button onClick={onToggle} className="relative block w-full" aria-pressed={sel} aria-label={`Seleccionar pieza ${m.id.slice(-5)}`}>
@@ -230,8 +247,13 @@ function PiezaCard({
           <VeredictoBadge veredicto={m.qualityVerdict} />
           <PipelineBadge estado={m.pipelineStatus} />
         </span>
+        {m.caducidad === 'caducada' && (
+          <Badge className="absolute bottom-1 left-1 text-[10px] border-amber-500/50 bg-amber-950/80 text-amber-300" title="fecha declarada vencida — nada se borra solo, decidir es del operador">
+            caducada
+          </Badge>
+        )}
       </button>
-      <Button size="sm" variant="ghost" className="h-6 w-full text-[10px]" onClick={() => setAbierta(true)}>detalle</Button>
+      <Button size="sm" variant="ghost" className="h-6 w-full text-[10px]" onClick={() => { setAbierta(true); setFechaNueva(m.caducaEn ? aDatetimeLocal(m.caducaEn) : '') }}>detalle</Button>
       <Dialog open={abierta} onOpenChange={setAbierta}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -251,7 +273,23 @@ function PiezaCard({
             <div><dt className="inline text-muted-foreground">filtros disparados: </dt><dd className="inline">{m.filtersTriggered.join(', ') || 'ninguno'}</dd></div>
             <div><dt className="inline text-muted-foreground">set: </dt><dd className="inline">{m.set?.name ?? '—'}</dd></div>
             <div><dt className="inline text-muted-foreground">creada: </dt><dd className="inline">{fmtFecha(m.createdAt)}</dd></div>
+            <div>
+              <dt className="inline text-muted-foreground">caducidad: </dt>
+              <dd className="inline">
+                {m.caducidad === 'permanente' && 'permanente (política por defecto)'}
+                {m.caducidad === 'vigente' && `declara caduca ${fmtFecha(m.caducaEn)}`}
+                {m.caducidad === 'caducada' && <span className="text-amber-300">CADUCADA {fmtFecha(m.caducaEn)} — no se borra sola</span>}
+              </dd>
+            </div>
           </dl>
+          <div className="rounded-lg border border-border p-2.5 space-y-1.5">
+            <Label htmlFor="p-caduca" className="text-[11px] text-muted-foreground">A2 · declarar caducidad (opcional, en casa — jamás purga automática)</Label>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Input id="p-caduca" type="datetime-local" value={fechaNueva} onChange={(e) => setFechaNueva(e.target.value)} className="h-8 w-56 text-xs" />
+              <Button size="sm" variant="outline" className="h-8" disabled={!fechaNueva} onClick={() => { onCaducidad(new Date(fechaNueva).toISOString()); setAbierta(false) }}>declarar</Button>
+              {m.caducaEn && <Button size="sm" variant="ghost" className="h-8" onClick={() => { onCaducidad(null); setAbierta(false) }}>quitar (volver a permanente)</Button>}
+            </div>
+          </div>
           <DialogFooter className="flex flex-wrap gap-2">
             {m.qualityVerdict !== 'APROBADO' && <Button size="sm" variant="outline" onClick={() => { onAccion({ id: m.id, accion: 'aprobar' }); setAbierta(false) }}>Aprobar (forzar)</Button>}
             {m.lane === 'PRIVADO' && m.pipelineStatus !== 'cifrado' && <Button size="sm" variant="destructive" onClick={() => { onAccion({ id: m.id, accion: 'cifrar' }); setAbierta(false) }}>Cifrar</Button>}
@@ -263,6 +301,13 @@ function PiezaCard({
       </Dialog>
     </div>
   )
+}
+
+// ISO → valor aceptado por <input type="datetime-local"> en hora local.
+function aDatetimeLocal(iso: string): string {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 /* ───────────────────────── SETS ───────────────────────── */
