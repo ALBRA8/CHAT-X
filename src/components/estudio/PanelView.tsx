@@ -13,15 +13,21 @@ import {
   EstadoBadge,
   ProgresoJob,
   StatCard,
-  Vacio,
   VeredictoBadge,
   fmtDinero,
   fmtFecha,
   jobLabel,
   JobBadge,
 } from './ui-bits'
+import { EstadoVacio } from './EstadoVacio'
 
-export default function PanelView({ onAbrirEstudio }: { onAbrirEstudio: (c: CharacterT) => void }) {
+export default function PanelView({
+  onAbrirEstudio,
+  onAbrirGenoma,
+}: {
+  onAbrirEstudio: (c: CharacterT) => void
+  onAbrirGenoma?: () => void
+}) {
   const { data: characters } = useCharacters()
   const { data: jobs } = useJobs(false)
   const { data: sets } = useSets()
@@ -59,10 +65,15 @@ export default function PanelView({ onAbrirEstudio }: { onAbrirEstudio: (c: Char
           <span className="text-xs text-muted-foreground">toca un personaje para abrirlo en el estudio</span>
         </div>
         {!characters || characters.length === 0 ? (
-          <Vacio
+          <EstadoVacio
             icono="🎬"
-            titulo="Aún no hay personajes"
-            texto="Abre la pestaña Genoma y crea tu primera modelo virtual con el asistente de 7 pasos."
+            titulo="Aún no hay personajes: el roster se llena desde el Genoma"
+            pasos={[
+              { titulo: 'Abre el Genoma y crea tu primera modelo virtual', detalle: 'asistente de 7 pasos con rasgos firmantes' },
+              { titulo: 'Lanza su examen de identidad', detalle: '5 escenas contra la cara canónica' },
+              { titulo: 'Al aprobar queda ACTIVA y aparece aquí', detalle: 'tócala para abrirla en el Estudio y producir' },
+            ]}
+            cta={onAbrirGenoma ? { etiqueta: 'Ir al Genoma', onClick: onAbrirGenoma } : undefined}
           />
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">

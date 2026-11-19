@@ -1,0 +1,174 @@
+// D-015 · A1 — el catálogo inicial del Estudio COMO DATOS.
+// Estas tres generadoras ya existen y funcionan por sus endpoints reales
+// (/api/studio/lote · /api/studio/instadump · /api/studio/outfit-swap); aquí
+// se DECLARAN sus formularios para que el renderizador único las pinte y
+// agregar una herramienta futura sea insertar una fila, no programar una
+// pantalla. Los textos son propios (frase de tarjeta: verbo imperativo + qué
+// hace + un detalle práctico). Consumido por scripts/seed_herramientas.ts y
+// por los tests unitarios.
+import type { HerramientaDefEntrada } from './herramientas'
+
+const CAMPO_PERSONAJE = {
+  name: 'characterId',
+  type: 'character',
+  label: 'Personaje (solo ACTIVOS)',
+  required: true,
+  helpText: 'Los personajes se activan en el Genoma al aprobar el examen de identidad de 5 escenas.',
+  ruta: 'characterId',
+} as const
+
+const CAMPO_CARRIL = {
+  name: 'lane',
+  type: 'carril',
+  label: 'Carril',
+  required: true,
+  helpText: 'Público SFW para redes; privado 18+ exige sesión abierta y cifra al instante.',
+  ruta: 'lane',
+} as const
+
+const CAMPO_CUENTA = (max: number) =>
+  ({
+    name: 'count',
+    type: 'slider',
+    label: `Piezas del lote (máx. ${max})`,
+    required: true,
+    min: 1,
+    max,
+    step: 1,
+    defaultValue: 8,
+    escalaCoste: true,
+    ruta: 'count',
+  }) as const
+
+export const CATALOGO_ESTUDIO: HerramientaDefEntrada[] = [
+  {
+    clave: 'fabrica_fotos',
+    nombre: 'Fábrica de fotos',
+    descripcion: 'Genera vistas previas baratas desde tu brief y deja el render final solo para las elegidas.',
+    grupo: 'Producción',
+    fraseGrupo: 'Del brief a piezas con QA, siempre con el coste a la vista antes de generar.',
+    subgrupo: 'FOTOS',
+    icono: '📷',
+    chapas: [],
+    carril: 'PUBLICO',
+    costeBase: 2,
+    costeTexto: '2 cr × vista previa',
+    limiteTexto: 'hasta 32 vistas previas por lote',
+    salida: { tipo: 'imagen', cantidad: 'lote' },
+    campos: [
+      CAMPO_PERSONAJE,
+      CAMPO_CARRIL,
+      {
+        name: 'escena',
+        type: 'textarea',
+        label: 'Escena',
+        required: true,
+        placeholder: 'p. ej. balcón con vista a la ciudad al atardecer',
+        helpText: 'El corazón del brief: describe el lugar y la situación.',
+        ruta: 'brief.escena',
+      },
+      { name: 'outfit', type: 'text', label: 'Outfit', placeholder: 'p. ej. vestido negro', ruta: 'brief.outfit', mediaFila: true },
+      { name: 'pose', type: 'text', label: 'Pose', placeholder: 'p. ej. apoyada en la baranda', ruta: 'brief.pose', mediaFila: true },
+      {
+        name: 'encuadre',
+        type: 'select',
+        label: 'Encuadre',
+        required: true,
+        options: [
+          { value: 'primer_plano', label: 'primer plano' },
+          { value: 'plano_medio', label: 'plano medio' },
+          { value: 'cuerpo_entero', label: 'cuerpo entero' },
+        ],
+        ruta: 'brief.encuadre',
+        mediaFila: true,
+      },
+      { name: 'luz', type: 'text', label: 'Luz', placeholder: 'p. ej. dorado de atardecer', ruta: 'brief.luz', mediaFila: true },
+      CAMPO_CUENTA(32),
+    ],
+    endpoint: '/api/studio/lote',
+    payloadFijo: {},
+    orden: 10,
+  },
+  {
+    clave: 'instadump',
+    nombre: 'InstaDump',
+    descripcion: 'Genera un lote variado con un clic: escenas y outfits distintos que el genoma planifica por ti.',
+    grupo: 'Producción',
+    fraseGrupo: 'Del brief a piezas con QA, siempre con el coste a la vista antes de generar.',
+    subgrupo: 'FOTOS',
+    icono: '🎲',
+    chapas: [],
+    carril: 'PUBLICO',
+    costeBase: 2,
+    costeTexto: '2 cr × pieza',
+    limiteTexto: 'hasta 32 piezas por tanda',
+    salida: { tipo: 'imagen', cantidad: 'lote' },
+    campos: [
+      CAMPO_PERSONAJE,
+      CAMPO_CARRIL,
+      {
+        name: 'escena',
+        type: 'text',
+        label: 'Escena (ancla opcional)',
+        placeholder: 'vacío = el genoma elige',
+        helpText: 'Lo que dejes vacío lo planifica el InstaDump con pools curados y las aficiones del genoma.',
+        ruta: 'escena',
+        mediaFila: true,
+      },
+      { name: 'outfit', type: 'text', label: 'Outfit (ancla opcional)', placeholder: 'vacío = pool de outfits', ruta: 'outfit', mediaFila: true },
+      { name: 'luz', type: 'text', label: 'Luz (ancla opcional)', placeholder: 'vacío = pool de luces', ruta: 'luz', mediaFila: true },
+      CAMPO_CUENTA(32),
+    ],
+    endpoint: '/api/studio/instadump',
+    payloadFijo: { paquete: 'mixto' },
+    orden: 20,
+  },
+  {
+    clave: 'outfit_swap',
+    nombre: 'Outfit Swap',
+    descripcion: 'Cambia el vestuario de tu personaje manteniendo el rostro: escribe el outfit NUEVO y produce variaciones sin deriva facial.',
+    grupo: 'Producción',
+    fraseGrupo: 'Del brief a piezas con QA, siempre con el coste a la vista antes de generar.',
+    subgrupo: 'VESTUARIO',
+    icono: '👗',
+    chapas: [],
+    carril: 'PUBLICO',
+    costeBase: 2,
+    costeTexto: '2 cr × pieza',
+    limiteTexto: 'hasta 32 piezas por tanda',
+    salida: { tipo: 'imagen', cantidad: 'lote' },
+    campos: [
+      CAMPO_PERSONAJE,
+      CAMPO_CARRIL,
+      {
+        name: 'outfit',
+        type: 'textarea',
+        label: 'Outfit NUEVO',
+        required: true,
+        placeholder: 'p. ej. chaqueta de cuero negra y jeans',
+        helpText: 'Describe lo que quieres VER; la identidad no deriva (baseSeed fija).',
+        ruta: 'outfit',
+      },
+      { name: 'escena', type: 'text', label: 'Escena (opcional)', placeholder: 'p. ej. estudio fotográfico', ruta: 'escena', mediaFila: true },
+      { name: 'luz', type: 'text', label: 'Luz (opcional)', placeholder: 'p. ej. luz suave de ventana', ruta: 'luz', mediaFila: true },
+      {
+        name: 'encuadre',
+        type: 'select',
+        label: 'Encuadre',
+        required: true,
+        options: [
+          { value: 'primer_plano', label: 'primer plano' },
+          { value: 'plano_medio', label: 'plano medio' },
+          { value: 'cuerpo_entero', label: 'cuerpo entero' },
+        ],
+        defaultValue: 'cuerpo_entero',
+        ruta: 'encuadre',
+        mediaFila: true,
+      },
+      CAMPO_CUENTA(32),
+    ],
+    endpoint: '/api/studio/outfit-swap',
+    payloadFijo: {},
+    orden: 30,
+  },
+]

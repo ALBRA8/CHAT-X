@@ -25,13 +25,20 @@ import {
   type PresetT,
 } from './api'
 import { MediaImg, Vacio, VeredictoBadge, fmtDinero, fmtFecha } from './ui-bits'
+import { EstadoVacio } from './EstadoVacio'
 import VozCard from './VozCard'
 import { BIBLIOTECA_PRESETS } from './biblioteca'
 import { COSTOS } from '@/lib/constants'
 
 const ENCUADRES = ['primer_plano', 'plano_medio', 'cuerpo_entero'] as const
 
-export default function EstudioView({ inicial }: { inicial: CharacterT | null }) {
+export default function EstudioView({
+  inicial,
+  onAbrirGenoma,
+}: {
+  inicial: CharacterT | null
+  onAbrirGenoma?: () => void
+}) {
   const { toast } = useToast()
   const { data: characters } = useCharacters()
   const { data: settings } = useSettings()
@@ -472,7 +479,17 @@ export default function EstudioView({ inicial }: { inicial: CharacterT | null })
       )}
 
       {!c && (
-        <Vacio icono="🎬" titulo="Elige un personaje ACTIVO" texto="Los personajes se activan en el Genoma cuando aprueban el examen de identidad de 5 escenas." />
+        <EstadoVacio
+          icono="🎬"
+          titulo="Elige un personaje ACTIVO para producir"
+          pasos={[
+            { titulo: 'Crea o activa un personaje en el Genoma', detalle: 'si ya está ACTIVO, elígelo en la cabecera de arriba' },
+            { titulo: 'Aprueba su examen de identidad', detalle: '5 escenas contra la cara canónica' },
+            { titulo: 'Vuelve aquí y genera tu primer lote', detalle: 'o usa el Catálogo para lanzar por herramienta' },
+          ]}
+          cta={onAbrirGenoma ? { etiqueta: 'Ir al Genoma', onClick: onAbrirGenoma } : undefined}
+          nota="Solo personajes ACTIVOS producen piezas; los BORRADOR no entran a la fábrica."
+        />
       )}
 
       {/* Gate del modo privado */}

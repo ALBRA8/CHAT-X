@@ -21,11 +21,12 @@ import {
   useSets,
   type MediaT,
 } from './api'
-import { CarrilBadge, MediaImg, PipelineBadge, Vacio, VeredictoBadge, fmtDinero, fmtFecha } from './ui-bits'
+import { CarrilBadge, MediaImg, PipelineBadge, VeredictoBadge, fmtDinero, fmtFecha } from './ui-bits'
+import { EstadoVacio } from './EstadoVacio'
 
 type Pestana = 'piezas' | 'sets' | 'kpis'
 
-export default function BibliotecaView() {
+export default function BibliotecaView({ onAbrirEstudio }: { onAbrirEstudio?: () => void }) {
   const [pestana, setPestana] = useState<Pestana>('piezas')
   return (
     <div className="space-y-4">
@@ -36,8 +37,8 @@ export default function BibliotecaView() {
           </Button>
         ))}
       </div>
-      {pestana === 'piezas' && <Piezas />}
-      {pestana === 'sets' && <Sets />}
+      {pestana === 'piezas' && <Piezas onAbrirEstudio={onAbrirEstudio} />}
+      {pestana === 'sets' && <Sets onIrAPiezas={() => setPestana('piezas')} />}
       {pestana === 'kpis' && <Kpis />}
     </div>
   )
@@ -45,7 +46,7 @@ export default function BibliotecaView() {
 
 /* ───────────────────────── PIEZAS ───────────────────────── */
 
-function Piezas() {
+function Piezas({ onAbrirEstudio }: { onAbrirEstudio?: () => void }) {
   const { toast } = useToast()
   const { data: characters } = useCharacters()
   const [fCharacter, setFCharacter] = useState('todas')
@@ -156,7 +157,16 @@ function Piezas() {
       </div>
 
       {(media?.media ?? []).length === 0 ? (
-        <Vacio icono="🗃️" titulo="Sin piezas con esos filtros" texto="Genera lotes en el Estudio; las piezas aparecen aquí con su pipeline completo." />
+        <EstadoVacio
+          icono="🗃️"
+          titulo="Sin piezas con esos filtros: la biblioteca llena desde el Estudio"
+          pasos={[
+            { titulo: 'Genera un lote de previews en el Estudio', detalle: 'brief → coste a la vista → generar' },
+            { titulo: 'Espera el veredicto de QA en verde', detalle: 'las rechazadas quedan marcadas y no se exportan' },
+            { titulo: 'Aprueba las piezas y ármalas en un set', detalle: 'aparecen aquí con su pipeline completo' },
+          ]}
+          cta={onAbrirEstudio ? { etiqueta: 'Abrir Estudio', onClick: onAbrirEstudio } : undefined}
+        />
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
           {(media?.media ?? []).map((m) => (
@@ -257,7 +267,7 @@ function PiezaCard({
 
 /* ───────────────────────── SETS ───────────────────────── */
 
-function Sets() {
+function Sets({ onIrAPiezas }: { onIrAPiezas?: () => void }) {
   const { toast } = useToast()
   const { data: sets } = useSets()
   const [detalleId, setDetalleId] = useState<string | null>(null)
@@ -273,7 +283,16 @@ function Sets() {
   return (
     <div className="space-y-3">
       {(sets ?? []).length === 0 ? (
-        <Vacio icono="📦" titulo="Sin sets todavía" texto="Selecciona piezas aprobadas en la pestaña piezas y ármalas en un set." />
+        <EstadoVacio
+          icono="📦"
+          titulo="Sin sets todavía: un set nace de piezas aprobadas"
+          pasos={[
+            { titulo: 'Ve a la pestaña piezas y filtra por aprobado', detalle: 'solo piezas con QA en verde se pueden armar' },
+            { titulo: 'Selecciona las piezas del set (sin mezclar carriles)', detalle: 'regla dura: público SFW y privado 18+ nunca se mezclan' },
+            { titulo: 'Arma el set con nombre, carril y etiqueta IA', detalle: 'cada set sale con "Contenido generado con IA" obligatorio' },
+          ]}
+          cta={onIrAPiezas ? { etiqueta: 'Ir a piezas', onClick: onIrAPiezas } : undefined}
+        />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {(sets ?? []).map((s) => (
@@ -365,7 +384,16 @@ function Kpis() {
         </Button>
       </div>
       {(kpi?.entries ?? []).length === 0 ? (
-        <Vacio icono="📊" titulo="Sin KPIs importados" texto="Pega el CSV que descargas de la plataforma: personaje; mes; ingresos; subs; mensajes; ppv" />
+        <EstadoVacio
+          icono="📊"
+          titulo="Sin KPIs importados: los ingresos se pegan de la plataforma"
+          pasos={[
+            { titulo: 'Descarga el CSV de ingresos de la plataforma (Fanvue)', detalle: 'personaje; mes; ingresos; subs; mensajes; ppv' },
+            { titulo: 'Pega el CSV con el botón "Pegar CSV" de arriba', detalle: 'se valida y se agrega por personaje y mes' },
+            { titulo: 'Revisa la tabla y los agregados del panel', detalle: 'el mes actual alimenta el Panel y la cola' },
+          ]}
+          nota="El KPI es simulation-first: nada se inventa, solo lo que reporta la plataforma real."
+        />
       ) : (
         <Card>
           <CardHeader className="pb-2"><CardTitle className="text-sm">Ingresos por personaje y mes</CardTitle></CardHeader>

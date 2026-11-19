@@ -5,21 +5,23 @@
 // plataforma central. Cero reconstrucción, identidad visual conservada.
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { LayoutDashboard, Users, Camera, FolderOpen, ShieldCheck } from 'lucide-react'
+import { LayoutDashboard, Users, Camera, FolderOpen, ShieldCheck, Wrench } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import PanelView from './PanelView'
 import GenomaView from './GenomaView'
 import EstudioView from './EstudioView'
 import BibliotecaView from './BibliotecaView'
 import ComplianceView from './ComplianceView'
+import CatalogoView from './CatalogoView'
 import type { CharacterT } from './api'
 
-type Vista = 'panel' | 'genoma' | 'estudio' | 'biblioteca' | 'compliance'
+type Vista = 'panel' | 'genoma' | 'estudio' | 'catalogo' | 'biblioteca' | 'compliance'
 
 const VISTAS: { id: Vista; label: string; icono: typeof LayoutDashboard }[] = [
   { id: 'panel', label: 'Panel', icono: LayoutDashboard },
   { id: 'genoma', label: 'Genoma', icono: Users },
   { id: 'estudio', label: 'Estudio', icono: Camera },
+  { id: 'catalogo', label: 'Catálogo', icono: Wrench },
   { id: 'biblioteca', label: 'Biblioteca', icono: FolderOpen },
   { id: 'compliance', label: 'Compliance', icono: ShieldCheck },
 ]
@@ -51,7 +53,7 @@ export default function EstudioModulo() {
         ))}
       </nav>
 
-      {vista === 'panel' && <PanelView onAbrirEstudio={abrirEnEstudio} />}
+      {vista === 'panel' && <PanelView onAbrirEstudio={abrirEnEstudio} onAbrirGenoma={() => setVista('genoma')} />}
       {vista === 'genoma' && (
         <GenomaView
           onActivada={(c) => {
@@ -60,8 +62,11 @@ export default function EstudioModulo() {
           }}
         />
       )}
-      {vista === 'estudio' && <EstudioView key={charEstudio?.id ?? 'ninguno'} inicial={charEstudio} />}
-      {vista === 'biblioteca' && <BibliotecaView />}
+      {vista === 'estudio' && (
+        <EstudioView key={charEstudio?.id ?? 'ninguno'} inicial={charEstudio} onAbrirGenoma={() => setVista('genoma')} />
+      )}
+      {vista === 'catalogo' && <CatalogoView />}
+      {vista === 'biblioteca' && <BibliotecaView onAbrirEstudio={() => setVista('estudio')} />}
       {vista === 'compliance' && <ComplianceView />}
     </div>
   )

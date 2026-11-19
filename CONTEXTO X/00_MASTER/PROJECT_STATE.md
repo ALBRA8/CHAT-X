@@ -42,6 +42,8 @@ Resumen: suite API 33 PASS · unitarias 46 PASS; idempotencia E2E; gate humano W
 
 Estudio (E1-E7): genoma 7 pasos + rasgos firmantes, fábrica de fotos con QA, carril privado AES-256-GCM, export Fanvue con etiqueta IA, panel, compliance append-only. Especificación de origen: `00_MASTER/FICHA_Estudio_v1.md`.
 
+Catálogo declarativo (D-015 · A1, S-009 20-nov): las herramientas del Estudio viven en BD (modelo `Herramienta`, una fila = una herramienta con campos validados por zod); el renderizador único `FichaHerramienta` y la vista **Catálogo** las pintan sin código por herramienta; `GET /api/herramientas` (sin caché) y seed idempotente (`bun run db:seed`) con las 3 generadoras reales apuntando a sus endpoints. Estados vacíos que enseñan (A4): componente `EstadoVacio` (pasos numerados + CTA + límite declarado) en Panel, Estudio, Biblioteca, Genoma y Catálogo.
+
 ## 4. Directrices vigentes del fundador
 
 Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-015). Las que gobiernan HOY:
@@ -57,7 +59,7 @@ Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-015). Las que gobiernan HOY:
 
 | # | Hito | Dueño | Estado |
 |---|---|---|---|
-| 1 | **Higiene de PATs**: `ghp_mbYK…` (exilio) CONFIRMADA MUERTA (401, 20-nov) ✓ · verificar revocación de `ghp_pMCQ…` (31-oct) · emitir PAT nueva fine-grained (solo `contents:write` de ALBRA8/CHAT-X) para reanudar el push | Fundador | **PARCIAL** — falta PAT nueva: los registros de la sesión 20-nov quedan en local sin subir |
+| 1 | **Higiene de PATs**: `ghp_mbYK…` (exilio) CONFIRMADA MUERTA (401, 20-nov) ✓ · verificar revocación de `ghp_pMCQ…` (31-oct) · emitir PAT nueva fine-grained (solo `contents:write` de ALBRA8/CHAT-X) para reanudar el push | Fundador | **PARCIAL** — falta PAT nueva: los registros de las sesiones S-008 y S-009 (incluida la ejecución A1+A4) quedan en local sin subir |
 | 2 | Esperar desbloqueo de musestudio8 → **LA VUELTA** según el plan de `00_MASTER/PORTABILIDAD_REPOS.md` (D-012/D-013): acta del estado real, re-sincronizar CHAT-X, verificar las 3 copias del fundador (leads/chismoso/nexscope), portar el carril LLEVAR, subcontratos quedan en ALBRA8 | Fundador desbloquea; agente ejecuta el plan | **BLOQUEADO POR GITHUB** |
 | 2b | Crear `video-studio` en musestudio8 y mudarlo | Fundador crea; agente muda | BLOQUEADO POR GITHUB (antes: PENDIENTE) |
 | 3 | **F1 reescrita**: daemon WhatsApp PROPIO del negocio (carril adulto) — sesión propia, pacing anti-ban propio, BD propia; patrones de los clones como referencia de sala limpia | Agente (código) | SIGUIENTE |
@@ -75,3 +77,4 @@ Nada de lo anterior bloquea código de CHAT-X.
 - **musestudio8 bloqueada (2026-11-07)**: GitHub frenó la casa nueva por recibir demasiada actividad de golpe. Solo el fundador puede apelar el desbloqueo; mientras tanto la torre vive en ALBRA8/CHAT-X (D-012) y no se perdió ni un commit (lección F-006 aplicada).
 - El PAT del exilio (`ghp_mbYK…`) está CONFIRMADO MUERTO (401 Bad credentials, 2026-11-20) — buena higiene del fundador; la torre queda sin vía de push hasta PAT nueva (los commits de la sesión 20-nov esperan en local).
 - Los pins de `MOTORES_REGISTRO.md` quedaron viejos: 12 repos de ALBRA8 movieron desde el 07-nov (ver `../03_FINDINGS/EVOLUCION_ALBRA8_2026-11-20.md`); re-anclar exige reclon con orden del fundador.
+- Deuda preexistente (no introducida por S-009): 4 tests piper-local fallan en este entorno (voz local) y 52 errores de tipos en `vozclon`/`configuración` que anteceden a la sesión; no bloquean A1+A4 ni la suite general (202 PASS).

@@ -198,6 +198,41 @@ model ComplianceEvent {
   @@index([createdAt])
 }
 
+// ───────────── Catálogo declarativo de herramientas (D-015 · A1) ─────────────
+// "Formularios como datos": cada herramienta del Estudio es UNA FILA de esta
+// tabla. Sus campos, opciones y reglas viven en `campos` (JSON validado con
+// zod en src/lib/herramientas.ts). Agregar una herramienta = insertar una fila,
+// no programar una pantalla; un solo renderizador (FichaHerramienta) la pinta.
+// El coste NO se confía al cliente: el endpoint real de cada herramienta sigue
+// siendo la única verdad (claim atómico, compliance, coste). Adaptado del
+// patrón /api/workflows de MIAFACTORY (destripe §17.12) — sin copiar su código
+// ni sus textos.
+model Herramienta {
+  id          String   @id @default(cuid())
+  clave       String   @unique // id estable; también el ancla de la tarjeta
+  nombre      String
+  descripcion String   @default("") // verbo imperativo + qué hace + detalle práctico
+  grupo       String   @default("Estudio") // nivel 1 del catálogo (con frase)
+  fraseGrupo  String   @default("")
+  subgrupo    String   @default("") // nivel 2, rótulo en mayúsculas
+  icono       String   @default("🛠️")
+  chapas      String   @default("[]") // JSON string[]: ["+18","PRO","BETA","GRATIS"]
+  carril      String   @default("PUBLICO") // PUBLICO | PRIVADO — separación estructural del carril adulto
+  costeBase   Float    @default(0) // créditos por unidad; el total se recalcula en el servidor
+  costeTexto  String   @default("") // texto de coste de la tarjeta (ej. "2 cr × vista previa")
+  limiteTexto String   @default("") // límite declarado (ej. "hasta 32 vistas previas por lote")
+  salida      String   @default("{}") // JSON: {tipo: imagen|video|audio|compare|zip, cantidad?, incluyeOriginal?}
+  campos      String   @default("[]") // JSON fields[]: el contrato completo del formulario
+  endpoint    String   @default("") // API real que ejecuta (ej. /api/studio/lote)
+  payloadFijo String   @default("{}") // JSON: parámetros constantes del endpoint
+  activo      Boolean  @default(true)
+  orden       Int      @default(100)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([grupo, orden])
+}
+
 // ───────────────────────────── Plataforma central: motores del ecosistema ─────────────────────────────
 
 // Configuración de conexión a cada motor externo (URL + credencial). CHAT-X no

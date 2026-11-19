@@ -156,6 +156,19 @@ export interface PresetT {
   luz: string
 }
 
+// D-015 · A1 — herramienta del catálogo declarativo (contrato completo en @/lib/herramientas)
+export type HerramientaT = import('@/lib/herramientas').HerramientaT
+
+export function useHerramientas() {
+  return useQuery({
+    queryKey: ['herramientas'],
+    queryFn: () =>
+      api<{ herramientas: HerramientaT[]; errores: { clave: string; detalle: string }[]; total: number }>(
+        '/api/herramientas',
+      ),
+  })
+}
+
 // ── Hooks ──
 
 export function useCharacters() {

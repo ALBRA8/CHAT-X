@@ -23,7 +23,8 @@ import {
   type PresetT,
   type RasgoFirmante,
 } from './api'
-import { CaraCanonica, EstadoBadge, VeredictoBadge, Vacio, fmtDinero } from './ui-bits'
+import { CaraCanonica, EstadoBadge, VeredictoBadge, fmtDinero } from './ui-bits'
+import { EstadoVacio } from './EstadoVacio'
 
 const PASOS = [
   'Audiencia y estilo',
@@ -540,7 +541,16 @@ export default function GenomaView({ onActivada }: { onActivada: (c: CharacterT)
               Lanzar examen · 75 cr.
             </Button>
             {examenes.length === 0 ? (
-              <Vacio icono="🧪" titulo="Sin examen lanzado" texto="Lanza el examen para generar las 5 escenas de identidad." />
+              <EstadoVacio
+                icono="🧪"
+                titulo="Sin examen lanzado: el examen es la puerta hacia ACTIVO"
+                pasos={[
+                  { titulo: 'Entrena la LoRA del personaje', detalle: 'sin LoRA el examen no se puede lanzar' },
+                  { titulo: 'Lanza el examen con el botón de arriba', detalle: '75 cr. por intento, las 5 escenas corren en cola' },
+                  { titulo: 'Aprueba las 5 escenas de identidad', detalle: 'al completarlas el personaje queda ACTIVO y produce en el Estudio' },
+                ]}
+                limite="5 escenas por examen · 75 cr. por intento"
+              />
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {ESCENAS_EXAMEN.map((esc) => {

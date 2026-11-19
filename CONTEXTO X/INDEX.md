@@ -30,7 +30,7 @@ CONTEXTO X es la memoria documental del proyecto. La identidad del negocio está
 | Master | 00_MASTER/SEGURIDAD.md | VIGENTE | seguridad, credenciales y protocolo de push |
 | Master | 00_MASTER/FICHA_Estudio_v1.md | VERIFIED · REQUIERE ALINEACIÓN | especificación funcional del Estudio; revisar contra el brief maestro |
 | Master | 00_MASTER/GLOSSARY.md | POPULATED | vocabulario común del proyecto |
-| Master | 00_MASTER/PLAN_ADAPTACION_MIAFACTORY.md | VIGENTE | patrones a adoptar del destripe MIAFACTORY (D-015): adaptar, no copiar |
+| Master | 00_MASTER/PLAN_ADAPTACION_MIAFACTORY.md | VIGENTE · A1+A4 EJECUTADAS | patrones a adoptar del destripe MIAFACTORY (D-015): adaptar, no copiar; A1 (catálogo declarativo) y A4 (estados vacíos que enseñan) ya construidas en S-009 |
 | Decisions | 01_DECISIONS/DECISION_LOG.md | POPULATED | decisiones explícitas del fundador |
 | Processes | 02_PROCESSES/ | VARIOS | procedimientos operativos |
 | Findings | 03_FINDINGS/ | VARIOS | hallazgos y brechas |

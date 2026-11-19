@@ -26,10 +26,10 @@ MIAFACTORY no es un competidor del negocio (MUSE vende talento virtual; ellos ve
 
 | # | Patrón suyo | Adaptación a CHAT-X | Módulo MUSE_BRIEF §6 | Prioridad |
 |---|---|---|---|---|
-| A1 | **Formularios como datos** (§17.12): catálogo + campos + opciones en BD; un solo renderizador pinta todo | Las fichas del Estudio (E1-E7) y toda herramienta futura se declaran como esquema en BD: agregar herramienta = una fila, no código. Su `/api/workflows` (83 KB, `fields[]` con `options`, `show_when`) es el contrato de referencia | Producción · Biblioteca | **ALTA — la joya del destripe** |
+| A1 | **Formularios como datos** (§17.12): catálogo + campos + opciones en BD; un solo renderizador pinta todo | Las fichas del Estudio (E1-E7) y toda herramienta futura se declaran como esquema en BD: agregar herramienta = una fila, no código. Su `/api/workflows` (83 KB, `fields[]` con `options`, `show_when`) es el contrato de referencia | Producción · Biblioteca | **ALTA — la joya del destripe · EJECUTADA (S-009, 20-nov)** |
 | A2 | **Jobs con coste real** (§19.3): `gpu_cost_time`, doble id (propio + proveedor), posición en cola visible, `media_expired` | Extender NUESTRO Job (ya con claim atómico y reembolso): posición en cola en la respuesta, coste presupuestado vs real por trabajo, caducidad de media declarada en casa | Producción · Ventas/métricas | **ALTA** |
 | A3 | **Almacenamiento propio de resultados** (§19.6, recomendación explícita para su propia nueva app) | Casa propia (D-007): jamás enlazar el CDN del proveedor; copiar el resultado a storage propio con caducidad propia | Biblioteca | **ALTA — doctrina ya vigente; su riesgo la confirma** |
-| A4 | **Estados vacíos que enseñan** (§17.8): 2-3 pasos numerados + botón que arranca el paso 1 + límite declarado ("hasta 20 imágenes") | Patrón UI oficial de TODAS las pantallas del panel del operador | Todas | **ALTA — barato y visible** |
+| A4 | **Estados vacíos que enseñan** (§17.8): 2-3 pasos numerados + botón que arranca el paso 1 + límite declarado ("hasta 20 imágenes") | Patrón UI oficial de TODAS las pantallas del panel del operador | Todas | **ALTA — barato y visible · EJECUTADA (S-009, 20-nov)** |
 | A5 | **Catálogo de 4 niveles** (§17.9): grupo con frase → subgrupo en mayúsculas → tarjeta (imperativo + 1 línea de 60-140 chars + coste) → chapas (+18/PRO/BETA/GRATIS) | Estructura del catálogo del Estudio en el panel; frases en español neutro propio, nunca las suyas | Producción | MEDIA-ALTA |
 | A6 | **Saldo por proveedor + gastos** (AiBalances / AdminGastos) | Cuando haya proveedor de pago (D-002: RunningHub barato primero): saldo por proveedor, gasto por trabajo, tope por personaje/lote | Ventas y métricas · $0 | MEDIA (activa con proveedor de pago) |
 | A7 | **"Mejorar con IA" del prompt, cobrada o limitada** (§19.5) | El enhancer de prompt del motor GFE/Estudio se contabiliza (job propio con coste), nunca gratis ilimitado | Producción | MEDIA |
@@ -60,6 +60,6 @@ Lo que el destripe NO resuelve: proveedor de GPU en esta máquina (sigue `../02_
 ## 7. Condiciones de ejecución
 
 - Nada se construye sin orden explícita del fundador (regla permanente) ni se toca el carril adulto fuera de CASA PROPIA (D-007).
-- Primera pieza natural cuando se autorice: **A1 + A4** (esquema declarativo de fichas y estados vacíos) — no gastan, no arriesgan, no tocan canales.
+- ~~Primera pieza natural cuando se autorice: **A1 + A4**~~ → **EJECUTADAS (S-009, 2026-11-20, orden "arranca A1+A4"):** modelo `Herramienta` + contrato zod (`src/lib/herramientas.ts`), renderizador único `FichaHerramienta`, vista Catálogo del Estudio, `GET /api/herramientas` (force-dynamic), seed idempotente con las 3 generadoras reales, `EstadoVacio` aplicado al panel. Prueba del patrón superada (editar BD → cambia en pantalla sin recompilar). No gastan, no arriesgan, no tocan canales.
 - A2/A3 se integran al worker existente, no como motor paralelo.
 - A6 solo si hay proveedor de pago autorizado (regla $0).
