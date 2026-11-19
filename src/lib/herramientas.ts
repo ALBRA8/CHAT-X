@@ -75,7 +75,7 @@ export type CampoDefEntrada = z.input<typeof CampoDefSchema>
 
 // ── Esquema de herramienta completa (fila de BD o definición de seed) ──
 
-export const SALIDA_TIPOS = ['imagen', 'video', 'audio', 'compare', 'zip'] as const
+export const SALIDA_TIPOS = ['imagen', 'video', 'audio', 'texto', 'compare', 'zip'] as const
 
 export const HerramientaDefSchema = z
   .object({

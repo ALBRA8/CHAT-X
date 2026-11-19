@@ -46,6 +46,7 @@ export const COSTOS = {
   FOTO_DATASET: 1.5, // por foto del dataset de entrenamiento
   ENTRENAMIENTO_LORA: 240, // por ciclo de entrenamiento
   CIFRADO: 1, // por pieza cifrada
+  ENHANCE: 1, // por mejora de prompt con IA (A7/D-015: contabilizada, nunca gratis ilimitada)
 } as const
 
 // Latencia simulada del proveedor (ms). El proveedor real reemplaza esto.

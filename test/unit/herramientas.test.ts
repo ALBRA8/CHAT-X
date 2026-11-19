@@ -188,7 +188,11 @@ describe('CATALOGO_ESTUDIO (el seed nunca debe entrar corrupto a la BD)', () => 
       expect(def.endpoint.startsWith('/api/studio/')).toBe(true)
       expect(def.limiteTexto.length).toBeGreaterThan(0)
       expect(def.costeTexto.length).toBeGreaterThan(0)
-      expect(def.campos.some((c) => c.escalaCoste)).toBe(true)
+      // Herramientas de LOTE escalan el coste por pieza (slider count);
+      // las de coste PLANO por llamada (salida texto, p.ej. mejorar_prompt
+      // A7) no tienen multiplicador: 1 mejora = 1 llamada = 1 coste.
+      const esLote = def.salida.cantidad !== undefined
+      expect(def.campos.some((c) => c.escalaCoste)).toBe(esLote)
     }
   })
 

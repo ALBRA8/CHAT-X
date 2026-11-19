@@ -45,6 +45,14 @@ export default function FichaHerramienta({
   const activos = useMemo(() => (characters ?? []).filter((c) => c.status === 'ACTIVO'), [characters])
   const [valores, setValores] = useState<Valores>(() => valoresIniciales(herramienta.campos))
   const [enCurso, setEnCurso] = useState(false)
+  // Resultado síncrono (A7: herramientas de texto como mejorar_prompt responden
+  // con el brief listo; las de lote responden con jobId y no muestran nada aquí).
+  const [resultado, setResultado] = useState<{
+    brief: { escena: string; outfit?: string; pose?: string; luz?: string }
+    modelo: string
+    provedor: string
+    duracionMs: number
+  } | null>(null)
 
   const visibles = camposVisibles(herramienta.campos, valores)
   const validacion = validarValores(herramienta.campos, valores)
@@ -61,19 +69,33 @@ export default function FichaHerramienta({
     setEnCurso(true)
     try {
       const body = armaPayload(herramienta, valores)
-      const r = await api<{ jobId?: string; batchId?: string; coste?: number }>(herramienta.endpoint, {
+      const r = await api<{ jobId?: string; batchId?: string; coste?: number; brief?: { escena: string; outfit?: string; pose?: string; luz?: string }; modelo?: string; provedor?: string; duracionMs?: number }>(herramienta.endpoint, {
         method: 'POST',
         body: JSON.stringify(body),
       })
-      toast({
-        title: `${herramienta.nombre}: trabajo en camino`,
-        description: [
-          r.coste !== undefined ? `coste ${fmtDinero(r.coste)} cr. (dice el servidor)` : null,
-          r.batchId ? `batch ${r.batchId.slice(-6)}` : null,
-        ]
-          .filter(Boolean)
-          .join(' · '),
-      })
+      if (r.brief) {
+        setResultado({
+          brief: r.brief,
+          modelo: r.modelo ?? 'llm',
+          provedor: r.provedor ?? 'proveedor',
+          duracionMs: r.duracionMs ?? 0,
+        })
+        toast({
+          title: `${herramienta.nombre}: brief mejorado`,
+          description: r.coste !== undefined ? `coste ${fmtDinero(r.coste)} cr. (dice el servidor) · cópialo en la Fábrica de fotos` : 'cópialo en la Fábrica de fotos',
+        })
+      } else {
+        setResultado(null)
+        toast({
+          title: `${herramienta.nombre}: trabajo en camino`,
+          description: [
+            r.coste !== undefined ? `coste ${fmtDinero(r.coste)} cr. (dice el servidor)` : null,
+            r.batchId ? `batch ${r.batchId.slice(-6)}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+        })
+      }
       onLanzado?.()
     } catch (e) {
       const err = e as Error & { status?: number }
@@ -135,6 +157,33 @@ export default function FichaHerramienta({
         </Button>
         {!validacion.ok && (
           <p className="text-[11px] text-amber-300">Completa los campos obligatorios para habilitar el botón.</p>
+        )}
+
+        {resultado && (
+          <div className="rounded-lg border border-violet-500/30 bg-violet-500/5 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold">Escena mejorada</p>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Badge variant="outline" className="text-[9px] text-muted-foreground">{resultado.provedor} · {resultado.modelo}</Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-1.5 text-[10px]"
+                  onClick={() => void navigator.clipboard.writeText(resultado.brief.escena)}
+                >
+                  Copiar escena
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs leading-relaxed">{resultado.brief.escena}</p>
+            <div className="grid gap-x-3 gap-y-1 text-[11px] text-muted-foreground sm:grid-cols-2">
+              {resultado.brief.outfit ? <p><span className="font-medium text-foreground">outfit:</span> {resultado.brief.outfit}</p> : null}
+              {resultado.brief.pose ? <p><span className="font-medium text-foreground">pose:</span> {resultado.brief.pose}</p> : null}
+              {resultado.brief.luz ? <p><span className="font-medium text-foreground">luz:</span> {resultado.brief.luz}</p> : null}
+              <p className="tabular-nums">{(resultado.duracionMs / 1000).toFixed(1)} s en casa · contabilizada como job</p>
+            </div>
+            <p className="text-[10px] text-muted-foreground">Pega la escena y estos campos en la Fábrica de fotos para producir la pieza real.</p>
+          </div>
         )}
       </CardContent>
     </Card>
