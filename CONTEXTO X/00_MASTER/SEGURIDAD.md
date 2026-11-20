@@ -52,8 +52,22 @@ Con musestudio8 bloqueada, el fundador entregó un PAT nuevo por el canal de
 chat (`ghp_mbYK…`, alcance cuenta ALBRA8) para el push de exilio. Mismo
 protocolo: usado UNA vez por variable de entorno con credential helper
 efímero (jamás en disco, ni en `.git/config`, ni en URLs), y se revoca en el
-navegador del fundador al confirmar el push. Saldo de tokens por revocar: DOS
-(`ghp_pMCQ…` del 31-oct y `ghp_mbYK…` del 07-nov).
+navegador del fundador al confirmar el push.
+
+### 2026-11-20 — PAT de exilio muerta confirmada + tercer PAT por chat (push reanudado, S-012)
+
+- `ghp_mbYK…` (07-nov) **CONFIRMADA MUERTA** (401 Bad credentials al barrer
+  ALBRA8 sin token) — buena higiene: ya no es riesgo, no requiere acción.
+- El fundador entregó por chat un **PAT nueva** (`ghp_w2tw…`) con orden
+  explícita "SUBE LOS CAMBIOS AL REPO". Protocolo idéntico: pre-push con
+  escaneo de secretos (0 en árbol e historial), sin remotos persistentes,
+  token SOLO por variable de entorno con credential helper efímero, push
+  fast-forward sin `--force`, verificación SHA local vs remota tras el push.
+- **Saldo de tokens por revocar: DOS** — `ghp_pMCQ…` (31-oct, sin confirmar)
+  y `ghp_w2tw…` (20-nov, revocar AL CONFIRMAR este push). Recomendación
+  permanente: la próxima PAT se crea directamente en el navegador del
+  fundador (fine-grained, solo ALBRA8/CHAT-X, Contents: write, caducidad
+  30-90 días) y viaja por env, jamás por el chat.
 
 ### Evaluación del riesgo (2026-10-29)
 
