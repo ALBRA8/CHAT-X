@@ -16,7 +16,7 @@
 //  - Cada cambio queda registrado en el log de compliance (append-only).
 import { db } from '@/lib/db'
 
-export type CategoriaConfig = 'llm' | 'voz' | 'media' | 'general'
+export type CategoriaConfig = 'llm' | 'voz' | 'media' | 'general' | 'whatsapp'
 export type TipoDatoConfig = 'texto' | 'secreto' | 'numero'
 
 export interface DefinicionConfig {
@@ -269,6 +269,68 @@ export const DEFINICIONES_CONFIG: DefinicionConfig[] = [
     tipo: 'texto',
     envVar: 'TREND_RSS_URLS',
     porDefecto: '',
+  },
+  // ── Canal WhatsApp propio (F1 · CASA PROPIA · EMBUDO §7) ──
+  // El daemon corre en la máquina del fundador; CHAT-X solo acepta su webhook
+  // FIRMADO y decide QUÉ y CUÁNDO (cerebro + pacing). Sin secreto configurado
+  // el receptor está APAGADO (fail-closed, jamás un canal abierto por descuido).
+  {
+    clave: 'whatsapp.webhook_secreto',
+    etiqueta: 'Secreto HMAC del webhook del daemon',
+    descripcion: 'El daemon F1 firma cada POST (HMAC-SHA256 de "timestamp.cuerpo") con este secreto. Vacío = receptor APAGADO (fail-closed). Mín recomendado: 32 caracteres aleatorios.',
+    categoria: 'whatsapp',
+    tipo: 'secreto',
+    envVar: 'WHATSAPP_WEBHOOK_SECRETO',
+    porDefecto: '',
+  },
+  {
+    clave: 'whatsapp.personaje_id',
+    etiqueta: 'Personaje del canal WhatsApp',
+    descripcion: 'id del personaje ACTIVO que contesta el canal. Sin asignación el canal responde NO_CONFIGURADO (honesto): no hay cerebro sin genoma.',
+    categoria: 'whatsapp',
+    tipo: 'texto',
+    envVar: 'WHATSAPP_PERSONAJE_ID',
+    porDefecto: '',
+  },
+  {
+    clave: 'whatsapp.pacing.silencio_desde',
+    etiqueta: 'Pacing: hora de inicio del silencio (0-23)',
+    descripcion: 'Hora LOCAL en que abre la ventana silenciosa: nada sale por WhatsApp. Defecto del código: 22.',
+    categoria: 'whatsapp',
+    tipo: 'numero',
+    envVar: 'WHATSAPP_PACING_SILENCIO_DESDE',
+    porDefecto: '',
+    validar: numeroEn(0, 23),
+  },
+  {
+    clave: 'whatsapp.pacing.silencio_hasta',
+    etiqueta: 'Pacing: hora de fin del silencio (0-23)',
+    descripcion: 'Hora LOCAL en que cierra la ventana silenciosa (puede cruzar medianoche). Defecto del código: 8.',
+    categoria: 'whatsapp',
+    tipo: 'numero',
+    envVar: 'WHATSAPP_PACING_SILENCIO_HASTA',
+    porDefecto: '',
+    validar: numeroEn(0, 23),
+  },
+  {
+    clave: 'whatsapp.pacing.max_respuestas_dia',
+    etiqueta: 'Pacing: techo de respuestas por chat y día',
+    descripcion: 'Máximo de respuestas a un mismo contacto por día LOCAL (el contacto escribió primero). Defecto del código: 60.',
+    categoria: 'whatsapp',
+    tipo: 'numero',
+    envVar: 'WHATSAPP_PACING_MAX_RESPUESTAS_DIA',
+    porDefecto: '',
+    validar: numeroEn(1, 200),
+  },
+  {
+    clave: 'whatsapp.pacing.max_iniciativas_dia',
+    etiqueta: 'Pacing: techo de iniciativas por chat y día',
+    descripcion: 'Máximo de iniciativas (el negocio escribe primero) por contacto y día LOCAL. Defecto del código: 8.',
+    categoria: 'whatsapp',
+    tipo: 'numero',
+    envVar: 'WHATSAPP_PACING_MAX_INICIATIVAS_DIA',
+    porDefecto: '',
+    validar: numeroEn(1, 100),
   },
   {
     clave: 'general.marca_nombre',

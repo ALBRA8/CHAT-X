@@ -308,6 +308,37 @@ model WhatsAppSesion {
   updatedAt       DateTime  @updatedAt
 }
 
+// ───────── F1 · W3 — mensajes del canal WhatsApp PROPIO (BD del cuarto) ─────────
+// Memoria POR CHAT del canal: dos contactos jamás comparten contexto entre sí ni
+// con el GFE del operador (ChatMessage es el libro del operador; este es el libro
+// del canal). De aquí salen las marcas MarcaEnvio del pacing (W1): cada salida
+// lleva su decisión honesta (motivo + reintentarEn) y los fallos CON señal de
+// riesgo alimentan el disyuntor. Idempotencia de la casa (como Media con su
+// semilla): [chatId, dirección, idEntrada] única — un reenvío del daemon jamás
+// duplica filas ni vuelve a gastar el cerebro en la misma entrada.
+model WhatsAppMensaje {
+  id                 String    @id @default(cuid())
+  chatId             String // chat de WhatsApp del contacto (lo manda el daemon firmado)
+  direccion          String    @default("entrada") // entrada | salida
+  tipo               String    @default("respuesta") // respuesta | iniciativa (iniciativa = W4)
+  estado             String    @default("recibido") // recibido | en_cola | enviado | fallado | bloqueado_pacing
+  texto              String    @default("")
+  idEntrada          String? // id que puso el daemon al mensaje entrante que dispara esta fila
+  cerebroMensajeId   String? // enlace futuro al libro del cerebro (media/voz); el texto de la conversación vive aquí
+  pacingMotivo       String? // ok | circuito_abierto | horas_silencio | techo_respuestas | techo_iniciativas | calentamiento
+  pacingReintentarEn DateTime?
+  errorRiesgo        Boolean   @default(false) // fallo con señal de riesgo (timeout de sesión, rechazo del servidor) → disyuntor
+  meta               String    @default("{}")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  enviadoEn          DateTime?
+
+  @@unique([chatId, direccion, idEntrada])
+  @@index([chatId, createdAt])
+  @@index([estado])
+  @@index([direccion, updatedAt])
+}
+
 // ───────────────────────────── Orquestador de flujos (sección 8-9 del prompt maestro) ─────────────────────────────
 
 // Definición de un flujo de extremo a extremo: pasos encadenados con acciones

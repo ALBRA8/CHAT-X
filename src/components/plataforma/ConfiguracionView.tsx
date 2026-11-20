@@ -21,6 +21,7 @@ import {
   Clapperboard,
   Image as ImageIcon,
   KeyRound,
+  MessageCircle,
   Plug,
   RefreshCw,
   RotateCcw,
@@ -41,7 +42,7 @@ import {
 } from './api'
 import { FormularioConexion, EstadoPill } from './bits'
 
-type CategoriaId = 'llm' | 'voz' | 'media' | 'general'
+type CategoriaId = 'llm' | 'voz' | 'media' | 'general' | 'whatsapp'
 
 const CATEGORIAS: { id: CategoriaId; titulo: string; desc: string; Icono: typeof Bot }[] = [
   {
@@ -67,6 +68,12 @@ const CATEGORIAS: { id: CategoriaId; titulo: string; desc: string; Icono: typeof
     titulo: 'General',
     desc: 'Marca blanca de la superficie y feeds RSS del radar de tendencias (sindicación declarada, sin scraping).',
     Icono: SlidersHorizontal,
+  },
+  {
+    id: 'whatsapp',
+    titulo: 'Canal WhatsApp propio (F1)',
+    desc: 'El daemon corre en tu máquina y firma cada webhook con el secreto de aquí; sin secreto el receptor está APAGADO. El personaje contesta con su genoma y el pacing anti-ban decide CUÁNDO (sin QR conectado nada envía).',
+    Icono: MessageCircle,
   },
 ]
 

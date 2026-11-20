@@ -20,6 +20,7 @@ export type TipoEvento =
   | 'plan_video'
   | 'trend_ingestida'
   | 'sesion_whatsapp'
+  | 'mensajes_whatsapp'
 
 export async function registrarEvento(
   type: TipoEvento,
