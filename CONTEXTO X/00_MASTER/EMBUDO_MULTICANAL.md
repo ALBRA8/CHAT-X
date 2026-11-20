@@ -70,6 +70,13 @@ META (FB/IG) · WHATSAPP · TELEGRAM
 
 ## 5. Fases (alineadas a la regla $0: nada de gasto antes de caja)
 
+> **Nota 2026-11-20 (S-012, alineación MUSE_BRIEF §12.3):** F1 y F2 tal como se
+> describen aquí quedaron **SUPERADAS por la enmienda CASA PROPIA (§7)**: el
+> puente ya no es whatspower→CHAT-X sino el **daemon PROPIO** del negocio. La
+> especificación vigente de F1 es `../02_PROCESSES/F1_DAEMON_WHATSAPP.md`
+> (pacing W1 ejecutado; el resto espera orden del fundador). El texto original
+> se conserva abajo como registro histórico de la decisión del 30-oct.
+
 - **F1 — Puente conversacional WhatsApp**: whatspower webhook → `/api/chat`
   (modo novia) → gate → envío → registro CRM. Piezas que faltan: el pegamento
   webhook↔cerebro; QR de WhatsApp del fundador

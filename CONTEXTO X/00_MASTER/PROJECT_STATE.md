@@ -50,6 +50,10 @@ Panel de Configuración montado (S-011 20-nov): el módulo «Configuración» de
 
 Mejorar prompt con IA, CONTABILIZADA (D-015 · A7, S-011 20-nov): 4ª herramienta del catálogo declarativo (`mejorar_prompt`, subgrupo BRIEF, salida tipo `texto`) → `/api/studio/enhance`: Job propio `mejora_prompt` con cobro por el punto único (saldo + techo diario), claim atómico, reembolso único si falla, duración medida en casa y compliance append-only. Filtro de edad BIDIRECCIONAL (entrada bloqueada antes de gastar; salida vía salidaLLMSegura con reembolso). Parseo robusto del LLM (fences, comillas tipográficas, topes por campo). Sin API key del LLM → 503 NO_CONFIGURADO honesto, sin cobro (verificado en vivo).
 
+Política de cambio de costes (D-015 · A8, S-012 20-nov): `00_MASTER/POLITICA_CAMBIO_COSTES.md` — el estimate previo es el contrato del cobro; registrar en compliance → avisar antes → compensar la diferencia al saldo → jamás retroactivo negativo silencioso. Activación inmediata cuando llegue proveedor de pago (A6).
+
+F1 — daemon WhatsApp propio, ESPECIFICADA + W1 (S-012 20-nov): especificación de sala limpia en `02_PROCESSES/F1_DAEMON_WHATSAPP.md` (sesión propia, pacing propio, BD propia del carril adulto; WhatsApp SOLO SFW). W1 ejecutado: módulo puro `src/lib/whatsapp/pacing.ts` — gate `decidirEnvio` (circuito abierto → horas silencio 22–8 → techos diarios por tipo 60 resp/8 iniciativas → calentamiento de chats nuevos máx 2/24 h), disyuntor `temperatura` (3 fallos de riesgo en 30 min pausan iniciativas 2 h) y `retardoConJitter` obligatorio. 18 tests deterministas PASS. W2+ (sesión QR, conversación, panel) espera orden explícita del fundador.
+
 ## 4. Directrices vigentes del fundador
 
 Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-015). Las que gobiernan HOY:
@@ -68,7 +72,7 @@ Ver `01_DECISIONS/DECISION_LOG.md` (D-001 → D-015). Las que gobiernan HOY:
 | 1 | **Higiene de PATs**: `ghp_mbYK…` (exilio) CONFIRMADA MUERTA (401, 20-nov) ✓ · verificar revocación de `ghp_pMCQ…` (31-oct) · emitir PAT nueva fine-grained (solo `contents:write` de ALBRA8/CHAT-X) para reanudar el push | Fundador | **PARCIAL** — falta PAT nueva: los registros de las sesiones S-008 y S-009 (incluida la ejecución A1+A4) quedan en local sin subir |
 | 2 | Esperar desbloqueo de musestudio8 → **LA VUELTA** según el plan de `00_MASTER/PORTABILIDAD_REPOS.md` (D-012/D-013): acta del estado real, re-sincronizar CHAT-X, verificar las 3 copias del fundador (leads/chismoso/nexscope), portar el carril LLEVAR, subcontratos quedan en ALBRA8 | Fundador desbloquea; agente ejecuta el plan | **BLOQUEADO POR GITHUB** |
 | 2b | Crear `video-studio` en musestudio8 y mudarlo | Fundador crea; agente muda | BLOQUEADO POR GITHUB (antes: PENDIENTE) |
-| 3 | **F1 reescrita**: daemon WhatsApp PROPIO del negocio (carril adulto) — sesión propia, pacing anti-ban propio, BD propia; patrones de los clones como referencia de sala limpia | Agente (código) | SIGUIENTE |
+| 3 | **F1 reescrita**: daemon WhatsApp PROPIO del negocio (carril adulto) — sesión propia, pacing anti-ban propio, BD propia; patrones de los clones como referencia de sala limpia | Agente (código) | **ESPECIFICADA + W1 EJECUTADO (S-012)** — spec en `02_PROCESSES/F1_DAEMON_WHATSAPP.md`, pacing probado (18 tests); W2+ espera orden explícita del fundador |
 | 4 | F2 tono modo novia nativo (ya lo es: Chat GFE) — cablear el daemon F1 al cerebro `/api/chat` | Agente | COLA |
 | 5 | Decidir destino del repo `borrador` de musestudio8 (borrar o dejar) | Fundador | PENDIENTE |
 | 6 | API key CRM / QR WhatsApp / JWT nexscope / claves LEADS-GENERAL | Fundador | OPCIONAL — cada una con procedimiento documentado |
