@@ -21,6 +21,9 @@ export type TipoEvento =
   | 'trend_ingestida'
   | 'sesion_whatsapp'
   | 'mensajes_whatsapp'
+  | 'sesion_telegram'
+  | 'mensajes_telegram'
+  | 'mensajes_meta'
 
 export async function registrarEvento(
   type: TipoEvento,

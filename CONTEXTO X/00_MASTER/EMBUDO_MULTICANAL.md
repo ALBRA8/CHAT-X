@@ -114,12 +114,28 @@ fans, ni nada.
 1. **Cerebro modo novia** — YA nativo: Chat GFE (`/api/chat`) + genoma + voz + compliance.
 2. **Canal WhatsApp** — daemon PROPIO del negocio (patrón Baileys espejado en sala
    limpia desde lo aprendido de los clones: sesión propia, pacing anti-ban propio,
-   BD propia del carril adulto).
+   BD propia del carril adulto). **CONSTRUÍDO (S-012→S-016):** bucle completo por
+   ambos lados — CHAT-X (`src/lib/whatsapp/*` + APIs firmadas + panel Canal) y el
+   daemon REAL (`daemon/whatsapp/`, librería open-source $0, activación en
+   `../02_PROCESSES/WHATSAPP_QR_ACTIVACION.md` §0); solo espera máquina del
+   fundador + QR — sin eso NADA viaja por WhatsApp.
 3. **Canal Telegram** — bot PROPIO ($0, librería open-source) con cobro directo.
+   **LADO CHAT-X CONSTRUÍDO (S-016):** sesión honesta por identidad pública del
+   bot firmada (el token SOLO en la máquina del fundador), webhook fail-closed
+   con el cerrojo compartido de la casa (`src/lib/canales.ts`), BD propia
+   idempotente, mismo cerebro/pacing/filtro de edad que WhatsApp, iniciativas 1:1,
+   panel Cuarto Telegram. El cobro (Stars/procesador 18+) NO se construye: espera
+   verificación de términos y procesador (NORTE §2 — ningún canal se habilita por
+   suposición); mientras tanto el cuarto es SFW con los mismos filtros.
 4. **Memoria del embudo** — libro interno de CHAT-X (ChatMessage, LedgerMonetizacion,
    que ya existen). CRM-ALBRA NO recibe jamás registros del negocio adulto.
 5. **Vídeo** — escalera + proveedores del Estudio (adaptadores propios en
    `src/lib/provider/`). YOUTUBE-AUTOMATION solo para productos YouTube/SFW genuinos.
+6. **Mesa Meta (FB/IG, manual-first)** — CONSTRUÍDA (S-016): cero automatización
+   ToS-violadora (Meta banea adulto Y bots). El operador pega a mano el mensaje
+   que llegó, el cerebro escribe el borrador (mismos filtros de edad) y el envío
+   es MANUAL desde la app de Meta. API `/api/meta/mesa` + vista Mesa Meta +
+   compliance `mensajes_meta`. Jamás webhook, jamás scraping, jamás envío automático.
 
 ### Cadena de auditoría en UN solo lugar
 

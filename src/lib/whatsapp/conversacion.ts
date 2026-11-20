@@ -19,56 +19,24 @@
 import crypto from 'crypto'
 import type { ConfigPacing, DecisionEnvio, MarcaEnvio } from './pacing'
 
+// Cerrojo HMAC de la casa (una sola implementación para TODOS los cuartos
+// propios — F1 WhatsApp y F3 Telegram): vive en src/lib/canales.ts y se
+// re-exporta aquí para que los consumos previos (W3/W4, tests) no cambien.
+export { TOLERANCIA_FIRMA_MS, firmarWebhook, verificarFirmaWebhook, type MotivoFirmaInvalida } from '../canales'
+
 // ── Límites del contrato con el daemon ────────────────────────────────────
 
 export const MAX_TEXTO_ENTRADA = 600 // mismo tope que el GFE del operador
 export const MAX_CHATID = 128
 export const MAX_ID_ENTRADA = 128
 export const MAX_DETALLE = 300
-/** Anti-replay: la firma muere 5 minutos después de nacer. */
-export const TOLERANCIA_FIRMA_MS = 5 * 60_000
+// (TOLERANCIA_FIRMA_MS vive en src/lib/canales.ts y se re-exporta arriba.)
 
 export type DireccionMensaje = 'entrada' | 'salida'
 export type EstadoMensaje = 'recibido' | 'en_cola' | 'enviado' | 'fallado' | 'bloqueado_pacing'
 export type ResultadoEnvioDaemon = 'enviado' | 'fallado'
 
-// ── Firma del webhook (daemon → CHAT-X) ───────────────────────────────────
-
-/** Firma HMAC-SHA256 sobre `${timestamp}.${cuerpo}`: atar el cuerpo al instante
- *  evita que un mensaje viejo capturado se reenvíe con firma válida (replay).
- *  El daemon firma con el secreto de whatsapp.webhook_secreto (panel > env). */
-export function firmarWebhook(tsMs: number, cuerpo: string, secreto: string): string {
-  return crypto.createHmac('sha256', secreto).update(`${tsMs}.${cuerpo}`).digest('hex')
-}
-
-export type MotivoFirmaInvalida =
-  | 'falta_firma'
-  | 'falta_ts'
-  | 'ts_invalido'
-  | 'timestamp_vencido'
-  | 'firma_invalida'
-
-/** Verificación en tiempo constante (timingSafeEqual). La ruta comprueba
- *  ANTES que haya secreto configurado (fail-closed 503): aquí un secreto vacío
- *  produce firma_invalida siempre, pero jamás se llega con receptor abierto. */
-export function verificarFirmaWebhook(
-  cuerpo: string,
-  firma: string | null,
-  ts: string | null,
-  secreto: string,
-  ahora: Date,
-): { ok: true } | { ok: false; motivo: MotivoFirmaInvalida } {
-  if (!firma) return { ok: false, motivo: 'falta_firma' }
-  if (!ts) return { ok: false, motivo: 'falta_ts' }
-  const tsMs = Number(ts)
-  if (!Number.isFinite(tsMs) || tsMs <= 0) return { ok: false, motivo: 'ts_invalido' }
-  if (Math.abs(ahora.getTime() - tsMs) > TOLERANCIA_FIRMA_MS) return { ok: false, motivo: 'timestamp_vencido' }
-  const esperada = firmarWebhook(tsMs, cuerpo, secreto)
-  const a = Buffer.from(esperada, 'hex')
-  const b = Buffer.from(firma, 'hex')
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return { ok: false, motivo: 'firma_invalida' }
-  return { ok: true }
-}
+// ── Firma del webhook (daemon → CHAT-X): ver src/lib/canales.ts — re-export arriba ──
 
 // ── Validación de los payloads del daemon ─────────────────────────────────
 

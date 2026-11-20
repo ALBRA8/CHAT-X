@@ -83,6 +83,10 @@ async function main() {
   await db.whatsAppSesion.deleteMany({})
   await db.configuracion.deleteMany({ where: { clave: { startsWith: 'whatsapp.' } } })
   await db.character.deleteMany({ where: { name: PERSONAJE } })
+  // TTL de la caché de configuración del panel: 5 s. Si otro smoke tocó
+  // whatsapp.* hace instantes, el receptor vería un secreto STALE — esperar
+  // la expiración para que cada corrida arranque con la BD REAL limpia.
+  await new Promise((r) => setTimeout(r, 5200))
   const c = await db.character.create({ data: { name: PERSONAJE, status: 'ACTIVO', seed: 'smoke-w4', audience: 'smoke', style: 'smoke' } })
   const jobsAntes = await db.job.count()
   const creditosAntes = (await db.settings.findUnique({ where: { id: 'main' } }))?.credits ?? 0
@@ -157,7 +161,7 @@ async function main() {
   const p1 = await postIniciativa({ accion: 'programar', chatId: CHAT, programadaEn: vencida, texto: 'recordar el estreno' })
   check(p1.status === 200 && p1.json.estado === 'programada', 'iniciativa programada (vencida, para el poll)', String(p1.json.chat))
   const panel1 = await getPanel()
-  check(panel1.json.hoy && (panel1.json.hoy as Record<string, number>).iniciativasProgramadas === 1, 'panel cuenta 1 programada', JSON.stringify(panel1.json.hoy))
+  check(Boolean(panel1.json.hoy) && (panel1.json.hoy as Record<string, number>).iniciativasProgramadas === 1, 'panel cuenta 1 programada', JSON.stringify(panel1.json.hoy))
   const fila1 = await db.whatsAppMensaje.findFirst({ where: { tipo: 'iniciativa', estado: 'programada' } })
   check(!!fila1 && fila1.direccion === 'salida' && fila1.programadaPor === 'operador', 'fila nace programada, por el operador', fila1?.estado ?? 'ausente')
 

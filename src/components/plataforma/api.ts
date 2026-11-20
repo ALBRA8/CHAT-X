@@ -235,7 +235,7 @@ export interface EntradaConfigT {
   clave: string
   etiqueta: string
   descripcion: string
-  categoria: 'llm' | 'voz' | 'media' | 'general'
+  categoria: 'llm' | 'voz' | 'media' | 'general' | 'whatsapp' | 'telegram'
   tipo: 'texto' | 'secreto' | 'numero'
   envVar: string // respaldo declarado (.env del operador)
   valor: string // ya enmascarado si tipo='secreto'
@@ -411,6 +411,172 @@ export function useCancelarIniciativa() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['iniciativas-whatsapp'] })
       void qc.invalidateQueries({ queryKey: ['canal-whatsapp'] })
+    },
+  })
+}
+
+// ───────────────── Cuarto Telegram propio (F3 · CASA PROPIA) ─────────────────
+// Mismo contrato honesto que el canal WhatsApp: el estado de la sesión es el
+// REAL (CONECTADA solo tras la identidad del bot presentada por el daemon
+// firmado), el pulso es señal viva y los chatId SIEMPRE enmascarados.
+
+export interface SesionTelegramT {
+  estado: string
+  honesto: string
+  botId: string | null
+  botUsuario: string | null
+  pulso: 'sin_pulso' | 'vivo' | 'tibio'
+  ultimoPulsoEn: string | null
+  conectadaEn: string | null
+  desconectadaEn: string | null
+  detalle: string
+  actualizadoEn: string
+}
+
+export function useSesionTelegram() {
+  return useQuery({
+    queryKey: ['sesion-telegram'],
+    queryFn: () => api<SesionTelegramT>('/api/telegram/sesion'),
+    refetchInterval: 30000,
+  })
+}
+
+export function useAccionSesionTelegram() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { accion: string; botId?: string; botUsuario?: string }) =>
+      api<{ ok: boolean; estado: string; detalle: string; botUsuario?: string | null }>('/api/telegram/sesion', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['sesion-telegram'] })
+      void qc.invalidateQueries({ queryKey: ['canal-telegram'] })
+    },
+  })
+}
+
+export interface CanalTelegramRespuesta {
+  honesto: string
+  sesion: { estado: string; botId: string | null; botUsuario: string | null; pulso: 'sin_pulso' | 'vivo' | 'tibio'; ultimoPulsoEn: string | null; conectadaEn: string | null }
+  webhook: { secretoPresente: boolean; fuente: string }
+  personaje: { id: string | null; nombre: string | null; activo: boolean; fuente: string }
+  pacing: { silencio: string; maxRespuestasPorDia: number; maxIniciativasPorDia: number; temperatura: 'normal' | 'enfriando'; temperaturaHasta: string | null }
+  hoy: { respuestasEnviadas: number; iniciativasEnviadas: number; iniciativasProgramadas: number; fallosRiesgo: number; enCola: number; bloqueadosPacing: number }
+  ultimos: { id: string; chat: string; direccion: string; tipo: string; estado: string; texto: string; pacingMotivo: string | null; pacingReintentarEn: string | null; errorRiesgo: boolean; createdAt: string }[]
+  actualizadoEn: string
+}
+
+export function useCanalTelegram() {
+  return useQuery({
+    queryKey: ['canal-telegram'],
+    queryFn: () => api<CanalTelegramRespuesta>('/api/telegram/conversacion'),
+    refetchInterval: 30000,
+  })
+}
+
+export interface IniciativaTelegramT {
+  id: string
+  chat: string
+  programadaEn: string | null
+  brief: string
+  vencida: boolean
+  pacingMotivo: string | null
+  pacingReintentarEn: string | null
+  createdAt: string
+}
+
+export interface IniciativasTelegramRespuesta {
+  honesto: string
+  personaje: { id: string | null; nombre: string | null; activo: boolean }
+  topes: { programadasPorChat: number }
+  programadas: IniciativaTelegramT[]
+  historial: { id: string; chat: string; estado: string; texto: string; modo: string | null; programadaPor: string | null; errorRiesgo: boolean; updatedAt: string }[]
+  actualizadoEn: string
+}
+
+export function useIniciativasTelegram() {
+  return useQuery({
+    queryKey: ['iniciativas-telegram'],
+    queryFn: () => api<IniciativasTelegramRespuesta>('/api/telegram/iniciativas'),
+    refetchInterval: 30000,
+  })
+}
+
+export function useProgramarIniciativaTelegram() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vals: { chatId: string; programadaEn?: string; texto?: string }) =>
+      api<{ ok: boolean; id: string; estado: string; programadaEn: string | null; chat: string; motivo: string }>('/api/telegram/iniciativas', {
+        method: 'POST',
+        body: JSON.stringify({ accion: 'programar', ...vals }),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['iniciativas-telegram'] })
+      void qc.invalidateQueries({ queryKey: ['canal-telegram'] })
+    },
+  })
+}
+
+export function useCancelarIniciativaTelegram() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: boolean; cancelada: string; motivo: string }>('/api/telegram/iniciativas', {
+        method: 'POST',
+        body: JSON.stringify({ accion: 'cancelar', id }),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['iniciativas-telegram'] })
+      void qc.invalidateQueries({ queryKey: ['canal-telegram'] })
+    },
+  })
+}
+
+// ───────────────── Mesa Meta manual-first (F4 · CASA PROPIA) ─────────────────
+// FB/IG sin automatización: el operador pega la entrada, el cerebro escribe el
+// borrador y el envío es MANUAL desde la app de Meta (ToS de Meta — jamás bots).
+
+export interface BorradorMetaT {
+  id: string
+  red: string
+  contacto: string
+  textoEntrada: string
+  borrador: string
+  estado: string
+  modo: string
+  bloqueadoFiltro: boolean
+  llmEstado: string | null
+  createdAt: string
+  resueltoEn: string | null
+}
+
+export interface MesaMetaRespuesta {
+  honesto: string
+  topes: { textoEntrada: number; redes: string[] }
+  pendientes: number
+  borradores: BorradorMetaT[]
+  actualizadoEn: string
+}
+
+export function useMesaMeta() {
+  return useQuery({
+    queryKey: ['mesa-meta'],
+    queryFn: () => api<MesaMetaRespuesta>('/api/meta/mesa'),
+    refetchInterval: 30000,
+  })
+}
+
+export function useAccionMesaMeta() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vals: { accion: 'borrar' | 'usar' | 'descartar'; id?: string; red?: string; contacto?: string; texto?: string; personajeId?: string }) =>
+      api<{ ok: boolean; id?: string; estado?: string; borrador?: string | null; modo?: string; motivo: string }>('/api/meta/mesa', {
+        method: 'POST',
+        body: JSON.stringify(vals),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['mesa-meta'] })
     },
   })
 }

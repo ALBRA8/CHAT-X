@@ -1,8 +1,58 @@
 # Activación controlada de WhatsApp (daemon Baileys :3002)
 
-Procedimiento real verificado contra el código del daemon (`engines/CRM-ALBRA/src/whatsapp-daemon/daemon.mjs`, 846 líneas, leído en auditoría 2026-10-28). Este documento vive en CHAT-X; los repos de terceros no se modifican.
+> **2026-11-20 (S-016, F1-W5):** el negocio tiene AHORA su **daemon PROPIO** (F1,
+> sala limpia, $0) — código en `daemon/whatsapp/` con activación en la **§0 de
+> abajo**. Las secciones 1-6 de este documento describen el daemon BAILEYS VIEJO
+> de CRM-ALBRA (:3002), que queda como **referencia histórica** — los clones
+> jamás procesan el negocio 18+ (D-007/CASA PROPIA). Para el canal propio del
+> negocio usa SOLO la §0.
 
-## 1. Arquitectura y responsabilidades
+## §0 — Daemon PROPIO del negocio (F1 · sala limpia · recomendado)
+
+**Procedimiento real de activación del canal WhatsApp de MUSE** (componente
+`daemon/whatsapp/`, librería open-source $0, BD y sesión PROPIAS del carril
+adulto — cero código de los clones).
+
+1. **CHAT-X arriba** (`bun run dev` o el standalone) y alcanzable desde la
+   máquina del fundador (`CHATX_URL`, defecto `http://127.0.0.1:3000`).
+2. **Secreto del webhook**: genera ≥32 caracteres aleatorios, guárdalo en el
+   panel de CHAT-X (`whatsapp.webhook_secreto`) y expórtalo en la máquina del
+   daemon como `WHATSAPP_WEBHOOK_SECRETO`. El mismo valor en ambos lados; el
+   receptor de CHAT-X está APAGADO sin él (fail-closed 503) y el daemon NO
+   ARRANCA sin él (fail-closed). Nunca en chat, commits ni screenshots.
+3. **Personaje del canal**: `whatsapp.personaje_id` en el panel (personaje
+   ACTIVO — sin genoma no hay cerebro y el canal responde 503 honesto).
+4. **Arranque del daemon** en la máquina del fundador:
+   ```bash
+   cd daemon/whatsapp && bun install   # librería open-source, $0
+   CHATX_URL=http://127.0.0.1:3000 \
+   WHATSAPP_WEBHOOK_SECRETO=<el-mismo-del-panel> \
+   bun index.ts
+   ```
+5. **QR**: el daemon pide espera FRESH en la casa (`iniciar_espera_qr`), muestra
+   el QR en terminal (vence ~1 min, un solo uso) y al escanear llama
+   `confirmar_conexion` con el número + blob de sesión. El secreto de sesión
+   queda SOLO cifrado (AES-256-GCM, clave dedicada) y el número como huella
+   SHA-256 + máscara. Credenciales locales en `daemon/whatsapp/.wa-auth`
+   (fuera de git).
+6. **Prueba con destinatario consentido** (obligatoria antes de cualquier uso
+   real): número de prueba con consentimiento explícito → conversa por el
+   canal → verificar fila `WhatsAppMensaje` con estado `enviado` en el panel
+   Canal (chatId enmascarado) y recepción real en el teléfono. Registrar el
+   resultado en `../05_TESTS/INFORME_PRUEBAS.md`.
+7. **Bajar la sesión**: `rotar` (logout explícito, panel) + revocar el
+   dispositivo desde el teléfono + borrar `.wa-auth` local. `desconectar`
+   borra el secreto de la BD de la casa (explícito).
+
+**Honestidad del arranque**: si CHAT-X dice CONECTADA con la MISMA huella del
+número, el daemon continúa sin re-emparejar; si la huella NO coincide o el
+secreto falta, el daemon SE DETIENE y lo declara — nada se sobreescribe en
+silencio. Sin QR escaneado ni destinatario consentido, NADA viaja por
+WhatsApp (ni respuestas ni iniciativas).
+
+## 1. Arquitectura y responsabilidades (HISTÓRICO — daemon viejo de CRM-ALBRA)
+
+Procedimiento real verificado contra el código del daemon (`engines/CRM-ALBRA/src/whatsapp-daemon/daemon.mjs`, 846 líneas, leído en auditoría 2026-10-28). Este documento vive en CHAT-X; los repos de terceros no se modifican.
 
 | Componente | Puerto | Rol | Estado del código |
 |---|---|---|---|

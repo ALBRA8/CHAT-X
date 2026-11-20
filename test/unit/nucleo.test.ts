@@ -89,6 +89,15 @@ describe('compliance — filtro de edad aparente', () => {
   test('texto limpio pasa', () => {
     expect(detectarTerminosProhibidos('retrato editorial golden hour')).toHaveLength(0)
   })
+  test('S-016: la edad explícita se detecta con ñ Y con la forma normalizada (ñ→n)', () => {
+    // el bug cazado por el smoke F4: la normalización quita la ñ y el patrón
+    // antiguo solo aceptaba 'años' — "16 anos" (normalizado) colaba.
+    expect(detectarTerminosProhibidos('quién es la chica de 16 años del video')).toContain('mención de edad < 18')
+    expect(detectarTerminosProhibidos('la de 17 anos que salió')).toContain('mención de edad < 18')
+    expect(detectarTerminosProhibidos('una de 18 años ya es adulta')).toHaveLength(0)
+    expect(detectarTerminosProhibidos('17 yo claims')).toContain('mención de edad < 18')
+    expect(detectarTerminosProhibidos('la de 21 años')).toHaveLength(0)
+  })
   test('carriles separados por constante', () => {
     expect(LANE.PUBLICO).toBe('PUBLICO')
     expect(LANE.PRIVADO).toBe('PRIVADO')

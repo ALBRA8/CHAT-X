@@ -16,6 +16,8 @@ import {
   Workflow,
   MessageCircle,
   Smartphone,
+  Send,
+  Globe,
   Settings2,
   Lock,
   LockOpen,
@@ -29,6 +31,8 @@ import InvestigacionView from '@/components/plataforma/InvestigacionView'
 import AutomatizacionView from '@/components/plataforma/AutomatizacionView'
 import ChatGfeView from '@/components/plataforma/ChatGfeView'
 import CanalWhatsAppView from '@/components/plataforma/CanalWhatsAppView'
+import CanalTelegramView from '@/components/plataforma/CanalTelegramView'
+import MesaMetaView from '@/components/plataforma/MesaMetaView'
 import ConfiguracionView from '@/components/plataforma/ConfiguracionView'
 import EstudioModulo from '@/components/estudio/EstudioModulo'
 import { useSettings, usePrivado } from '@/components/estudio/api'
@@ -36,7 +40,7 @@ import { fmtDinero } from '@/components/estudio/ui-bits'
 import { useMotores } from '@/components/plataforma/api'
 import { cn } from '@/lib/utils'
 
-type Modulo = 'operaciones' | 'youtube' | 'comercial' | 'estudio' | 'ugc' | 'investigacion' | 'automatizacion' | 'chat' | 'canal' | 'configuracion'
+type Modulo = 'operaciones' | 'youtube' | 'comercial' | 'estudio' | 'ugc' | 'investigacion' | 'automatizacion' | 'chat' | 'canal' | 'canal-telegram' | 'mesa-meta' | 'configuracion'
 
 const MODULOS: { id: Modulo; label: string; corto: string; icono: typeof Gauge; desc: string }[] = [
   { id: 'operaciones', label: 'Centro de Operaciones', corto: 'Ops', icono: Gauge, desc: 'Estado del ecosistema, GPU, trabajos y compliance' },
@@ -48,6 +52,8 @@ const MODULOS: { id: Modulo; label: string; corto: string; icono: typeof Gauge; 
   { id: 'automatizacion', label: 'Automatización', corto: 'Flujos', icono: Workflow, desc: 'Orquestador de flujos extremo a extremo' },
   { id: 'chat', label: 'Chat GFE — Modo Novia', corto: 'Chat', icono: MessageCircle, desc: 'Conversación con media en contexto: fotos con QA y notas de voz' },
   { id: 'canal', label: 'Canal WhatsApp propio', corto: 'Canal', icono: Smartphone, desc: 'F1: sesión honesta, pacing anti-ban e iniciativas 1:1 — el daemon real vive en tu máquina' },
+  { id: 'canal-telegram', label: 'Cuarto Telegram propio', corto: 'Tg', icono: Send, desc: 'F3: bot propio $0 del cuarto Telegram — mismo cerebro, pacing y filtro que WhatsApp; el token vive solo en tu máquina' },
+  { id: 'mesa-meta', label: 'Mesa Meta (manual-first)', corto: 'Meta', icono: Globe, desc: 'F4: borradores SFW del cerebro para FB/IG — pegar, redactar y enviar A MANO; jamás automatización ToS-violadora' },
   { id: 'configuracion', label: 'Configuración', corto: 'Config', icono: Settings2, desc: 'Un solo panel para conectar APIs y parámetros: sondas reales, fuente declarada, secretos enmascarados' },
 ]
 
@@ -144,6 +150,8 @@ function Shell() {
             {modulo === 'automatizacion' && <AutomatizacionView />}
             {modulo === 'chat' && <ChatGfeView />}
             {modulo === 'canal' && <CanalWhatsAppView />}
+            {modulo === 'canal-telegram' && <CanalTelegramView />}
+            {modulo === 'mesa-meta' && <MesaMetaView />}
             {modulo === 'configuracion' && <ConfiguracionView />}
           </main>
         </div>

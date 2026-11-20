@@ -293,3 +293,30 @@ La continuación reveló 3 defectos reales que ninguna prueba anterior cubría (
 - Suite API: **33 PASS · 0 FAIL** · unitarias **31 pass** (4 nuevas) · tsc limpio · sondeo **6/10 operativos** (crm :3100, whatspower :3003, ultra :3004, nexscope :3300, cazador :8787, agentekrea :3210 con doctor 5/7 HEALTHY).
 - E2E plantilla "Plan → Estudio → Calendario": **completada** con contenido REAL en el Set (4 previews QA-aprobadas) y fila en calendario.
 - Bloqueos sin cambio: QR WhatsApp (fundador), GPU/ComfyUI real (fundador), video (GPU), LLM keys (fundador), push (PAT).
+
+---
+
+# S-016 (2026-11-20) — construcción masiva: F1-W5 daemon real + F3 cuarto Telegram + F4 Mesa Meta
+
+**Orden:** "trabajo masivo de construcción · implementar todo el plan por completo". Herramientas: `bun test test/unit/` + smokes en vivo contra la API real (`bun scripts/smoke_f3.ts`, `bun scripts/smoke_f4.ts`, regresión con `smoke_w3.ts`/`smoke_w4.ts`).
+
+**Resultado: suite 386 PASS · 4 FAIL (piper preexistentes del entorno: sin paquete piper ni modelos onnx) · 1 skip · tsc 0 · build de producción verde con las 4 rutas nuevas (`/api/meta/mesa`, `/api/telegram/{sesion,conversacion,iniciativas}`) · 4 smokes en TODO OK.**
+
+| Prueba | Alcance | Resultado |
+|---|---|---|
+| `test/unit/whatsapp-daemon.test.ts` (25 nuevos) | módulo puro del daemon REAL: riesgo→disyuntor, reintentos con tope, parseo de instrucciones, plan de arranque, drift-guard de huella, firma compartida | 25 PASS |
+| `test/unit/telegram-canal.test.ts` (21 nuevos) | cuarto Telegram: chatId numérico (@handles rechazados), identidad pública del bot (el token jamás viaja), máquina de estados, pulso, iniciativas 1:1, contrato compartido | 21 PASS |
+| `test/unit/meta-mesa.test.ts` (14 nuevos) | mesa Meta manual-first: entrada validada, transiciones honestas, máscara de etiqueta | 14 PASS |
+| `test/unit/nucleo.test.ts` (+1) | regresión del fix de seguridad: `PATRON_EDAD_MENOR` detecta edad explícita con ñ y con texto normalizado (ñ→n); "18 años" y "21 años" pasan | PASS |
+| Smoke F4 (`scripts/smoke_f4.ts`, ~35 verificaciones) | mesa en vivo: 400s honestos, borrador del genoma con modo declarado, filtro de edad en entrada auditado, usar=envío MANUAL registrado, historia no se re-estructura, bloqueado jamás se usa, 0 jobs/0 créditos, compliance append-only, limpieza explícita | TODO OK |
+| Smoke F3 (`scripts/smoke_f3.ts`, ~50 verificaciones) | cuarto Telegram en vivo: 503 fail-closed sin secreto (también para la identidad del bot), 401 sin firma/equivocada/vencida, token jamás en respuestas, CONECTADA por identidad firmada, idempotencia, disyuntor en vivo frena iniciativas y jamás respuestas, tope 3 por chat, en_cola no se des-instruye, 0 jobs/0 créditos, limpieza con ledger intacto | TODO OK |
+| Regresión W3+W4 (`smoke_w3.ts`/`smoke_w4.ts`) | el cuarto WhatsApp intacto tras el refactor del cerrojo compartido (`src/lib/canales.ts`) | TODO OK ambos |
+
+## Hallazgos REALES de la sesión S-016 (cazados por tests/smokes, corregidos con evidencia)
+
+1. **BUG DE SEGURIDAD del filtro de edad (el hallazgo más serio)**: `PATRON_EDAD_MENOR` exigía literalmente "años" (con ñ) pero `detectarTerminosProhibidos` normaliza el texto quitando acentos (ñ→n) — **"16 anos" COLABA**. Corregido con la variante `a[ñn]os` + test de regresión + smoke F4 lo verifica en vivo contra la API real.
+2. **Bug en módulo puro de la mesa**: `transicionBorradorMeta` devolvía la ACCIÓN ("usar") en vez del ESTADO resultante ("usado") — el test unitario lo cazó antes de tocar la ruta.
+3. **Smoke W4 no determinista ante la caché de configuración (TTL 5 s)**: si otro smoke tocó `whatsapp.*` hace instantes, el receptor veía un secreto stale → el smoke ahora espera 5,2 s tras limpiar fixtures.
+4. Cliente Prisma viejo en el server vivo tras el `db push` → reinicio del dev server y re-verificación (lección ya documentada en S-013, aplicada).
+
+**Límites honestos de la sesión**: el runner del daemon (`daemon/whatsapp/index.ts`) NO se ejecuta aquí — el sandbox no mantiene sesiones de WhatsApp y no se finge; su lógica pura está probada y su activación es un procedimiento documentado (`WHATSAPP_QR_ACTIVACION.md` §0) para la máquina del fundador. El cobro 18+ del cuarto Telegram NO se construye (espera verificación de términos y procesador — NORTE §2).

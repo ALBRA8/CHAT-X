@@ -472,3 +472,81 @@ model LedgerMonetizacion {
   @@index([tipo])
   @@index([createdAt])
 }
+
+// ───────── F3 · cuarto Telegram PROPIO del negocio (CASA PROPIA, EMBUDO §7) ─────────
+// UNA sola fila (id fija "unica"): el cuarto Telegram tiene UN bot. A diferencia
+// de WhatsApp (QR de emparejamiento), un bot necesita SU TOKEN — que descansa SOLO
+// en la máquina del fundador (el daemon es el único que toca la red de Telegram):
+// aquí solo viven datos PÚBLICOS y declarados (botId, @usuario del bot) y el
+// pulso vivo del daemon. Estado HONESTO: CONECTADA solo llega cuando el daemon
+// real presenta su identidad tras getMe — jamás se inventa una conexión. El cobro
+// (18+) NO se construye: espera verificación de términos y procesador (NORTE §2).
+model TelegramSesion {
+  id             String    @id @default("unica")
+  estado         String    @default("NO_CONFIGURADO") // NO_CONFIGURADO | CONECTADA | DESCONECTADA
+  botId          String? // id público del bot (getMe) — no es secreto
+  botUsuario     String? // @usuario público del bot — no es secreto
+  conectadaEn    DateTime?
+  desconectadaEn DateTime?
+  ultimoPulsoEn  DateTime? // heartbeat firmado del daemon — señal viva, no un estado
+  detalle        String    @default("") // frase honesta del último movimiento
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// ───────── F3 — mensajes del canal Telegram PROPIO (BD del cuarto) ─────────
+// Memoria POR CHAT del cuarto Telegram: dos contactos jamás comparten contexto
+// entre sí ni con el GFE del operador ni con el cuarto WhatsApp. Misma
+// idempotencia de la casa que WhatsAppMensaje: un reenvío del daemon jamás
+// duplica filas ni vuelve a gastar el cerebro. El chatId de Telegram es el id
+// numérico de la API de bots (usuarios positivos, grupos/canales negativos) —
+// NUNCA un handle @público que el operador escriba a mano.
+model TelegramMensaje {
+  id                 String    @id @default(cuid())
+  chatId             String // id numérico del chat de Telegram (lo manda el daemon firmado)
+  direccion          String    @default("entrada") // entrada | salida
+  tipo               String    @default("respuesta") // respuesta | iniciativa
+  estado             String    @default("recibido") // recibido | programada | en_cola | enviado | fallado | bloqueado_pacing
+  texto              String    @default("")
+  idEntrada          String? // id que puso el daemon (update_id) — idempotencia de reenvíos
+  cerebroMensajeId   String? // enlace futuro al libro del cerebro (media/voz)
+  pacingMotivo       String? // ok | circuito_abierto | horas_silencio | techo_respuestas | techo_iniciativas | calentamiento
+  pacingReintentarEn DateTime?
+  errorRiesgo        Boolean   @default(false) // fallo con señal de riesgo (rate limit persistente, red) → disyuntor
+  meta               String    @default("{}")
+  programadaEn       DateTime? // cuándo vence una iniciativa programada (solo tipo=iniciativa)
+  programadaPor      String? // operador | daemon — procedencia honesta
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  enviadoEn          DateTime?
+
+  @@unique([chatId, direccion, idEntrada])
+  @@index([chatId, createdAt])
+  @@index([estado])
+  @@index([direccion, updatedAt])
+  @@index([tipo, estado, programadaEn])
+}
+
+// ───────── F4 · Mesa Meta — FB/IG MANUAL-FIRST (CASA PROPIA, EMBUDO §7) ─────────
+// El cuarto más delicado: Meta banea adulto Y automatización ToS-violadora
+// (EMBUDO §4). Por eso esta mesa NO envía nada y NO tiene webhook: el operador
+// pega a mano el mensaje que llegó por FB/IG, el CEREBRO escribe el borrador de
+// respuesta (mismos filtros de edad que /api/chat) y el operador lo envía
+// MANUALMENTE desde la propia app de Meta. Automatización: cero. El contacto es
+// una etiqueta que escribe el operador (manual-first, no scraping ni sincronización).
+model MetaBorrador {
+  id           String    @id @default(cuid())
+  red          String // facebook | instagram
+  contacto     String    @default("") // etiqueta del contacto que pone el operador (manual-first)
+  textoEntrada String // el mensaje que llegó, pegado a mano por el operador
+  borrador     String    @default("") // el QUÉ lo escribe el cerebro (plantilla del genoma o LLM seguro)
+  estado       String    @default("borrador") // borrador | usado | descartado
+  modo         String    @default("") // plantilla_genoma | llm_<proveedor> | bloqueado_filtro
+  meta         String    @default("{}")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  resueltoEn   DateTime? // cuándo se marcó usado/descartado (jamás en silencio)
+
+  @@index([red, estado])
+  @@index([createdAt])
+}

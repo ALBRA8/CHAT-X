@@ -1,0 +1,14 @@
+{
+  "name": "chatx-daemon-whatsapp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Daemon F1 REAL del canal WhatsApp PROPIO de CHAT-X — corre en la máquina del fundador, librería open-source ($0), jamás en el sandbox ni en CI.",
+  "scripts": {
+    "arrancar": "bun index.ts"
+  },
+  "dependencies": {
+    "baileys": "^6.7.9",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

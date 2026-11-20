@@ -27,6 +27,7 @@ import {
   RotateCcw,
   Save,
   SlidersHorizontal,
+  Send,
   Volume2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -42,7 +43,7 @@ import {
 } from './api'
 import { FormularioConexion, EstadoPill } from './bits'
 
-type CategoriaId = 'llm' | 'voz' | 'media' | 'general' | 'whatsapp'
+type CategoriaId = 'llm' | 'voz' | 'media' | 'general' | 'whatsapp' | 'telegram'
 
 const CATEGORIAS: { id: CategoriaId; titulo: string; desc: string; Icono: typeof Bot }[] = [
   {
@@ -74,6 +75,12 @@ const CATEGORIAS: { id: CategoriaId; titulo: string; desc: string; Icono: typeof
     titulo: 'Canal WhatsApp propio (F1)',
     desc: 'El daemon corre en tu máquina y firma cada webhook con el secreto de aquí; sin secreto el receptor está APAGADO. El personaje contesta con su genoma y el pacing anti-ban decide CUÁNDO (sin QR conectado nada envía).',
     Icono: MessageCircle,
+  },
+  {
+    id: 'telegram',
+    titulo: 'Cuarto Telegram propio (F3)',
+    desc: 'El TOKEN del bot vive solo en tu máquina (aquí solo llega su identidad pública por el webhook firmado). Sin secreto el receptor está APAGADO; el mismo cerebro, pacing y filtro de edad que WhatsApp. El cobro 18+ espera verificación de términos.',
+    Icono: Send,
   },
 ]
 

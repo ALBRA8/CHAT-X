@@ -79,8 +79,11 @@ export const TERMINOS_PROHIBIDOS_EDAD: string[] = [
   'underage', 'minor', 'child', 'children', 'kid', 'london ageplay',
 ]
 
-// Patrón para edades explícitas por debajo de 18 ("16 años", "17 años"…)
-export const PATRON_EDAD_MENOR = /\b(1[0-7]|[1-9])\s*(años|yo|years?[\s-]?old)\b/i
+// Patrón para edades explícitas por debajo de 18 ("16 años", "17 años"…).
+// NOTA (S-016): acepta "años" Y "anos" — detectarTerminosProhibidos normaliza
+// el texto quitando acentos (ñ→n), así que sin la variante 'anos' el patrón
+// jamás matcheaba con la forma normalizada (bug real cazado por el smoke F4).
+export const PATRON_EDAD_MENOR = /\b(1[0-7]|[1-9])\s*(a[ñn]os|yo|years?[\s-]?old)\b/i
 
 export function detectarTerminosProhibidos(texto: string): string[] {
   const encontrados: string[] = []
