@@ -5,7 +5,7 @@
 // le devuelve la instrucción de envío. El daemon es el ÚNICO que toca la red de
 // WhatsApp — aquí no hay sesión real y no se finge.
 //
-//  POST /api/whatsapp/conversacion  {accion: 'entrante' | 'marcar_envio', ...}
+//  POST /api/whatsapp/conversacion  {accion: 'entrante' | 'marcar_envio' | 'iniciativas_vencidas', ...}
 //    Firma: headers x-chatx-ts (ms) + x-chatx-firma (hex) = HMAC-SHA256 de
 //    `${ts}.${cuerpo}` con el secreto de whatsapp.webhook_secreto.
 //    Fail-closed: sin secreto configurado el receptor está APAGADO (503);
@@ -19,6 +19,14 @@
 //      accion 'marcar_envio' {id, resultado: 'enviado'|'fallado', errorRiesgo?, detalle?}
 //        → transición honesta del envío; los fallos CON señal de riesgo
 //          alimentan el disyuntor del pacing.
+//      accion 'iniciativas_vencidas' {}   (W4 — poll del daemon)
+//        → recoge iniciativas programadas vencidas (el operador las agenda en
+//          el panel con consentimiento 1:1) → pacing W1 con esIniciativa=true
+//          (disyuntor en vivo) → cerebro SOLO si el pacing pasa (regla $0) →
+//          en_cola con texto, o sigue programada con motivo + reintentarEn.
+//          Las instrucciones llevan el chatId COMPLETO (el daemon lo necesita
+//          para enviar — es su credencial firmada); el panel y los logs usan
+//          SIEMPRE la máscara. Tope por poll: goteo, no ráfaga.
 //  GET → vista honesta del canal para el panel: sesión, personaje, secreto
 //        presente/fuente, pacing efectivo, temperatura, envíos de hoy y
 //        últimos mensajes (chatId SIEMPRE enmascarado).
@@ -30,7 +38,8 @@ import { recargarConfig, valorConfig } from '@/lib/configuracion'
 import { detectarTerminosProhibidos } from '@/lib/constants'
 import { detectarIntencion, respuestaPlantilla } from '@/lib/chat'
 import { generarRespuestaLLM, historialDesdeMensajes, salidaLLMSegura, sondearLLM } from '@/lib/provider/llm'
-import { PACING_DEFECTO, decidirEnvio, temperatura } from '@/lib/whatsapp/pacing'
+import { PACING_DEFECTO, decidirEnvio, temperatura, type MarcaEnvio } from '@/lib/whatsapp/pacing'
+import { MAX_POR_POLL, resolverIniciativa, iniciativaPlantilla } from '@/lib/whatsapp/iniciativas'
 import {
   EstadoMensaje,
   mascararChatId,
@@ -105,6 +114,9 @@ export async function GET() {
     where: { direccion: 'salida', createdAt: { gte: inicioDia } },
     select: { estado: true, tipo: true, errorRiesgo: true },
   })
+  const programadasPendientes = await db.whatsAppMensaje.count({
+    where: { direccion: 'salida', tipo: 'iniciativa', estado: 'programada' },
+  })
 
   const ultimos = await db.whatsAppMensaje.findMany({
     orderBy: { createdAt: 'desc' },
@@ -143,6 +155,7 @@ export async function GET() {
     hoy: {
       respuestasEnviadas: salidasHoy.filter((m) => m.estado === 'enviado' && m.tipo === 'respuesta').length,
       iniciativasEnviadas: salidasHoy.filter((m) => m.estado === 'enviado' && m.tipo === 'iniciativa').length,
+      iniciativasProgramadas: programadasPendientes,
       fallosRiesgo: salidasHoy.filter((m) => m.estado === 'fallado' && m.errorRiesgo).length,
       enCola: salidasHoy.filter((m) => m.estado === 'en_cola').length,
       bloqueadosPacing: salidasHoy.filter((m) => m.estado === 'bloqueado_pacing').length,
@@ -190,7 +203,8 @@ export async function POST(req: NextRequest) {
 
   if (accion === 'entrante') return procesarEntrante(body)
   if (accion === 'marcar_envio') return procesarMarcaEnvio(body)
-  return NextResponse.json({ error: `Acción desconocida: ${accion}. Válidas: entrante, marcar_envio.` }, { status: 400 })
+  if (accion === 'iniciativas_vencidas') return procesarIniciativasVencidas()
+  return NextResponse.json({ error: `Acción desconocida: ${accion}. Válidas: entrante, marcar_envio, iniciativas_vencidas.` }, { status: 400 })
 }
 
 // ── accion 'entrante': el contacto escribió ───────────────────────────────
@@ -470,4 +484,146 @@ async function procesarMarcaEnvio(body: Record<string, unknown>) {
     idempotente: Boolean(t.idempotente),
     errorRiesgo: actualizada.errorRiesgo,
   })
+}
+
+// ── accion 'iniciativas_vencidas': el daemon recoge lo programado (W4) ────
+
+/** Directive por defecto para el cerebro cuando el operador no dejó breve. */
+const DIRECTIVA_INICIATIVA = 'Inicia tú una conversación breve y natural con este contacto (primer mensaje o reavivo ligero): una o dos frases, sin pedir nada.'
+
+async function procesarIniciativasVencidas() {
+  const ahora = new Date()
+
+  // Sesión real o nada (idéntico a 'entrante': sin CONECTADA no se finge).
+  const sesion = await db.whatsAppSesion.findUnique({ where: { id: ID_SESION } })
+  if (!sesion || sesion.estado !== 'CONECTADA') {
+    return NextResponse.json(
+      { error: `El canal WhatsApp no está CONECTADA (estado: ${sesion?.estado ?? 'NO_CONFIGURADO'}): las iniciativas no se recogen.`, estado: sesion?.estado ?? 'NO_CONFIGURADO' },
+      { status: 409 },
+    )
+  }
+
+  // Personaje del canal: sin genoma no hay cerebro que escriba la iniciativa.
+  const pid = personajeId()
+  if (!pid.valor) {
+    return NextResponse.json(
+      { error: 'Canal sin personaje: asigna whatsapp.personaje_id en el panel (el cerebro necesita su genoma).', estado: 'NO_CONFIGURADO' },
+      { status: 503 },
+    )
+  }
+  const personaje = await db.character.findUnique({ where: { id: pid.valor } })
+  if (!personaje) return NextResponse.json({ error: 'El personaje asignado al canal no existe: revisa whatsapp.personaje_id.' }, { status: 404 })
+  if (personaje.status !== 'ACTIVO') {
+    return NextResponse.json({ error: `Las iniciativas son para personajes ACTIVOS (este está ${personaje.status}).` }, { status: 409 })
+  }
+
+  const vencidas = await db.whatsAppMensaje.findMany({
+    where: { direccion: 'salida', tipo: 'iniciativa', estado: 'programada', programadaEn: { lte: ahora } },
+    orderBy: { programadaEn: 'asc' },
+    take: MAX_POR_POLL, // goteo conservador: pocas por tick, cada una con su gate
+  })
+
+  const cfg = pacingEfectivo()
+  const marcas: MarcaEnvio[] = await marcasRecientes()
+  const instrucciones: Record<string, unknown>[] = []
+
+  for (const fila of vencidas) {
+    // Pacing W1 con esIniciativa=true — disyuntor EN VIVO. Las marcas incluyen
+    // las iniciativas recién entregadas en ESTE poll (drip honesto: dos para el
+    // mismo chat en el mismo tick ya cuentan en su calentamiento/techo).
+    const decision = decidirEnvio(marcas, fila.chatId, true, cfg, ahora)
+    const metaFila = JSON.parse(fila.meta || '{}') as Record<string, unknown>
+    const chat = mascararChatId(fila.chatId)
+
+    if (!decision.permitido) {
+      // Sigue programada: no se descarta (es un plan legítimo), con motivo y
+      // reintentarEn honestos para el siguiente poll.
+      await db.whatsAppMensaje.update({
+        where: { id: fila.id },
+        data: {
+          pacingMotivo: decision.motivo,
+          pacingReintentarEn: decision.reintentarEn ? new Date(decision.reintentarEn) : null,
+          meta: JSON.stringify({ ...metaFila, ultimoVeredicto: { cuando: ahora.toISOString(), motivo: decision.motivo, reintentarEn: decision.reintentarEn } }),
+        },
+      })
+      await registrarEvento('mensajes_whatsapp', { accion: 'iniciativa', resultado: 'sigue_programada', chat, pacing: decision.motivo, reintentarEn: decision.reintentarEn, via: 'webhook_daemon' }, { characterId: personaje.id })
+      instrucciones.push({ id: fila.id, chatId: fila.chatId, estado: 'sigue_programada', motivo: decision.detalle, reintentarEn: decision.reintentarEn })
+      continue
+    }
+
+    // Pacing pasa → el cerebro escribe (QUÉ = cerebro + gate humano, jamás el
+    // texto libre del operador): plantilla del genoma o LLM con salida segura.
+    const brief = typeof metaFila.brief === 'string' ? metaFila.brief.slice(0, 300) : ''
+    const metaCerebro: Record<string, unknown> = {}
+    let textoIniciativa = iniciativaPlantilla(personaje)
+    let modo = 'plantilla_genoma'
+
+    const sonda = await sondearLLM()
+    if (sonda.estado === 'OPERATIVO') {
+      const ctx = await db.whatsAppMensaje.findMany({
+        where: { chatId: fila.chatId, tipo: 'texto' },
+        orderBy: { createdAt: 'desc' },
+        take: 14,
+      })
+      const historial = historialDesdeMensajes(
+        ctx
+          .map((f) => ({
+            rol: f.direccion === 'entrada' ? ('operador' as const) : ('personaje' as const),
+            tipo: 'texto',
+            texto: f.texto,
+            estado: f.estado === 'enviado' ? 'entregado' : f.estado === 'recibido' ? undefined : f.estado,
+          }))
+          .reverse(),
+      )
+      const r = await generarRespuestaLLM(personaje, historial, brief || DIRECTIVA_INICIATIVA)
+      if (r.ok) {
+        const salida = salidaLLMSegura(r.texto)
+        if (salida.ok) {
+          textoIniciativa = salida.texto
+          modo = `llm_${r.provedor}`
+          metaCerebro.llm = { provedor: r.provedor, modelo: r.modelo }
+          await registrarEvento('llm_chat', { origen: 'whatsapp_daemon_iniciativa', provedor: r.provedor, modelo: r.modelo, caracteres: salida.texto.length, chat }, { characterId: personaje.id })
+        } else {
+          metaCerebro.llmEstado = 'RECHAZADO_FILTRO'
+          metaCerebro.llmMotivo = 'la salida del LLM activó el filtro de edad de la plataforma'
+          await registrarEvento('rechazo_qa', { modulo: 'whatsapp_daemon', motivo: 'Filtro de edad en la iniciativa del canal', terminosRechazados: salida.terminos.length, provedor: r.provedor, chat }, { characterId: personaje.id })
+        }
+      } else {
+        metaCerebro.llmEstado = r.estado
+        metaCerebro.llmFallo = r.detalle.slice(0, 200)
+      }
+    } else {
+      metaCerebro.llmEstado = sonda.estado
+      metaCerebro.llmDetalle = sonda.detalle.slice(0, 200)
+    }
+
+    const veredicto = resolverIniciativa(decision, { texto: textoIniciativa, modo, meta: metaCerebro })
+    if (!veredicto.entregar || veredicto.estado !== 'en_cola' || !veredicto.textoSalida) {
+      // Solo cabe el guard cerebro_ausente (bug de cableado): honesto, sin envío.
+      await db.whatsAppMensaje.update({
+        where: { id: fila.id },
+        data: { pacingMotivo: decision.motivo, meta: JSON.stringify({ ...metaFila, ...veredicto.meta, ultimoVeredicto: { cuando: ahora.toISOString(), motivo: veredicto.motivo } }) },
+      })
+      await registrarEvento('mensajes_whatsapp', { accion: 'iniciativa', resultado: 'sigue_programada', chat, bug: veredicto.meta.bug ?? null, via: 'webhook_daemon' }, { characterId: personaje.id })
+      instrucciones.push({ id: fila.id, chatId: fila.chatId, estado: 'sigue_programada', motivo: veredicto.motivo, reintentarEn: decision.reintentarEn })
+      continue
+    }
+
+    await db.whatsAppMensaje.update({
+      where: { id: fila.id },
+      data: {
+        estado: 'en_cola',
+        texto: veredicto.textoSalida,
+        pacingMotivo: 'ok',
+        pacingReintentarEn: null,
+        meta: JSON.stringify({ ...metaFila, ...metaCerebro, modo, programadaPor: typeof metaFila.programadaPor === 'string' ? metaFila.programadaPor : 'operador' }),
+      },
+    })
+    // La iniciativa entregada cuenta YA para el pacing del resto del poll.
+    marcas.push({ chatId: fila.chatId, t: ahora, tipo: 'iniciativa', error: false })
+    await registrarEvento('mensajes_whatsapp', { accion: 'iniciativa', resultado: 'en_cola', chat, modo, brief: brief ? true : false, via: 'webhook_daemon' }, { characterId: personaje.id })
+    instrucciones.push({ id: fila.id, chatId: fila.chatId, estado: 'en_cola', texto: veredicto.textoSalida })
+  }
+
+  return NextResponse.json({ ok: true, recogidas: vencidas.length, instrucciones })
 }

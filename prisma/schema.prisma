@@ -320,8 +320,8 @@ model WhatsAppMensaje {
   id                 String    @id @default(cuid())
   chatId             String // chat de WhatsApp del contacto (lo manda el daemon firmado)
   direccion          String    @default("entrada") // entrada | salida
-  tipo               String    @default("respuesta") // respuesta | iniciativa (iniciativa = W4)
-  estado             String    @default("recibido") // recibido | en_cola | enviado | fallado | bloqueado_pacing
+  tipo               String    @default("respuesta") // respuesta | iniciativa
+  estado             String    @default("recibido") // recibido | programada | en_cola | enviado | fallado | bloqueado_pacing
   texto              String    @default("")
   idEntrada          String? // id que puso el daemon al mensaje entrante que dispara esta fila
   cerebroMensajeId   String? // enlace futuro al libro del cerebro (media/voz); el texto de la conversación vive aquí
@@ -329,6 +329,9 @@ model WhatsAppMensaje {
   pacingReintentarEn DateTime?
   errorRiesgo        Boolean   @default(false) // fallo con señal de riesgo (timeout de sesión, rechazo del servidor) → disyuntor
   meta               String    @default("{}")
+  // ── W4: iniciativas programadas (el negocio escribe primero, consentimiento 1:1) ──
+  programadaEn       DateTime? // cuándo vence una iniciativa programada (solo tipo=iniciativa); null = no aplica
+  programadaPor      String? // operador | daemon — procedencia honesta de la programación
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   enviadoEn          DateTime?
@@ -337,6 +340,7 @@ model WhatsAppMensaje {
   @@index([chatId, createdAt])
   @@index([estado])
   @@index([direccion, updatedAt])
+  @@index([tipo, estado, programadaEn])
 }
 
 // ───────────────────────────── Orquestador de flujos (sección 8-9 del prompt maestro) ─────────────────────────────

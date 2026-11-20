@@ -307,3 +307,110 @@ export function useSondasConfiguracion() {
       api<SondasConfigT>('/api/configuracion/probar', { method: 'POST', body: JSON.stringify({ objetivo: 'todo' }) }),
   })
 }
+
+// ───────────────── Canal WhatsApp propio (F1 · W2+W4) ─────────────────
+// Estado honesto del canal (GET /api/whatsapp/conversacion) + iniciativas
+// programadas (GET/POST /api/whatsapp/iniciativas). Los chatId viajan SIEMPRE
+// enmascarados; los secretos solo como "presente".
+
+export interface CanalRespuesta {
+  honesto: string
+  sesion: { estado: string; numeroMascarado: string | null; secretoPresente: boolean; conectadaEn: string | null }
+  webhook: { secretoPresente: boolean; fuente: string }
+  personaje: { id: string | null; nombre: string | null; activo: boolean; fuente: string }
+  pacing: { silencio: string; maxRespuestasPorDia: number; maxIniciativasPorDia: number; temperatura: 'normal' | 'enfriando'; temperaturaHasta: string | null }
+  hoy: { respuestasEnviadas: number; iniciativasEnviadas: number; iniciativasProgramadas: number; fallosRiesgo: number; enCola: number; bloqueadosPacing: number }
+  ultimos: { id: string; chat: string; direccion: string; tipo: string; estado: string; texto: string; pacingMotivo: string | null; pacingReintentarEn: string | null; errorRiesgo: boolean; createdAt: string }[]
+  actualizadoEn: string
+}
+
+export function useCanal() {
+  return useQuery({
+    queryKey: ['canal-whatsapp'],
+    queryFn: () => api<CanalRespuesta>('/api/whatsapp/conversacion'),
+    refetchInterval: 30000,
+  })
+}
+
+export function useAccionSesionWhatsApp() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { accion: string; numero?: string; secretoSesion?: string }) =>
+      api<{ ok: boolean; estado: string; detalle: string; numeroMascarado?: string | null; rotaciones?: number }>('/api/whatsapp/sesion', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['canal-whatsapp'] })
+    },
+  })
+}
+
+export interface IniciativaProgramadaT {
+  id: string
+  chat: string
+  programadaEn: string | null
+  brief: string
+  vencida: boolean
+  pacingMotivo: string | null
+  pacingReintentarEn: string | null
+  createdAt: string
+}
+
+export interface IniciativaHistorialT {
+  id: string
+  chat: string
+  estado: string
+  texto: string
+  modo: string | null
+  programadaPor: string | null
+  errorRiesgo: boolean
+  updatedAt: string
+}
+
+export interface IniciativasRespuesta {
+  honesto: string
+  personaje: { id: string | null; nombre: string | null; activo: boolean }
+  topes: { programadasPorChat: number }
+  programadas: IniciativaProgramadaT[]
+  historial: IniciativaHistorialT[]
+  actualizadoEn: string
+}
+
+export function useIniciativas() {
+  return useQuery({
+    queryKey: ['iniciativas-whatsapp'],
+    queryFn: () => api<IniciativasRespuesta>('/api/whatsapp/iniciativas'),
+    refetchInterval: 30000,
+  })
+}
+
+export function useProgramarIniciativa() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vals: { chatId: string; programadaEn?: string; texto?: string }) =>
+      api<{ ok: boolean; id: string; estado: string; programadaEn: string | null; chat: string; motivo: string }>('/api/whatsapp/iniciativas', {
+        method: 'POST',
+        body: JSON.stringify({ accion: 'programar', ...vals }),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['iniciativas-whatsapp'] })
+      void qc.invalidateQueries({ queryKey: ['canal-whatsapp'] })
+    },
+  })
+}
+
+export function useCancelarIniciativa() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) =>
+      api<{ ok: boolean; cancelada: string; motivo: string }>('/api/whatsapp/iniciativas', {
+        method: 'POST',
+        body: JSON.stringify({ accion: 'cancelar', id }),
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['iniciativas-whatsapp'] })
+      void qc.invalidateQueries({ queryKey: ['canal-whatsapp'] })
+    },
+  })
+}
