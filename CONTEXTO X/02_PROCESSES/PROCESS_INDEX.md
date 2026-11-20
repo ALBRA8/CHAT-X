@@ -5,7 +5,7 @@ Cómo se hacen las cosas en la casa. Cada proceso tiene script o procedimiento d
 |---|---|---|---|
 | Desbloqueo de GPU local | `MOTOR_GPU.md` + `scripts/benchmark_gpu.sh` + `scripts/detectar_gpu.sh` | VERIFIED | instalar ComfyUI en la máquina del fundador; carril NSFW sin filtro (D-002) |
 | Activación de WhatsApp | `WHATSAPP_QR_ACTIVACION.md` | VERIFIED (doc) | QR, destinatario consentido, logout/rotación — base del canal que calienta |
-| Daemon WhatsApp del negocio (F1) | `F1_DAEMON_WHATSAPP.md` + `src/lib/whatsapp/pacing.ts` | ESPECIFICADA · W1 EJECUTADO (S-012) | sesión propia, pacing anti-ban propio (18 tests), BD propia del carril adulto — sala limpia, D-007; W2+ espera orden del fundador |
+| Daemon WhatsApp del negocio (F1) | `F1_DAEMON_WHATSAPP.md` + `src/lib/whatsapp/{pacing,sesion}.ts` | W1+W2 EJECUTADOS (S-012/S-013) | pacing anti-ban (18 tests) + sesión propia cifrada con QR/rotación honesta (14 tests, API `/api/whatsapp/sesion`); BD propia del carril adulto — sala limpia, D-007; W3+ espera orden del fundador |
 | Mudanza de repos a musestudio8 | `scripts/mudar_casa_nueva.sh` | EJECUTADA 31-oct | espejo completo con historia, sin --force, verificación SHA a SHA |
 | Push autorizado | `scripts/subir_repo.sh` | VIGENTE | `GITHUB_TOKEN=<PAT> bash scripts/subir_repo.sh musestudio8/CHAT-X main` — token solo por env, fast-forward only |
 | Re-clonado de un brazo dañado | `scripts/reclonar_engines.sh` | VIGENTE | repara UNA carpeta de engines/ a su commit fijado sin tocar el resto |

@@ -18,7 +18,10 @@ import {
 import { asegurarSettings } from '@/lib/compliance'
 import { db } from '@/lib/db'
 
-function secretoServidor(): Buffer {
+/** Secreto del servidor (media/.server-secret, 0600, creado una sola vez).
+ *  Exportado para derivar claves de dominio propio (ej. la sesión WhatsApp del
+ *  daemon F1-W2: AES-256-GCM con separación de dominio sobre este secreto). */
+export function secretoServidor(): Buffer {
   const ruta = path.join(process.cwd(), 'media', '.server-secret')
   try {
     const hex = fs.readFileSync(ruta, 'utf8').trim()

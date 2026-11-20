@@ -264,7 +264,7 @@ model IntegracionEvent {
   @@index([createdAt])
 }
 
-// ─────────────── Configuración en caliente (panel de Configuración) ───────────────
+// ───────────── Configuración en caliente (panel de Configuración) ───────────────
 // Una fila por clave guardada desde el panel (PUT /api/configuracion). Las claves,
 // tipos y validaciones viven en src/lib/configuracion.ts (DEFINICIONES_CONFIG); aquí
 // solo vive el VALOR. Resolución declarada: fila en BD (fuente='bd') > variable de
@@ -279,6 +279,33 @@ model Configuracion {
   valor     String   @default("") // valor guardado desde el panel (max 500 por validación)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ───────── F1 · W2 — sesión WhatsApp PROPIA del negocio (CASA PROPIA) ─────────
+// UNA sola fila (id fija "unica"): el cuarto WhatsApp tiene un número y una
+// sesión. El secreto de sesión del daemon (las credenciales de la librería en
+// la máquina del fundador) descansa SOLO cifrado en reposo (AES-256-GCM con
+// clave derivada del secreto del servidor, separación de dominio) — jamás en
+// texto plano y jamás en git. El número se guarda como huella SHA-256 con
+// separación de dominio + máscara visible (últimos 4); el estado es HONESTO:
+// CONECTADA solo llega cuando el daemon real presenta número + secreto tras el
+// emparejamiento verdadero. Sala limpia (D-007): conceptos generales, cero
+// código de los clones.
+model WhatsAppSesion {
+  id              String    @id @default("unica")
+  estado          String    @default("NO_CONFIGURADO") // NO_CONFIGURADO | ESPERANDO_QR | CONECTADA | DESCONECTADA
+  huellaNumero    String? // sha256 del número E.164 normalizado (jamás el número en claro)
+  numeroMascarado String? // •••••1234 — últimos 4 dígitos visibles
+  secretoWrap     String? // blob de sesión del daemon, AES-256-GCM (iv:tag:datos hex)
+  desafioQr       String? // reto vigente mientras ESPERANDO_QR (el daemon lo cambia por el par real)
+  qrCreadoEn      DateTime?
+  qrCaducaEn      DateTime?
+  conectadaEn     DateTime?
+  desconectadaEn  DateTime?
+  rotaciones      Int       @default(0) // cuántas rotaciones (logout → nueva espera) ha tenido la sesión
+  detalle         String    @default("") // frase honesta del último movimiento (para panel y compliance)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 // ───────────────────────────── Orquestador de flujos (sección 8-9 del prompt maestro) ─────────────────────────────

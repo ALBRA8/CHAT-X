@@ -1,6 +1,6 @@
 # F1 — DAEMON WHATSAPP PROPIO DEL NEGOCIO (especificación de sala limpia)
-**Creado:** 2026-11-20 (S-012) · **Estado:** ESPECIFICADA · W1 EJECUTADO · **Origen:** `../00_MASTER/EMBUDO_MULTICANAL.md` §7 (enmienda CASA PROPIA) · hito 3 de `PROJECT_STATE.md`
-**Regla madre:** no se construye sin orden explícita del fundador. Esta ficha deja F1 lista para construir; la construcción del daemon (W2+) espera orden.
+**Creado:** 2026-11-20 (S-012) · **Estado:** ESPECIFICADA · W1 EJECUTADO · W2 EJECUTADO (S-013) · **Origen:** `../00_MASTER/EMBUDO_MULTICANAL.md` §7 (enmienda CASA PROPIA) · hito 3 de `PROJECT_STATE.md`
+**Regla madre:** no se construye sin orden explícita del fundador. W1 y W2 se ejecutaron con orden del fundador (S-012/S-013); el daemon real (W3, librería open-source en su máquina) y W4 esperan nueva orden.
 
 ## 1. Qué es y qué NO es
 
@@ -56,10 +56,10 @@ Garantías del módulo: no envía nada (decide cuándo); no toca BD, red ni relo
 
 ## 5. Datos (BD propia del cuarto)
 
-| Tabla nueva | Qué guarda | Notas |
+| Tabla | Qué guarda | Estado |
 |---|---|---|
-| `WhatsAppSesion` | estado de la sesión (desconectada / esperando_qr / conectada), huella del número, fechas | el SECRETO de sesión se guarda cifrado en carril privado, jamás en texto |
-| `WhatsAppMensaje` | chatId, dirección, tipo (respuesta/iniciativa), estado (en_cola/enviado/fallado), marca de pacing (motivo + reintentarEn), id del mensaje del cerebro | las marcas `MarcaEnvio` salen de aquí; alimenta compliance |
+| `WhatsAppSesion` | UNA fila (id "unica"): estado de la sesión (NO_CONFIGURADO \| ESPERANDO_QR \| CONECTADA \| DESCONECTADA), huella SHA-256 del número (jamás el número en claro) + máscara •••••1234, reto QR con caducidad de ~1 min, fechas y contador de rotaciones | **EJECUTADA (S-013)** — el secreto de sesión descansa SOLO cifrado (AES-256-GCM, clave dedicada derivada del secreto del servidor con separación de dominio); el API lo reporta como `secretoPresente`, jamás en claro |
+| `WhatsAppMensaje` | chatId, dirección, tipo (respuesta/iniciativa), estado (en_cola/enviado/fallado), marca de pacing (motivo + reintentarEn), id del mensaje del cerebro | W3 — las marcas `MarcaEnvio` saldrán de aquí |
 
 Principio A2/A3 aplicado desde el día uno: estados derivados calculados, no inventados; media y sesiones en casa; nada se borra en silencio.
 
@@ -68,8 +68,8 @@ Principio A2/A3 aplicado desde el día uno: estados derivados calculados, no inv
 | Tajada | Contenido | Estado |
 |---|---|---|
 | **W1 — pacing** | módulo puro `pacing.ts` + tests | **EJECUTADO (S-012)** |
-| W2 — sesión | modelo `WhatsAppSesion`, sesión cifrada en reposo, QR propio, rotación; endpoint de estado honesto (NO_CONFIGURADO sin QR) | listo para construir con orden |
-| W3 — conversación | webhook de entrada firmado → `/api/chat` → gate humano → envío con pacing; tabla `WhatsAppMensaje`; compliance | cola |
+| **W2 — sesión** | modelo `WhatsAppSesion` (BD propia), módulo puro `sesion.ts` (máquina de estados, reto QR con caducidad, huella+máscara del número, cifrado AES-256-GCM del secreto con clave dedicada), API honesta `GET/POST /api/whatsapp/sesion` (iniciar_espera_qr / confirmar_conexion / rotar / desconectar / caducar_qr), compliance `sesion_whatsapp` append-only | **EJECUTADO (S-013)** — 14 tests unitarios + smoke en vivo de 11 caminos (503-ish 400/409 honestos, borrado explícito, secreto jamás en respuestas); fixtures limpiados; tsc 0, suite 265 PASS, build verde |
+| W3 — conversación | webhook de entrada firmado → `/api/chat` → gate humano → envío con pacing; tabla `WhatsAppMensaje`; daemon real con librería open-source en la MÁQUINA DEL FUNDADOR (aquí no hay sesión real de WhatsApp y no se finge) | cola |
 | W4 — iniciativas + panel | iniciativas programadas con disyuntor en vivo; vista Canal en el panel (estado de sesión, temperatura, envíos del día) | cola |
 
 ## 7. Riesgos y límites declarados

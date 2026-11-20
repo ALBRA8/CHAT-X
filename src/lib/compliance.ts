@@ -19,6 +19,7 @@ export type TipoEvento =
   | 'llm_chat'
   | 'plan_video'
   | 'trend_ingestida'
+  | 'sesion_whatsapp'
 
 export async function registrarEvento(
   type: TipoEvento,
