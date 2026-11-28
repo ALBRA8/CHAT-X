@@ -173,7 +173,7 @@ async function main() {
   // useSingleFileAuthState NO existe en baileys 6.7.x (bug S-017 F0.1: el
   // arranque real moría en el import). La superficie la verifica el test
   // test/unit/baileys-lib.test.ts contra la librería REAL instalada.
-  const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = mod as {
+  const { default: makeWASocket, useMultiFileAuthState: abrirEstadoAuth, DisconnectReason, fetchLatestBaileysVersion } = mod as {
     default: (...args: unknown[]) => Sock
     useMultiFileAuthState: (dir: string) => Promise<{ state: Record<string, unknown>; saveCreds: () => Promise<void> }>
     DisconnectReason: Record<string, unknown>
@@ -190,7 +190,9 @@ async function main() {
     console.warn('⚠ qrcode-terminal no instalado: el QR solo viaja por el evento (sin respaldo en terminal).')
   }
 
-  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR)
+  // Alias local abrirEstadoAuth: la función de baileys empieza por "use" y el
+  // linter de React la confundiría con un hook — no lo es (S-017 F0.4).
+  const { state, saveCreds } = await abrirEstadoAuth(AUTH_DIR)
   const version = fetchLatestBaileysVersion ? await fetchLatestBaileysVersion().catch(() => ({ version: undefined as unknown as number[] })) : { version: undefined }
 
   const sock = makeWASocket({
