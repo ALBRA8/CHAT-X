@@ -1,23 +1,14 @@
 :81 {
-	@transform_port_query {
-		query XTransformPort=*
-	}
-
-	handle @transform_port_query {
-		reverse_proxy localhost:{query.XTransformPort} {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
-		}
-	}
-
-	handle {
-		reverse_proxy localhost:3000 {
-			header_up Host {host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
-			header_up X-Real-IP {remote_host}
-		}
+	// S-017 F0.3 — SOLO el upstream de la app. El proxy genérico por
+	// ?XTransformPort={query} fue retirado: permitía alcanzar CUALQUIER puerto
+	// local (3003/3004/8000/12600/12700 — motores, daemon LLM, plano de control)
+	// desde la cara pública del sandbox, saltándose el aislamiento por diseño.
+	// El health check de la plataforma apunta a :81 y Caddy lo resuelve contra
+	// el dev server de CHAT-X; ningún otro puerto queda expuesto por aquí.
+	reverse_proxy localhost:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
 	}
 }
