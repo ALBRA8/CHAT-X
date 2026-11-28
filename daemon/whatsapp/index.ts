@@ -28,6 +28,7 @@ import {
   PROPORCION_JITTER,
   SECRETO_MIN,
   clasificarErrorRiesgo,
+  huellaCredenciales,
   planArranque,
   planReintento,
   parsearInstruccion,
@@ -165,9 +166,16 @@ async function main() {
   } catch {
     fail(`La librería "${LIB}" no está instalada. En la máquina del fundador: cd daemon/whatsapp && bun install (librería open-source, $0).`)
   }
-  const { default: makeWASocket, useSingleFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = mod as {
+  // Autenticación MULTI-FILE (baileys 6.7.24 fijado en package.json — la línea
+  // 6.x estable; la 7.x sigue en release candidate y no se mete en producción
+  // sin un ciclo real de QR que la valide): useMultiFileAuthState persiste
+  // las credenciales EN DISCO PROPIO (AUTH_DIR) y devuelve { state, saveCreds }.
+  // useSingleFileAuthState NO existe en baileys 6.7.x (bug S-017 F0.1: el
+  // arranque real moría en el import). La superficie la verifica el test
+  // test/unit/baileys-lib.test.ts contra la librería REAL instalada.
+  const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = mod as {
     default: (...args: unknown[]) => Sock
-    useSingleFileAuthState: (dir: string) => { state: unknown; saveState: () => void }
+    useMultiFileAuthState: (dir: string) => Promise<{ state: Record<string, unknown>; saveCreds: () => Promise<void> }>
     DisconnectReason: Record<string, unknown>
     fetchLatestBaileysVersion?: () => Promise<{ version: number[] }>
   }
@@ -182,7 +190,7 @@ async function main() {
     console.warn('⚠ qrcode-terminal no instalado: el QR solo viaja por el evento (sin respaldo en terminal).')
   }
 
-  const { state, saveState } = useSingleFileAuthState(AUTH_DIR)
+  const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR)
   const version = fetchLatestBaileysVersion ? await fetchLatestBaileysVersion().catch(() => ({ version: undefined as unknown as number[] })) : { version: undefined }
 
   const sock = makeWASocket({
@@ -203,7 +211,11 @@ async function main() {
       console.warn(`⚠ iniciar_espera_qr → ${ini.status}: ${(ini.json.error as string) ?? ''}. Si CHAT-X está CONECTADA con el mismo número, usa rotar desde el panel para re-emparejar.`)
       return
     }
-    const secretoSesion = JSON.stringify(state ?? {}) // blob de credenciales de la librería
+    // IDENTIFICADOR de credenciales, no el secreto utilizable: las credenciales
+    // reales viven SOLO en AUTH_DIR (disco del daemon, permisos del dueño).
+    // La casa recibe la huella canónica (wa-cred-v1:<sha256>) y la custodia
+    // cifrada para detectar drift de re-emparejamiento (F0.1).
+    const secretoSesion = huellaCredenciales(state)
     const conf = await sesionAPI('confirmar_conexion', { numero: numeroE164, secretoSesion })
     if (conf.status === 200) {
       confirmado = true
@@ -246,7 +258,12 @@ async function main() {
       setTimeout(() => process.exit(2), 1500)
     }
   })
-  interfaz.ev.on('creds.update', () => saveState())
+  interfaz.ev.on('creds.update', () => {
+    void saveCreds().catch((e: unknown) => {
+      const detalle = e instanceof Error ? e.message : String(e)
+      console.warn(`⚠ credenciales no persistidas en ${AUTH_DIR}: ${detalle} (si el proceso muere antes de persistir, re-empareja con QR)`)
+    })
+  })
 
   // 2) Mensajes entrantes → webhook firmado → obediencia al cerebro.
   interfaz.ev.on('messages.upsert', async (u: unknown) => {

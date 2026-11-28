@@ -164,6 +164,47 @@ export function huellaDaemon(e164: string): string {
   return crypto.createHash('sha256').update(`chatx-wa-num:${e164}`).digest('hex').slice(0, 32)
 }
 
+// ── Identificador de credenciales (huella, JAMÁS el secreto utilizable) ───
+
+/** Serialización canónica determinista para hashear credenciales: Buffer y
+ *  demás TypedArray → base64, claves de objeto ordenadas, undefined omitido.
+ *  JSON.stringify plano NO sirve (bug S-017 F0.1): serializa los Buffers como
+ *  {type,data} y el orden de claves depende de la inserción — dos estados con
+ *  el MISMO contenido darían huellas distintas. */
+function serializarCanonico(valor: unknown): string {
+  if (valor === null || typeof valor === 'number' || typeof valor === 'boolean' || typeof valor === 'string') {
+    return JSON.stringify(valor)
+  }
+  if (valor instanceof Uint8Array) {
+    return JSON.stringify({ b64: Buffer.from(valor).toString('base64') })
+  }
+  if (Array.isArray(valor)) {
+    return `[${valor.map((v) => (v === undefined ? 'null' : serializarCanonico(v))).join(',')}]`
+  }
+  if (typeof valor === 'object') {
+    const pares = Object.entries(valor as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    return `{${pares.map(([k, v]) => `${JSON.stringify(k)}:${serializarCanonico(v)}`).join(',')}}`
+  }
+  return 'null' // funciones y símbolos no son credenciales: caen del hash
+}
+
+export const HUELLA_CRED_PREFIJO = 'wa-cred-v1'
+
+/** Identificador ESTABLE del estado de credenciales: `wa-cred-v1:<sha256 hex>`.
+ *  El daemon lo reporta a la casa en confirmar_conexion — CHAT-X guarda el
+ *  IDENTIFICADOR (cifrado AES-256-GCM con su clave dedicada, como siempre),
+ *  jamás las credenciales utilizables: esas viven SOLO en el AUTH_DIR del
+ *  daemon (useMultiFileAuthState las persiste en disco propio, permisos del
+ *  dueño). Si el número se re-empareja, la huella cambia y la casa puede
+ *  detectar el drift sin custodiar un secreto ajeno. Determinista ante Buffers
+ *  y ante el orden de claves (test F0.1). */
+export function huellaCredenciales(estado: unknown): string {
+  const hex = crypto.createHash('sha256').update(serializarCanonico(estado)).digest('hex')
+  return `${HUELLA_CRED_PREFIJO}:${hex}`
+}
+
 // ── Constructores de payloads del webhook (firmado por el daemon) ─────────
 
 /** Cuerpo JSON del POST 'entrante'. `recibidoEn` opcional (ISO del momento

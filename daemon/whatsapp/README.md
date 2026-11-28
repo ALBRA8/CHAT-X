@@ -37,11 +37,14 @@ bun index.ts
 
 - El QR aparece en la terminal (y por el evento de la librería); escanéalo en
   ~1 minuto. Cada conexión pasa por una espera FRESH en CHAT-X
-  (`iniciar_espera_qr` → `confirmar_conexion` con el número + blob de sesión) —
-  así el estado de la casa siempre es HONESTO y el secreto de sesión queda
-  SOLO cifrado (AES-256-GCM, clave dedicada).
-- Credenciales persistentes en `./.wa-auth` (fuera de git): los reinicios no
-  piden QR de nuevo salvo logout o revocación desde el teléfono.
+  (`iniciar_espera_qr` → `confirmar_conexion` con el número + **identificador
+  de credenciales**) — así el estado de la casa siempre es HONESTO.
+- **Credenciales reales SOLO en `./.wa-auth`** (fuera de git, permisos del
+  dueño): lo que viaja a CHAT-X es la huella canónica `wa-cred-v1:<sha256>`
+  (F0.1) — la casa la guarda cifrada (AES-256-GCM, clave dedicada) para
+  detectar drift de re-emparejamiento, jamás las credenciales utilizables.
+- Los reinicios no piden QR de nuevo salvo logout o revocación desde el
+  teléfono (la autenticación es MULTI-FILE: `useMultiFileAuthState`).
 - Si CHAT-X ya está CONECTADA con el mismo número (huella igual), el daemon
   continúa sin re-emparejar; si la huella NO coincide o el secreto falta, SE
   DETIENE y lo declara — nada se sobreescribe en silencio.
@@ -72,3 +75,24 @@ bun index.ts
   entrada y salida ANTES de que el daemon reciba cualquier texto.
 - Los reintentos tienen TOPE (3) con backoff exponencial + jitter; después,
   el fallo se reporta tal cual y queda para revisión humana.
+
+## Librería y versión — decisión (S-017 F0.1)
+
+- **baileys fijado a `6.7.24`** (sin `^`): la última estable de la línea 6.x
+  (dist-tag `legacy` en npm). La autenticación usa `useMultiFileAuthState` /
+  `saveCreds` — `useSingleFileAuthState` NO existe en 6.7.x y era el bug que
+  mataba el arranque real (verificado con la librería real por
+  `test/unit/baileys-lib.test.ts`, sin conectarse a WhatsApp).
+- **Por qué NO 7.x**: la 7.0.0 sigue en release candidate (`7.0.0-rc*`) y el
+  canal es producción. Migrar una RC sin un ciclo real de QR que la valide
+  viola el fail-closed de la casa. Criterio de migración: 7.0.0 estable +
+  ciclo QR real (FASE 3) en una sesión de prueba + regresión completa.
+
+## Supervisión (F0.5)
+
+- El daemon sale con `process.exit(2)` al perder conexión reconectable y con
+  `exit(1)` en logout — se apoya en un SUPERVISOR externo, no se auto-resucita:
+  ver `systemd/chatx-whatsapp-daemon.service` y `ecosystem.config.cjs` (pm2)
+  en este directorio, y `CONTEXTO X/02_PROCESSES/WHATSAPP_QR_ACTIVACION.md`.
+  Regla: `Restart=always` con `RestartSec=5` (systemd) o `max_restarts` alto
+  con backoff (pm2); jamás dos instancias con el mismo `DAEMON_AUTH_DIR`.

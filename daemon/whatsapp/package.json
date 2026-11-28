@@ -8,7 +8,7 @@
     "arrancar": "bun index.ts"
   },
   "dependencies": {
-    "baileys": "^6.7.9",
+    "baileys": "6.7.24",
     "qrcode-terminal": "^0.12.0"
   }
 }
