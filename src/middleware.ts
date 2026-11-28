@@ -3,9 +3,33 @@
 // middleware exige cookie de sesión firmada para las acciones que mutan
 // (POST/PUT/PATCH/DELETE). Verificación por recomputación de hash — sin
 // almacenamiento de sesiones y sin copiar la contraseña nunca.
+//
+// EXENCIÓN DE WEBHOOKS FIRMADOS (S-017 F0.2): los receptores de máquina a
+// máquina (daemon WhatsApp, identidad/puente Telegram, agent-leads) NO tienen
+// cookie de navegador — su autenticación es HMAC-SHA256 fail-closed dentro de
+// la propia ruta (503 sin secreto configurado, 401 con firma inválida,
+// anti-replay con x-chatx-ts). El middleware NO les exige cookie: eximirlos
+// aquí NO los abre, la cerradura real vive en cada ruta (ver
+// src/app/api/whatsapp/conversacion/route.ts, src/app/api/telegram/*/route.ts
+// y src/app/api/motores/agent-leads/webhook/route.ts). SOLO estas rutas
+// exactas están exentas; todo lo demás que muta sigue tras cookie.
 import { NextRequest, NextResponse } from 'next/server'
 
 const PEPPER = 'chatx-admin-v1'
+
+/** Rutas webhook que se autentican por secreto+HMAC fail-closed en la propia
+ *  ruta (nunca por cookie). Única fuente de verdad — el test F0.2 afirma esta
+ *  tabla. Cualquier ruta nueva de webhook firmado se añade AQUÍ con su prueba. */
+export const RUTAS_WEBHOOK_FIRMADO: readonly string[] = [
+  '/api/whatsapp/conversacion', // daemon WhatsApp real (x-chatx-ts + x-chatx-firma)
+  '/api/telegram/conversacion', // puente Telegram (cerrojo compartido canales.ts)
+  '/api/telegram/sesion', // identidad pública del bot presentada por el daemon firmado
+  '/api/motores/agent-leads/webhook', // receptor agent-leads (token secreto fail-closed)
+]
+
+function esWebhookFirmado(pathname: string): boolean {
+  return RUTAS_WEBHOOK_FIRMADO.some((r) => pathname === r || pathname.startsWith(`${r}/`))
+}
 
 export const config = {
   matcher: ['/api/:path*'],
@@ -31,6 +55,10 @@ export async function middleware(req: NextRequest) {
   const muta = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
   const esLogin = req.nextUrl.pathname.startsWith('/api/auth/login')
   if (!muta || esLogin) return NextResponse.next()
+
+  // Webhooks firmados: su cerradura es el HMAC de la ruta (fail-closed), no la
+  // cookie. Se deja pasar para que la ruta autentique con SU mecanismo.
+  if (esWebhookFirmado(req.nextUrl.pathname)) return NextResponse.next()
 
   const cookie = req.cookies.get('chatx_admin')?.value ?? ''
   const esperado = await tokenEsperado(password)
