@@ -192,6 +192,21 @@ describe('duracionWav (header PCM)', () => {
 
 const CONTRATO_PIPER: ContratoVoz = { ...CONTRATO_OK, provedor: 'piper-local' }
 
+/** S-017 F0.7 — regla de entrega del fundador: las pruebas de piper-local que
+ *  asumen el PAQUETE importable (capa 2 y síntesis con stub) se SALTAN con
+ *  causa declarada si el entorno no tiene piper (`python3 -c 'import piper'`
+ *  falla — exactamente el mismo chequeo que hace el código de la casa). En
+ *  una máquina con piper instalado corren de verdad. La capa 1 (sonda
+ *  NO_DISPONIBLE sin paquete) y los helpers puros corren SIEMPRE. */
+const paquetePiperImportable = (() => {
+  try {
+    const r = spawnSync(process.env.PIPER_PY || 'python3', ['-c', 'import piper'], { encoding: 'utf8', timeout: 5000 })
+    return r.status === 0
+  } catch {
+    return false
+  }
+})()
+
 function stubPiper(): string {
   // Stub de síntesis: WAV RIFF válido (1 s con tono audible, como piper real —
   // el QA forense rechazaría silencio puro, y debe: piper jamás lo produce) + JSON del contrato del script real.
@@ -233,7 +248,7 @@ describe('piper-local — sonda honesta de dos capas (paquete Y modelo)', () => 
     }
   })
 
-  test('paquete presente pero sin modelo (dir vacío) → NO_DISPONIBLE apuntando al modelo', () => {
+  test.skipIf(!paquetePiperImportable)('paquete presente pero sin modelo (dir vacío) → NO_DISPONIBLE apuntando al modelo', () => {
     const dirVacio = fs.mkdtempSync(path.join(os.tmpdir(), 'chatx-piper-vacio-'))
     process.env.PIPER_MODELO_DIR = dirVacio
     try {
@@ -282,8 +297,8 @@ describe('piper-local — helpers puros', () => {
   })
 })
 
-describe('piper-local — síntesis hermética con script stub', () => {
-  test('generarVoz con stub: WAV RIFF + nota honesta de tono fijo', async () => {
+describe('piper-local — síntesis hermética con script stub (dependiente del entorno: exige paquete piper importable; se salta sin él)', () => {
+  test.skipIf(!paquetePiperImportable)('generarVoz con stub: WAV RIFF + nota honesta de tono fijo', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chatx-piper-stub-'))
     fs.writeFileSync(path.join(dir, 'es_ES-carlfm-x_low.onnx'), 'x')
     process.env.PIPER_MODELO_DIR = dir
@@ -305,7 +320,7 @@ describe('piper-local — síntesis hermética con script stub', () => {
     }
   })
 
-  test('generarVoz sin modelo → NO_DISPONIBLE (sin fallback silencioso a espeak)', async () => {
+  test.skipIf(!paquetePiperImportable)('generarVoz sin modelo → NO_DISPONIBLE (sin fallback silencioso a espeak)', async () => {
     const dirVacio = fs.mkdtempSync(path.join(os.tmpdir(), 'chatx-piper-nomodel-'))
     process.env.PIPER_MODELO_DIR = dirVacio
     try {
@@ -321,7 +336,7 @@ describe('piper-local — síntesis hermética con script stub', () => {
     }
   })
 
-  test('script que falla → ERROR con el bloqueo del JSON, no silenciado', async () => {
+  test.skipIf(!paquetePiperImportable)('script que falla → ERROR con el bloqueo del JSON, no silenciado', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chatx-piper-fail-'))
     fs.writeFileSync(path.join(dir, 'es_ES-carlfm-x_low.onnx'), 'x')
     const script = path.join(os.tmpdir(), `chatx_piper_fail_${process.pid}.py`)
