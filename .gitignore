@@ -82,3 +82,6 @@ backups/
 
 # Modelos locales de voz/IA (clon-local + piper TTS onnx; descarga única, GB, jamás en el repo)
 /models/
+
+# Daemon WhatsApp propio: credenciales multi-file de la librería (JAMÁS en git; S-017 F0.6)
+daemon/whatsapp/.wa-auth/

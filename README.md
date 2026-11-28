@@ -103,7 +103,7 @@ Construida con el método de sala limpia (clean room): toda la especificación v
 
 ```bash
 bun install
-npx prisma generate && npx prisma db push
+bun run db:generate && bun run db:push   # (db:push:forzado SOLO si aceptas pérdida de datos, es explícito)
 cp .env.example .env   # ajusta DATABASE_URL; opcional: ADMIN_PASSWORD, COMFYUI_URL, ESTUDIO_PROVIDER
 bun run dev            # http://localhost:3000
 ```
