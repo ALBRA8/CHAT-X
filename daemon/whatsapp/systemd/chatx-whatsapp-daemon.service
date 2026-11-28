@@ -1,0 +1,49 @@
+# S-017 F0.5 — unidad systemd para el daemon REAL de WhatsApp del negocio.
+# Instalación (máquina del fundador):
+#   1) Ajusta las rutas absolutas de WorkingDirectory/ExecStart/ReadWritePaths
+#      al checkout real de CHAT-X y el usuario que ejecuta el daemon.
+#   2) Crea /etc/chatx/whatsapp-daemon.env (propietario root:root, modo 600)
+#      con CHATX_URL y WHATSAPP_WEBHOOK_SECRETO — JAMÁS inline en este fichero:
+#      la unidad vive en git y el secreto en la máquina.
+#   3) cp systemd/chatx-whatsapp-daemon.service /etc/systemd/system/ &&
+#      systemctl daemon-reload && systemctl enable --now chatx-whatsapp-daemon
+#   4) Logs: journalctl -u chatx-whatsapp-daemon -f
+#
+# Semántica de salidas del daemon (intencional, documentada en su README):
+#   exit 0  → parada limpia (operador / Ctrl+C)          → systemd NO reinicia
+#   exit 1  → logout REAL (credenciales revocadas)       → SuccessExitStatus=1:
+#             reiniciar no arregla nada; el operador rota desde el panel de
+#             CHAT-X y vuelve a emparejar con QR fresco.
+#   exit 2  → caída reconectable (stream, timeout, 5xx)  → Restart=on-failure
+#             reinicia a los 5 s: las credenciales multi-file siguen en
+#             AUTH_DIR y el re-emparejamiento no pide QR.
+[Unit]
+Description=CHAT-X — daemon real del canal WhatsApp propio (baileys, fail-closed)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# AJUSTA estas dos rutas al checkout real (placeholders deliberados):
+WorkingDirectory=/opt/CHAT-X/daemon/whatsapp
+ExecStart=/usr/local/bin/bun /opt/CHAT-X/daemon/whatsapp/index.ts
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/chatx/whatsapp-daemon.env
+Restart=on-failure
+RestartSec=5
+SuccessExitStatus=1
+StartLimitIntervalSec=300
+StartLimitBurst=10
+KillSignal=SIGINT
+TimeoutStopSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=chatx-wa-daemon
+# Higiene (el AUTH_DIR vive dentro de WorkingDirectory — único sitio escribible):
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/CHAT-X/daemon/whatsapp
+
+[Install]
+WantedBy=multi-user.target

@@ -31,10 +31,10 @@ adulto — cero código de los clones).
    ```
 5. **QR**: el daemon pide espera FRESH en la casa (`iniciar_espera_qr`), muestra
    el QR en terminal (vence ~1 min, un solo uso) y al escanear llama
-   `confirmar_conexion` con el número + blob de sesión. El secreto de sesión
-   queda SOLO cifrado (AES-256-GCM, clave dedicada) y el número como huella
-   SHA-256 + máscara. Credenciales locales en `daemon/whatsapp/.wa-auth`
-   (fuera de git).
+   `confirmar_conexion` con el número + **identificador de credenciales**
+   (`wa-cred-v1:<sha256>`, S-017 F0.1 — las credenciales utilizables viven
+   SOLO en `daemon/whatsapp/.wa-auth`, fuera de git, y la casa custodia la
+   huella cifrada AES-256-GCM). El número queda como huella SHA-256 + máscara.
 6. **Prueba con destinatario consentido** (obligatoria antes de cualquier uso
    real): número de prueba con consentimiento explícito → conversa por el
    canal → verificar fila `WhatsAppMensaje` con estado `enviado` en el panel
@@ -43,6 +43,18 @@ adulto — cero código de los clones).
 7. **Bajar la sesión**: `rotar` (logout explícito, panel) + revocar el
    dispositivo desde el teléfono + borrar `.wa-auth` local. `desconectar`
    borra el secreto de la BD de la casa (explícito).
+8. **Supervisión del proceso (S-017 F0.5 — OBLIGATORIA en uso real)**: el
+   daemon no se auto-resucita — sale con `exit(2)` en caída reconectable y
+   `exit(1)` en logout real, y un SUPERVISOR externo decide:
+   - **systemd** (recomendado): `daemon/whatsapp/systemd/chatx-whatsapp-daemon.service`
+     — `Restart=on-failure` + `RestartSec=5` + `SuccessExitStatus=1` (el logout
+     NO se reintenta en bucle: rotar desde el panel y re-emparejar con QR).
+     El secreto va por `EnvironmentFile` (600, root) — jamás inline en la
+     unidad. Logs: `journalctl -u chatx-whatsapp-daemon -f`.
+   - **pm2** (alternativa): `daemon/whatsapp/ecosystem.config.cjs`
+     (`stop_exit_codes: [1]`, `restart_delay: 5000`, `max_restarts: 20`).
+   - **Regla dura**: JAMÁS dos instancias con el mismo `DAEMON_AUTH_DIR`
+     (las credenciales multi-file no toleran dos dueños simultáneos).
 
 **Honestidad del arranque**: si CHAT-X dice CONECTADA con la MISMA huella del
 número, el daemon continúa sin re-emparejar; si la huella NO coincide o el
